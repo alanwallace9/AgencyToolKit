@@ -114,7 +114,11 @@
 - Handles user.deleted event: deletes agency (cascades to related data)
 - Uses svix for webhook signature verification
 - Uses Supabase admin client for database operations
-- Build verified successful
+- Deployed to Vercel with environment variables configured
+- Configured Clerk webhook endpoint pointing to Vercel deployment
+- Added Vercel Speed Insights (@vercel/speed-insights)
+- Disabled Vercel deployment protection (was blocking webhooks)
+- Webhook tested successfully - agency record created in Supabase!
 
 ---
 
@@ -126,3 +130,7 @@
 - 2026-01-10: Renamed middleware.ts to proxy.ts (Next.js 16 convention)
 - 2026-01-10: Added @tailwindcss/postcss for Tailwind v4 compatibility
 - 2026-01-10: Using Supabase MCP for schema migrations (better versioning than SQL Editor)
+- 2026-01-10: Disabled Vercel deployment protection (was blocking Clerk webhooks)
+- 2026-01-10: Added @vercel/speed-insights for performance monitoring
+- 2026-01-10: GitHub repo: https://github.com/alanwallace9/AgencyToolKit
+- 2026-01-10: Vercel URL: https://agencytoolkit-alanwallace9-5200s-projects.vercel.app
