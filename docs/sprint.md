@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 14% Complete (5 of 36 Features)
+## Progress: 11% Complete (4 of 36 Features, Feature 5 at 90%)
 
 ---
 
@@ -11,7 +11,7 @@
 - [x] Feature 2: Clerk Authentication Setup
 - [x] Feature 3: Supabase Schema & Client Setup
 - [x] Feature 4: Clerk Webhook Handler
-- [x] Feature 5: Dashboard Layout Shell
+- [ ] Feature 5: Dashboard Layout Shell (90% - sidebar layout fix pending)
 - [ ] Feature 6: Customers List Page
 - [ ] Feature 7: Customer Edit Page
 - [ ] Feature 8: Embed Code Display
@@ -59,10 +59,10 @@
 ## Current Sprint
 
 ### In Progress
-- [ ] Feature 6 - Customers List Page
+- [ ] Feature 5 - Dashboard Layout Shell (sidebar overlap fix remaining)
 
 ### Up Next
-- Feature 7 - Customer Edit Page
+- Feature 6 - Customers List Page
 
 ---
 
@@ -121,8 +121,10 @@
 - Webhook tested successfully - agency record created in Supabase!
 
 ### Feature 5: Dashboard Layout Shell
-**Completed:** 2026-01-10
+**Status:** 90% Complete - Layout issue pending
+**Started:** 2026-01-10
 
+**Completed:**
 - Created hooks/use-mobile.ts for responsive sidebar
 - Created components/dashboard/app-sidebar.tsx with navigation items
 - Created components/dashboard/dashboard-header.tsx with breadcrumbs and UserButton
@@ -133,7 +135,40 @@
 - Pro features (login, tours, images) show upgrade prompt for non-Pro users
 - Sidebar shows Pro badge on gated features
 - Mobile responsive via shadcn Sheet component
-- Dev server tested - all pages compile and render correctly
+- Added SignOutButton to landing page
+- Fixed Clerk environment mismatch (was using wrong Clerk app keys)
+- Clerk webhook working - creates agency on signup
+- User can sign in and access dashboard
+
+**Known Issue - To Fix Next Session:**
+- Sidebar overlaps main content when expanded (works when collapsed)
+- Root cause identified: Need to use SidebarInset correctly and spread props to Sidebar component
+- Reference: shadcn sidebar-01 block structure (installed for reference)
+- Fix plan documented below
+
+**Files created by shadcn sidebar-01 block (for reference, can delete after fix):**
+- app/dashboard/page.tsx (conflicts with route group - delete after copying pattern)
+- components/app-sidebar.tsx (reference for props spreading)
+- components/search-form.tsx (not needed)
+- components/version-switcher.tsx (not needed)
+
+**Fix Plan for Next Session:**
+1. Delete conflicting /app/dashboard/page.tsx
+2. Update components/dashboard/app-sidebar.tsx to spread {...props} to <Sidebar>
+3. Update app/(dashboard)/layout.tsx to use SidebarInset properly:
+   ```tsx
+   <SidebarProvider>
+     <AppSidebar agencyPlan={agency.plan} />
+     <SidebarInset>
+       <DashboardHeader agencyName={agency.name} />
+       <main className="flex flex-1 flex-col gap-4 p-4">
+         {children}
+       </main>
+     </SidebarInset>
+   </SidebarProvider>
+   ```
+4. Delete temporary shadcn reference files
+5. Test sidebar expand/collapse
 
 ---
 

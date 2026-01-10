@@ -16,12 +16,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <AppSidebar agencyPlan={agency.plan} />
-      <SidebarInset>
+      <div className="flex-1 flex flex-col md:ml-[--sidebar-width] transition-[margin] duration-200">
         <DashboardHeader agencyName={agency.name} />
-        <div className="flex-1 overflow-auto p-6">{children}</div>
-      </SidebarInset>
+        <main className="flex-1 overflow-auto p-6">
+          <div className="w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
     </SidebarProvider>
   )
 }

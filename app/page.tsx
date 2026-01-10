@@ -1,6 +1,7 @@
 import {
   SignInButton,
   SignUpButton,
+  SignOutButton,
   SignedIn,
   SignedOut,
 } from "@clerk/nextjs";
@@ -28,6 +29,9 @@ export default function Home() {
           <Button asChild>
             <Link href="/dashboard">Go to Dashboard</Link>
           </Button>
+          <SignOutButton>
+            <Button variant="outline">Sign Out</Button>
+          </SignOutButton>
         </SignedIn>
       </div>
     </main>
