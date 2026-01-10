@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 11% Complete (4 of 36 Features)
+## Progress: 14% Complete (5 of 36 Features)
 
 ---
 
@@ -11,7 +11,7 @@
 - [x] Feature 2: Clerk Authentication Setup
 - [x] Feature 3: Supabase Schema & Client Setup
 - [x] Feature 4: Clerk Webhook Handler
-- [ ] Feature 5: Dashboard Layout Shell
+- [x] Feature 5: Dashboard Layout Shell
 - [ ] Feature 6: Customers List Page
 - [ ] Feature 7: Customer Edit Page
 - [ ] Feature 8: Embed Code Display
@@ -59,10 +59,10 @@
 ## Current Sprint
 
 ### In Progress
-- [ ] Feature 5 - Dashboard Layout Shell
+- [ ] Feature 6 - Customers List Page
 
 ### Up Next
-- Feature 6 - Customers List Page
+- Feature 7 - Customer Edit Page
 
 ---
 
@@ -119,6 +119,21 @@
 - Added Vercel Speed Insights (@vercel/speed-insights)
 - Disabled Vercel deployment protection (was blocking webhooks)
 - Webhook tested successfully - agency record created in Supabase!
+
+### Feature 5: Dashboard Layout Shell
+**Completed:** 2026-01-10
+
+- Created hooks/use-mobile.ts for responsive sidebar
+- Created components/dashboard/app-sidebar.tsx with navigation items
+- Created components/dashboard/dashboard-header.tsx with breadcrumbs and UserButton
+- Created components/shared/page-header.tsx (reusable)
+- Created app/(dashboard)/layout.tsx with SidebarProvider
+- Created 9 placeholder pages:
+  - dashboard, customers, menu, login, loading, colors, tours, images, settings
+- Pro features (login, tours, images) show upgrade prompt for non-Pro users
+- Sidebar shows Pro badge on gated features
+- Mobile responsive via shadcn Sheet component
+- Dev server tested - all pages compile and render correctly
 
 ---
 
