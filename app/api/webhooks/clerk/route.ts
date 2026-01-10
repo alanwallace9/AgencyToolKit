@@ -42,24 +42,31 @@ export async function POST(request: Request) {
 
   // Handle user.created event
   if (evt.type === 'user.created') {
-    const { id, email_addresses, first_name, last_name } = evt.data;
-    const email = email_addresses[0]?.email_address;
-    const name = [first_name, last_name].filter(Boolean).join(' ') || 'My Agency';
+    try {
+      const { id, email_addresses, first_name, last_name } = evt.data;
+      const email = email_addresses?.[0]?.email_address || `${id}@placeholder.local`;
+      const name = [first_name, last_name].filter(Boolean).join(' ') || 'My Agency';
 
-    const { error } = await supabase.from('agencies').insert({
-      clerk_user_id: id,
-      email: email,
-      name: name,
-      token: generateAgencyToken(name),
-      plan: 'free',
-    });
+      console.log('Creating agency for:', { id, email, name });
 
-    if (error) {
-      console.error('Failed to create agency:', error);
-      return new Response('Failed to create agency', { status: 500 });
+      const { error } = await supabase.from('agencies').insert({
+        clerk_user_id: id,
+        email: email,
+        name: name,
+        token: generateAgencyToken(name),
+        plan: 'free',
+      });
+
+      if (error) {
+        console.error('Failed to create agency:', error);
+        return new Response(`Failed to create agency: ${error.message}`, { status: 500 });
+      }
+
+      console.log(`Agency created for user ${id}`);
+    } catch (err) {
+      console.error('Unexpected error in user.created handler:', err);
+      return new Response(`Unexpected error: ${err}`, { status: 500 });
     }
-
-    console.log(`Agency created for user ${id}`);
   }
 
   // Handle user.deleted event
