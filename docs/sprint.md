@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 8% Complete (3 of 36 Features)
+## Progress: 11% Complete (4 of 36 Features)
 
 ---
 
@@ -10,7 +10,7 @@
 - [x] Feature 1: Project Scaffolding
 - [x] Feature 2: Clerk Authentication Setup
 - [x] Feature 3: Supabase Schema & Client Setup
-- [ ] Feature 4: Clerk Webhook Handler
+- [x] Feature 4: Clerk Webhook Handler
 - [ ] Feature 5: Dashboard Layout Shell
 - [ ] Feature 6: Customers List Page
 - [ ] Feature 7: Customer Edit Page
@@ -59,10 +59,10 @@
 ## Current Sprint
 
 ### In Progress
-- [ ] Feature 4 - Clerk Webhook Handler
+- [ ] Feature 5 - Dashboard Layout Shell
 
 ### Up Next
-- Feature 5 - Dashboard Layout Shell
+- Feature 6 - Customers List Page
 
 ---
 
@@ -104,6 +104,17 @@
   - enable_rls_and_policies (RLS enabled + 17 policies)
   - create_functions_and_triggers (3 functions + 6 triggers)
 - Project ID: hldtxlzxneifdzvoobte
+
+### Feature 4: Clerk Webhook Handler
+**Completed:** 2026-01-10
+
+- Created lib/tokens.ts with generateAgencyToken() and generateCustomerToken()
+- Created app/api/webhooks/clerk/route.ts
+- Handles user.created event: creates agency record with generated token
+- Handles user.deleted event: deletes agency (cascades to related data)
+- Uses svix for webhook signature verification
+- Uses Supabase admin client for database operations
+- Build verified successful
 
 ---
 
