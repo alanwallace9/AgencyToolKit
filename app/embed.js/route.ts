@@ -62,42 +62,67 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     return false;
   }
 
-  // Apply menu customizations
+  // Apply menu customizations via CSS injection
   function applyMenuConfig(menuConfig) {
     if (!menuConfig) return;
     log('Applying menu config', menuConfig);
 
-    // Hide menu items
+    // Remove existing menu styles if any
+    var existingStyle = document.getElementById('agency-toolkit-menu');
+    if (existingStyle) existingStyle.remove();
+
+    var css = '';
+
+    // Hide menu items using GHL sidebar item selectors
     if (menuConfig.hidden_items && menuConfig.hidden_items.length > 0) {
-      menuConfig.hidden_items.forEach(function(item) {
-        var elements = document.querySelectorAll('[data-menu-item="' + item + '"], [href*="' + item + '"]');
-        elements.forEach(function(el) {
-          el.style.display = 'none';
-        });
+      var hiddenSelectors = menuConfig.hidden_items.map(function(item) {
+        // GHL uses data-sidebar-item attribute on sidebar items
+        return '[data-sidebar-item="' + item + '"]';
+      }).join(',\\n');
+
+      css += '/* Hidden Menu Items */\\n';
+      css += hiddenSelectors + ' { display: none !important; }\\n';
+    }
+
+    // Rename menu items using CSS ::after trick
+    if (menuConfig.renamed_items && Object.keys(menuConfig.renamed_items).length > 0) {
+      css += '/* Renamed Menu Items */\\n';
+      Object.keys(menuConfig.renamed_items).forEach(function(itemId) {
+        var newName = menuConfig.renamed_items[itemId];
+        // Hide original text, show new text via ::after
+        css += '[data-sidebar-item="' + itemId + '"] span.hl-text-md { font-size: 0 !important; }\\n';
+        css += '[data-sidebar-item="' + itemId + '"] span.hl-text-md::after { content: "' + newName + '"; font-size: 14px; }\\n';
       });
     }
 
-    // Rename menu items
-    if (menuConfig.renamed_items) {
-      Object.keys(menuConfig.renamed_items).forEach(function(original) {
-        var newName = menuConfig.renamed_items[original];
-        var elements = document.querySelectorAll('[data-menu-item="' + original + '"]');
-        elements.forEach(function(el) {
-          if (el.textContent) {
-            el.textContent = newName;
-          }
-        });
-      });
+    // Hide promotional banners
+    if (menuConfig.hidden_banners && menuConfig.hidden_banners.indexOf('hide_promos') !== -1) {
+      css += '/* Hidden Promotional Banners */\\n';
+      css += '[class*="promo-banner"], [class*="wordpress-promo"], [class*="upgrade-prompt"], ';
+      css += '[class*="feature-announcement"], .hl-banner-promo { display: none !important; }\\n';
     }
 
-    // Hide banners
-    if (menuConfig.hidden_banners && menuConfig.hidden_banners.length > 0) {
-      menuConfig.hidden_banners.forEach(function(banner) {
-        var elements = document.querySelectorAll('[data-banner="' + banner + '"], .' + banner);
-        elements.forEach(function(el) {
-          el.style.display = 'none';
-        });
-      });
+    // Hide warning banners
+    if (menuConfig.hidden_banners && menuConfig.hidden_banners.indexOf('hide_warnings') !== -1) {
+      css += '/* Hidden Warning Banners */\\n';
+      css += '[class*="warning-banner"], [class*="twilio-warning"], ';
+      css += '[class*="reintegration-alert"], .hl-banner-warning { display: none !important; }\\n';
+    }
+
+    // Hide connect prompts
+    if (menuConfig.hidden_banners && menuConfig.hidden_banners.indexOf('hide_connects') !== -1) {
+      css += '/* Hidden Connect Prompts */\\n';
+      css += '[class*="connect-prompt"], [class*="facebook-connect"], [class*="whatsapp-connect"], ';
+      css += '[class*="invite-user"], .launchpad-connect-card { display: none !important; }\\n';
+    }
+
+    // Inject styles
+    if (css) {
+      var style = document.createElement('style');
+      style.id = 'agency-toolkit-menu';
+      style.textContent = css;
+      document.head.appendChild(style);
+      log('Menu CSS injected');
     }
   }
 

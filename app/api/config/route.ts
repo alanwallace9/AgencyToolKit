@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Get agency by token with active tours
+    // Get agency by token with active tours and default menu preset
     const { data: agency, error } = await supabase
       .from('agencies')
       .select(
@@ -49,6 +49,12 @@ export async function GET(request: Request) {
           trigger,
           steps,
           is_active
+        ),
+        menu_presets (
+          id,
+          name,
+          is_default,
+          config
         )
       `
       )
@@ -70,11 +76,27 @@ export async function GET(request: Request) {
       (tour: { is_active: boolean }) => tour.is_active
     );
 
+    // Get the default menu preset config
+    const defaultPreset = (agency.menu_presets || []).find(
+      (preset: { is_default: boolean }) => preset.is_default
+    );
+
+    // Build menu config from default preset
+    const menuConfig = defaultPreset?.config
+      ? {
+          hidden_items: defaultPreset.config.hidden_items || [],
+          renamed_items: defaultPreset.config.renamed_items || {},
+          item_order: defaultPreset.config.item_order || [],
+          hidden_banners: defaultPreset.config.hidden_banners || [],
+          dividers: defaultPreset.config.dividers || [],
+        }
+      : agency.settings?.menu || null;
+
     // Return configuration for embed script
     const config = {
       token: agency.token,
       plan: agency.plan,
-      menu: agency.settings?.menu || null,
+      menu: menuConfig,
       login: agency.settings?.login || null,
       loading: agency.settings?.loading || null,
       colors: agency.settings?.colors || null,

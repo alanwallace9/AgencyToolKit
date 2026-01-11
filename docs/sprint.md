@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 33% Complete (12 of 36 Features)
+## Progress: 36% Complete (13 of 36 Features)
 
 ---
 
@@ -21,7 +21,7 @@
 ### Phase 2: Quick Wins / MVP
 - [x] Feature 11: Menu Customizer - Presets List
 - [x] Feature 12: Menu Customizer - Visual Editor
-- [ ] Feature 13: Apply Menu Config in Embed Script
+- [x] Feature 13: Apply Menu Config in Embed Script
 - [ ] Feature 14: Login Customizer Page
 - [ ] Feature 15: Loading Animations Page
 - [ ] Feature 16: Dashboard Colors Page
@@ -295,6 +295,23 @@
   - "Sync with GHL" button disabled with "Coming Soon" tooltip
 - Added shadcn collapsible component
 - Updated database types to include dividers in MenuPreset config
+
+### Feature 13: Apply Menu Config in Embed Script
+**Completed:** 2026-01-11
+
+- Updated `/api/config` to fetch default menu preset:
+  - Joins with `menu_presets` table
+  - Finds preset where `is_default: true`
+  - Falls back to `agency.settings.menu` if no default preset
+  - Includes `hidden_items`, `renamed_items`, `item_order`, `hidden_banners`, `dividers`
+- Updated embed script with CSS injection approach:
+  - Uses GHL-specific selectors: `[data-sidebar-item="sb_*"]`
+  - Hides menu items via `display: none !important`
+  - Renames items using CSS `::after` trick (font-size: 0 + ::after content)
+  - Hides promotional banners (`[class*="promo-banner"]`, etc.)
+  - Hides warning banners (`[class*="warning-banner"]`, `[class*="twilio-warning"]`)
+  - Hides connect prompts (`[class*="connect-prompt"]`, etc.)
+  - Removes and re-injects styles on re-application (SPA support)
 
 ---
 
