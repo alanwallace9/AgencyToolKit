@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/dashboard/app-sidebar"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import Link from "next/link"
+import { Sparkles } from "lucide-react"
+import { UserButton } from "@clerk/nextjs"
+
+import { Badge } from "@/components/ui/badge"
+import { MainNav } from "@/components/dashboard/main-nav"
 import { getCurrentAgency } from "@/lib/auth"
 
 export default async function DashboardLayout({
@@ -16,14 +19,25 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <AppSidebar agencyPlan={agency.plan} />
-      <div className="flex-1 flex flex-col md:ml-[--sidebar-width] transition-[margin] duration-200">
-        <DashboardHeader agencyName={agency.name} />
-        <main className="flex-1 overflow-auto p-6">
-          <div className="w-full max-w-6xl">{children}</div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b bg-background sticky top-0 z-50">
+        <div className="flex h-14 items-center px-14">
+          <Link href="/dashboard" className="flex items-center gap-2 mr-6">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <span className="font-semibold">Agency Toolkit</span>
+          </Link>
+          <MainNav agencyPlan={agency.plan} />
+          <div className="ml-auto flex items-center gap-4">
+            <Badge variant={agency.plan === "pro" ? "default" : "secondary"}>
+              {agency.plan === "pro" ? "Pro" : "Toolkit"}
+            </Badge>
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 py-6 px-14">
+        {children}
+      </main>
+    </div>
   )
 }

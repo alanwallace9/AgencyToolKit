@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 11% Complete (4 of 36 Features, Feature 5 at 90%)
+## Progress: 14% Complete (5 of 36 Features)
 
 ---
 
@@ -11,7 +11,7 @@
 - [x] Feature 2: Clerk Authentication Setup
 - [x] Feature 3: Supabase Schema & Client Setup
 - [x] Feature 4: Clerk Webhook Handler
-- [ ] Feature 5: Dashboard Layout Shell (90% - sidebar layout fix pending)
+- [x] Feature 5: Dashboard Layout Shell
 - [ ] Feature 6: Customers List Page
 - [ ] Feature 7: Customer Edit Page
 - [ ] Feature 8: Embed Code Display
@@ -58,8 +58,8 @@
 
 ## Current Sprint
 
-### In Progress
-- [ ] Feature 5 - Dashboard Layout Shell (sidebar overlap fix remaining)
+### Completed This Session
+- [x] Feature 5 - Dashboard Layout Shell (sidebar fix applied)
 
 ### Up Next
 - Feature 6 - Customers List Page
@@ -121,10 +121,8 @@
 - Webhook tested successfully - agency record created in Supabase!
 
 ### Feature 5: Dashboard Layout Shell
-**Status:** 90% Complete - Layout issue pending
-**Started:** 2026-01-10
+**Completed:** 2026-01-10
 
-**Completed:**
 - Created hooks/use-mobile.ts for responsive sidebar
 - Created components/dashboard/app-sidebar.tsx with navigation items
 - Created components/dashboard/dashboard-header.tsx with breadcrumbs and UserButton
@@ -140,39 +138,20 @@
 - Clerk webhook working - creates agency on signup
 - User can sign in and access dashboard
 
-**Known Issue - To Fix Next Session:**
-- Sidebar overlaps main content when expanded (works when collapsed)
-- Root cause identified: Need to use SidebarInset correctly and spread props to Sidebar component
-- Reference: shadcn sidebar-01 block structure (installed for reference)
-- Fix plan documented below
-
-**Files created by shadcn sidebar-01 block (for reference, can delete after fix):**
-- app/dashboard/page.tsx (conflicts with route group - delete after copying pattern)
-- components/app-sidebar.tsx (reference for props spreading)
-- components/search-form.tsx (not needed)
-- components/version-switcher.tsx (not needed)
-
-**Fix Plan for Next Session:**
-1. Delete conflicting /app/dashboard/page.tsx
-2. Update components/dashboard/app-sidebar.tsx to spread {...props} to <Sidebar>
-3. Update app/(dashboard)/layout.tsx to use SidebarInset properly:
-   ```tsx
-   <SidebarProvider>
-     <AppSidebar agencyPlan={agency.plan} />
-     <SidebarInset>
-       <DashboardHeader agencyName={agency.name} />
-       <main className="flex flex-1 flex-col gap-4 p-4">
-         {children}
-       </main>
-     </SidebarInset>
-   </SidebarProvider>
-   ```
-4. Delete temporary shadcn reference files
-5. Test sidebar expand/collapse
+**Navigation Overhaul (2026-01-10):**
+- Replaced sidebar with horizontal Navigation Menu (better UX for GHL iframe embedding)
+- Created `components/dashboard/main-nav.tsx` with multi-level dropdowns
+- Navigation structure: Dashboard, Customers, Customize▼, Pro▼, Settings
+- Customize dropdown: Menu, Login, Loading, Colors (2x2 grid with descriptions)
+- Pro dropdown: Tours, Images (redirects to upgrade page for non-Pro users)
+- Created `app/(dashboard)/upgrade/[feature]/page.tsx` for Pro feature upsell
+- Plan badge in header shows current tier (Toolkit/Pro)
+- Deleted unused sidebar files: `app-sidebar.tsx`, `search-form.tsx`, `version-switcher.tsx`
 
 ---
 
 ## Decisions Log
+- 2026-01-10: Replaced sidebar with Navigation Menu - better UX for iframe-embedded apps (GHL already has sidebar)
 - 2026-01-10: Using npm/pnpm hybrid (pnpm installed globally via npm)
 - 2026-01-10: Using sonner instead of deprecated toast component
 - 2026-01-10: Using new-york style for shadcn/ui (now default)
