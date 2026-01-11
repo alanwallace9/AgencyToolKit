@@ -2,6 +2,12 @@
 
 Reference to detailed plans created during development. Full plan files are stored in `~/.claude/plans/`.
 
+## Up Next
+
+| Plan | Summary | File |
+|------|---------|------|
+| Login Designer (Feature 14) | Drag-drop canvas editor, layout presets, GIF support - major differentiator vs competitors | `~/.claude/plans/login-designer-canvas.md` |
+
 ## Completed
 
 | Plan | Summary | File |
