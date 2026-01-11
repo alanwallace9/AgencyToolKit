@@ -77,6 +77,8 @@ export interface LoginDesignFormStyle {
   input_text: string;
   link_color: string;
   form_bg?: string; // Form container background
+  label_color?: string; // Form field label color (Email, Password)
+  logo_url?: string; // Custom logo URL for the form
 }
 
 export interface CanvasElementBase {
@@ -124,6 +126,7 @@ export interface ShapeElementProps {
   color: string;
   opacity: number;
   borderWidth?: number;
+  orientation?: 'horizontal' | 'vertical'; // For line shapes
 }
 
 export interface ButtonElementProps {

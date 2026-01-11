@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Trash2, Layers, Move, Palette, AlignCenterHorizontal, AlignCenterVertical } from 'lucide-react';
+import { FileUpload } from '@/components/shared/file-upload';
 import type {
   CanvasElement,
   ImageElementProps,
@@ -243,12 +244,12 @@ function ImageProperties({
   return (
     <div className="space-y-3">
       <div>
-        <Label className="text-xs">Image URL</Label>
-        <Input
+        <Label className="text-xs">Image</Label>
+        <FileUpload
           value={props.url}
-          onChange={(e) => onChange({ url: e.target.value })}
-          placeholder="https://..."
-          className="h-8"
+          onChange={(url) => onChange({ url })}
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          placeholder="Enter URL or upload image"
         />
       </div>
       <div>
@@ -380,12 +381,12 @@ function GifProperties({
   return (
     <div className="space-y-3">
       <div>
-        <Label className="text-xs">GIF URL</Label>
-        <Input
+        <Label className="text-xs">GIF</Label>
+        <FileUpload
           value={props.url}
-          onChange={(e) => onChange({ url: e.target.value })}
-          placeholder="https://..."
-          className="h-8"
+          onChange={(url) => onChange({ url })}
+          accept="image/gif"
+          placeholder="Enter URL or upload GIF"
         />
       </div>
       <div>
@@ -526,16 +527,33 @@ function ShapeProperties({
         />
       </div>
       {props.shapeType === 'line' && (
-        <div>
-          <Label className="text-xs">Border Width</Label>
-          <Input
-            type="number"
-            value={props.borderWidth || 2}
-            onChange={(e) => onChange({ borderWidth: Number(e.target.value) })}
-            className="h-8"
-            min={1}
-          />
-        </div>
+        <>
+          <div>
+            <Label className="text-xs">Line Width</Label>
+            <Input
+              type="number"
+              value={props.borderWidth || 2}
+              onChange={(e) => onChange({ borderWidth: Number(e.target.value) })}
+              className="h-8"
+              min={1}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Orientation</Label>
+            <Select
+              value={props.orientation || 'horizontal'}
+              onValueChange={(v) => onChange({ orientation: v as 'horizontal' | 'vertical' })}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="horizontal">Horizontal</SelectItem>
+                <SelectItem value="vertical">Vertical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
       )}
     </div>
   );

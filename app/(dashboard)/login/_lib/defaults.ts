@@ -13,6 +13,7 @@ export const DEFAULT_FORM_STYLE: LoginDesignFormStyle = {
   input_text: '#111827',
   link_color: '#2563eb',
   form_bg: 'rgba(255, 255, 255, 0.05)', // Subtle form container background
+  label_color: 'rgba(255, 255, 255, 0.6)', // Form field labels (Email, Password)
 };
 
 // Default canvas (16:9 aspect ratio)

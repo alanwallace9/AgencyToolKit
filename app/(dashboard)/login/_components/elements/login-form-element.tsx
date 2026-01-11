@@ -9,6 +9,7 @@ interface Props {
 
 export function LoginFormElement({ props, formStyle }: Props) {
   const isCompact = props.variant === 'compact';
+  const labelColor = formStyle.label_color || 'rgba(255, 255, 255, 0.6)';
 
   return (
     <div
@@ -18,16 +19,29 @@ export function LoginFormElement({ props, formStyle }: Props) {
         backdropFilter: 'blur(8px)',
       }}
     >
-      {/* Logo placeholder */}
-      <div className="w-10 h-10 bg-white/10 rounded-lg mx-auto mb-4 flex items-center justify-center">
-        <span className="text-white/50 text-xs">Logo</span>
-      </div>
+      {/* Logo */}
+      {formStyle.logo_url ? (
+        <img
+          src={formStyle.logo_url}
+          alt="Logo"
+          className="h-10 w-auto mx-auto mb-4 object-contain"
+        />
+      ) : (
+        <div className="w-10 h-10 bg-white/10 rounded-lg mx-auto mb-4 flex items-center justify-center">
+          <span className="text-white/50 text-xs">Logo</span>
+        </div>
+      )}
 
       {/* Form fields */}
       <div className={`flex-1 flex flex-col ${isCompact ? 'gap-2' : 'gap-3'}`}>
         {/* Email */}
         <div>
-          <label className="text-xs text-white/60 mb-1 block">Email</label>
+          <label
+            className="text-xs mb-1 block"
+            style={{ color: labelColor }}
+          >
+            Email
+          </label>
           <div
             className="h-9 rounded-md px-3 flex items-center text-sm"
             style={{
@@ -42,7 +56,12 @@ export function LoginFormElement({ props, formStyle }: Props) {
 
         {/* Password */}
         <div>
-          <label className="text-xs text-white/60 mb-1 block">Password</label>
+          <label
+            className="text-xs mb-1 block"
+            style={{ color: labelColor }}
+          >
+            Password
+          </label>
           <div
             className="h-9 rounded-md px-3 flex items-center text-sm"
             style={{

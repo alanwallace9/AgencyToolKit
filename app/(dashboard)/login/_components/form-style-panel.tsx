@@ -2,6 +2,7 @@
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { FileUpload } from '@/components/shared/file-upload';
 import type { LoginDesignFormStyle } from '@/types/database';
 
 interface FormStylePanelProps {
@@ -19,6 +20,22 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
       <p className="text-xs text-muted-foreground">
         Style the login form container, inputs, and button
       </p>
+
+      {/* Logo */}
+      <div className="space-y-3">
+        <Label className="text-xs font-medium text-muted-foreground uppercase">
+          Logo
+        </Label>
+        <div>
+          <Label className="text-xs">Logo Image</Label>
+          <FileUpload
+            value={formStyle.logo_url || ''}
+            onChange={(url) => updateStyle('logo_url', url)}
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            placeholder="Enter URL or upload logo"
+          />
+        </div>
+      </div>
 
       {/* Form Container */}
       <div className="space-y-3">
@@ -44,6 +61,30 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           <p className="text-xs text-muted-foreground mt-1">
             Use rgba() for transparency
           </p>
+        </div>
+      </div>
+
+      {/* Field Labels */}
+      <div className="space-y-3">
+        <Label className="text-xs font-medium text-muted-foreground uppercase">
+          Field Labels
+        </Label>
+        <div>
+          <Label className="text-xs">Label Color</Label>
+          <div className="flex gap-1">
+            <Input
+              type="color"
+              value={formStyle.label_color?.startsWith('rgba') ? '#ffffff' : (formStyle.label_color || '#ffffff')}
+              onChange={(e) => updateStyle('label_color', e.target.value)}
+              className="h-8 w-10 p-1"
+            />
+            <Input
+              value={formStyle.label_color || 'rgba(255,255,255,0.6)'}
+              onChange={(e) => updateStyle('label_color', e.target.value)}
+              placeholder="rgba(255,255,255,0.6)"
+              className="h-8 flex-1 text-xs"
+            />
+          </div>
         </div>
       </div>
 

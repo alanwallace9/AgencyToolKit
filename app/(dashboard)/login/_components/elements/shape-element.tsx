@@ -10,12 +10,13 @@ export function ShapeElement({ props }: Props) {
   const opacity = props.opacity / 100;
 
   if (props.shapeType === 'line') {
+    const isVertical = props.orientation === 'vertical';
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div
-          className="w-full"
           style={{
-            height: props.borderWidth || 2,
+            width: isVertical ? (props.borderWidth || 2) : '100%',
+            height: isVertical ? '100%' : (props.borderWidth || 2),
             backgroundColor: props.color,
             opacity,
           }}

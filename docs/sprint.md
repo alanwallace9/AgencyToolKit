@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 39% Complete (14 of 36 Features)
+## Progress: 36% Complete (13 of 36 Features)
 
 ---
 
@@ -22,7 +22,7 @@
 - [x] Feature 11: Menu Customizer - Presets List
 - [x] Feature 12: Menu Customizer - Visual Editor
 - [x] Feature 13: Apply Menu Config in Embed Script
-- [x] Feature 14: Login Customizer Page (Canvas-based Designer)
+- [ ] Feature 14: Login Customizer Page (Canvas-based Designer) **IN PROGRESS**
 - [ ] Feature 15: Loading Animations Page
 - [ ] Feature 16: Dashboard Colors Page
 - [ ] Feature 17: Apply Visual Configs in Embed Script
@@ -58,18 +58,11 @@
 
 ## Current Sprint
 
-### Completed This Session
-- [x] Feature 5 - Dashboard Layout Shell (sidebar fix applied)
-- [x] Feature 6 - Customers List Page
-- [x] Feature 7 - Customer Edit Page
-- [x] Feature 8 - Embed Code Display
-- [x] Feature 9 - Config API Endpoint
-- [x] Feature 10 - Basic Embed Script
-- [x] Feature 11 - Menu Customizer - Presets List
-- [x] Feature 12 - Menu Customizer - Visual Editor
+### In Progress
+- Feature 14 - Login Designer polish (see `docs/features/feature-14-login-designer.md`)
 
 ### Up Next
-- Feature 13 - Apply Menu Config in Embed Script
+- Feature 15 - Loading Animations Page
 
 ---
 
@@ -419,5 +412,4 @@
 - `app/(dashboard)/login/_lib/defaults.ts` - moved constants out of "use server" file
 - `types/database.ts` - added form_bg to LoginDesignFormStyle
 
-**Remaining (lower priority):**
-- Element visual scaling when browser resizes (elements currently use fixed % of canvas)
+**Remaining:** See `docs/features/feature-14-login-designer.md` for polish items

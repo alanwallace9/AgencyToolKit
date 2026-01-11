@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -68,6 +68,41 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
   );
 
   const selectedElement = elements.find((el) => el.id === selectedElementId);
+
+  // Handle element selection - auto-switch to Form tab for login-form
+  const handleSelectElement = useCallback((id: string | null) => {
+    setSelectedElementId(id);
+    if (id) {
+      const element = elements.find((el) => el.id === id);
+      if (element?.type === 'login-form') {
+        setActiveTab('form');
+      }
+    }
+  }, [elements]);
+
+  // Keyboard handler for delete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementId) {
+        // Don't delete if focused on an input
+        if ((e.target as HTMLElement).tagName === 'INPUT' ||
+            (e.target as HTMLElement).tagName === 'TEXTAREA') {
+          return;
+        }
+        const element = elements.find((el) => el.id === selectedElementId);
+        if (element?.type === 'login-form') {
+          toast.error('Cannot delete the login form');
+          return;
+        }
+        setElements((prev) => prev.filter((el) => el.id !== selectedElementId));
+        setSelectedElementId(null);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedElementId, elements]);
 
   // Handle drag end - convert pixel delta to percentage
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -152,6 +187,15 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
     setElements((prev) => prev.filter((el) => el.id !== id));
     setSelectedElementId(null);
   }, [elements]);
+
+  // Handle element resize
+  const handleResizeElement = useCallback((id: string, width: number, height: number) => {
+    setElements((prev) =>
+      prev.map((el) =>
+        el.id === id ? { ...el, width, height } : el
+      )
+    );
+  }, []);
 
   // Save design
   const handleSave = useCallback(async () => {
@@ -255,7 +299,8 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
                 canvas={canvas}
                 elements={elements}
                 selectedElementId={selectedElementId}
-                onSelectElement={setSelectedElementId}
+                onSelectElement={handleSelectElement}
+                onResizeElement={handleResizeElement}
                 formStyle={formStyle}
                 canvasRef={canvasRef}
               />

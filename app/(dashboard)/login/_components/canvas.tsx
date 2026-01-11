@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { ImageElement } from './elements/image-element';
@@ -16,6 +16,8 @@ import type {
   LoginDesignFormStyle,
 } from '@/types/database';
 
+type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se';
+
 interface DesignCanvasProps {
   canvas: {
     width: number;
@@ -25,6 +27,7 @@ interface DesignCanvasProps {
   elements: CanvasElement[];
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
+  onResizeElement?: (id: string, width: number, height: number) => void;
   formStyle: LoginDesignFormStyle;
   canvasRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -34,6 +37,7 @@ export function DesignCanvas({
   elements,
   selectedElementId,
   onSelectElement,
+  onResizeElement,
   formStyle,
   canvasRef,
 }: DesignCanvasProps) {
@@ -116,9 +120,11 @@ export function DesignCanvas({
                 element={element}
                 isSelected={element.id === selectedElementId}
                 onSelect={() => onSelectElement(element.id)}
+                onResize={onResizeElement}
                 formStyle={formStyle}
                 canvasWidth={canvas.width}
                 canvasHeight={canvas.height}
+                containerRef={canvasRef}
               />
             ))}
         </div>
@@ -137,22 +143,29 @@ interface CanvasElementWrapperProps {
   element: CanvasElement;
   isSelected: boolean;
   onSelect: () => void;
+  onResize?: (id: string, width: number, height: number) => void;
   formStyle: LoginDesignFormStyle;
   canvasWidth: number;
   canvasHeight: number;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 function CanvasElementWrapper({
   element,
   isSelected,
   onSelect,
+  onResize,
   formStyle,
   canvasWidth,
   canvasHeight,
+  containerRef,
 }: CanvasElementWrapperProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
   });
+
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number; handle: ResizeHandle } | null>(null);
 
   // Calculate element dimensions as percentage of canvas
   const widthPercent = (element.width / canvasWidth) * 100;
@@ -169,13 +182,82 @@ function CanvasElementWrapper({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    cursor: isDragging ? 'grabbing' : 'grab',
+    cursor: isDragging ? 'grabbing' : isResizing ? 'nwse-resize' : 'grab',
   };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSelect();
   };
+
+  // Handle resize start
+  const handleResizeStart = useCallback((e: React.MouseEvent, handle: ResizeHandle) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsResizing(true);
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: element.width,
+      height: element.height,
+      handle,
+    };
+  }, [element.width, element.height]);
+
+  // Handle resize move and end
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeStartRef.current || !containerRef.current || !onResize) return;
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const start = resizeStartRef.current;
+
+      // Calculate delta in pixels
+      const deltaX = e.clientX - start.x;
+      const deltaY = e.clientY - start.y;
+
+      // Convert pixel delta to canvas units (using the ratio between container and canvas)
+      const scaleX = canvasWidth / containerRect.width;
+      const scaleY = canvasHeight / containerRect.height;
+
+      let newWidth = start.width;
+      let newHeight = start.height;
+
+      // Apply resize based on handle
+      if (start.handle === 'se' || start.handle === 'ne') {
+        newWidth = Math.max(50, start.width + deltaX * scaleX);
+      }
+      if (start.handle === 'sw' || start.handle === 'nw') {
+        newWidth = Math.max(50, start.width - deltaX * scaleX);
+      }
+      if (start.handle === 'se' || start.handle === 'sw') {
+        newHeight = Math.max(50, start.height + deltaY * scaleY);
+      }
+      if (start.handle === 'ne' || start.handle === 'nw') {
+        newHeight = Math.max(50, start.height - deltaY * scaleY);
+      }
+
+      onResize(element.id, Math.round(newWidth), Math.round(newHeight));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      resizeStartRef.current = null;
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, element.id, canvasWidth, canvasHeight, containerRef, onResize]);
+
+  // Common resize handle style
+  const handleStyle = 'absolute w-3 h-3 bg-primary rounded-full border-2 border-background z-10';
 
   return (
     <div
@@ -187,8 +269,7 @@ function CanvasElementWrapper({
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-transparent rounded'
       )}
       onClick={handleClick}
-      {...attributes}
-      {...listeners}
+      {...(isResizing ? {} : { ...attributes, ...listeners })}
     >
       {/* Render element based on type */}
       {element.type === 'image' && <ImageElement props={element.props as any} />}
@@ -204,6 +285,32 @@ function CanvasElementWrapper({
       {/* Selection indicator */}
       {isSelected && (
         <div className="absolute -inset-1 border-2 border-primary border-dashed rounded pointer-events-none" />
+      )}
+
+      {/* Resize handles - only show when selected */}
+      {isSelected && onResize && (
+        <>
+          {/* NW handle */}
+          <div
+            className={cn(handleStyle, '-top-1.5 -left-1.5 cursor-nwse-resize')}
+            onMouseDown={(e) => handleResizeStart(e, 'nw')}
+          />
+          {/* NE handle */}
+          <div
+            className={cn(handleStyle, '-top-1.5 -right-1.5 cursor-nesw-resize')}
+            onMouseDown={(e) => handleResizeStart(e, 'ne')}
+          />
+          {/* SW handle */}
+          <div
+            className={cn(handleStyle, '-bottom-1.5 -left-1.5 cursor-nesw-resize')}
+            onMouseDown={(e) => handleResizeStart(e, 'sw')}
+          />
+          {/* SE handle */}
+          <div
+            className={cn(handleStyle, '-bottom-1.5 -right-1.5 cursor-nwse-resize')}
+            onMouseDown={(e) => handleResizeStart(e, 'se')}
+          />
+        </>
       )}
     </div>
   );
