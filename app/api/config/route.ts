@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Get agency by token with active tours and default menu preset
+    // Get agency by token with active tours, default menu preset, and login designs
     const { data: agency, error } = await supabase
       .from('agencies')
       .select(
@@ -55,6 +55,15 @@ export async function GET(request: Request) {
           name,
           is_default,
           config
+        ),
+        login_designs (
+          id,
+          name,
+          is_default,
+          layout,
+          canvas,
+          elements,
+          form_style
         )
       `
       )
@@ -92,12 +101,18 @@ export async function GET(request: Request) {
         }
       : agency.settings?.menu || null;
 
+    // Get the default login design
+    const defaultLoginDesign = (agency.login_designs || []).find(
+      (design: { is_default: boolean }) => design.is_default
+    );
+
     // Return configuration for embed script
     const config = {
       token: agency.token,
       plan: agency.plan,
       menu: menuConfig,
       login: agency.settings?.login || null,
+      login_design: defaultLoginDesign || null,
       loading: agency.settings?.loading || null,
       colors: agency.settings?.colors || null,
       whitelisted_locations: agency.settings?.whitelisted_locations || [],

@@ -171,7 +171,7 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     }
   }
 
-  // Apply login page customizations
+  // Apply login page customizations (legacy simple config)
   function applyLoginConfig(loginConfig) {
     if (!loginConfig) return;
 
@@ -214,6 +214,149 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     }
   }
 
+  // Apply advanced login design (canvas-based)
+  function applyLoginDesign(loginDesign) {
+    if (!loginDesign) return;
+
+    // Only apply on login pages
+    var isLoginPage = window.location.pathname.includes('/login') ||
+                      window.location.pathname.includes('/signin') ||
+                      document.querySelector('[class*="login"]');
+
+    if (!isLoginPage) return;
+    log('Applying login design', loginDesign);
+
+    // Remove existing styles
+    var existing = document.getElementById('agency-toolkit-login-design');
+    if (existing) existing.remove();
+
+    var style = document.createElement('style');
+    style.id = 'agency-toolkit-login-design';
+    var css = '';
+
+    // Apply background
+    var canvas = loginDesign.canvas;
+    if (canvas && canvas.background) {
+      var bg = canvas.background;
+      css += 'body, .login-page, .login-container, [class*="login-wrapper"] {\\n';
+
+      if (bg.type === 'solid' && bg.color) {
+        css += '  background-color: ' + bg.color + ' !important;\\n';
+      } else if (bg.type === 'gradient' && bg.gradient) {
+        css += '  background: linear-gradient(' + bg.gradient.angle + 'deg, ' + bg.gradient.from + ', ' + bg.gradient.to + ') !important;\\n';
+      } else if (bg.type === 'image' && bg.image_url) {
+        css += '  background-image: url(' + bg.image_url + ') !important;\\n';
+        css += '  background-size: cover !important;\\n';
+        css += '  background-position: center !important;\\n';
+        if (bg.image_blur) {
+          css += '  backdrop-filter: blur(' + bg.image_blur + 'px) !important;\\n';
+        }
+      }
+      css += '  min-height: 100vh !important;\\n';
+      css += '}\\n';
+
+      // Image overlay
+      if (bg.type === 'image' && bg.image_overlay) {
+        css += 'body::before, .login-page::before {\\n';
+        css += '  content: "";\\n';
+        css += '  position: fixed;\\n';
+        css += '  inset: 0;\\n';
+        css += '  background-color: ' + bg.image_overlay + ';\\n';
+        css += '  pointer-events: none;\\n';
+        css += '  z-index: 0;\\n';
+        css += '}\\n';
+      }
+    }
+
+    // Apply form styling
+    var formStyle = loginDesign.form_style;
+    if (formStyle) {
+      // Form container background
+      if (formStyle.form_bg) {
+        css += '.login-form, .signin-form, .auth-form, [class*="login-card"], [class*="auth-card"] {\\n';
+        css += '  background-color: ' + formStyle.form_bg + ' !important;\\n';
+        css += '  backdrop-filter: blur(8px) !important;\\n';
+        css += '}\\n';
+      }
+
+      // Button styles
+      css += '.login-btn, .signin-btn, [type="submit"], .submit-btn, button[type="submit"] {\\n';
+      css += '  background-color: ' + formStyle.button_bg + ' !important;\\n';
+      css += '  color: ' + formStyle.button_text + ' !important;\\n';
+      css += '  border: none !important;\\n';
+      css += '}\\n';
+
+      // Input styles
+      css += 'input[type="email"], input[type="password"], input[type="text"], .login-input {\\n';
+      css += '  background-color: ' + formStyle.input_bg + ' !important;\\n';
+      css += '  border-color: ' + formStyle.input_border + ' !important;\\n';
+      css += '  color: ' + formStyle.input_text + ' !important;\\n';
+      css += '}\\n';
+
+      // Link styles
+      css += '.login-link, .forgot-password, a[href*="forgot"], a[href*="reset"] {\\n';
+      css += '  color: ' + formStyle.link_color + ' !important;\\n';
+      css += '}\\n';
+    }
+
+    // Inject elements as overlays
+    var elements = loginDesign.elements || [];
+    elements.forEach(function(element, index) {
+      if (element.type === 'login-form') return; // Form is handled by GHL
+
+      var elementId = 'at-element-' + index;
+
+      // Create element styles
+      css += '#' + elementId + ' {\\n';
+      css += '  position: fixed !important;\\n';
+      css += '  left: ' + element.x + '% !important;\\n';
+      css += '  top: ' + element.y + '% !important;\\n';
+      css += '  z-index: ' + (element.zIndex + 10) + ' !important;\\n';
+      css += '  pointer-events: none !important;\\n';
+      css += '}\\n';
+    });
+
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    // Inject HTML elements for images, text, etc.
+    elements.forEach(function(element, index) {
+      if (element.type === 'login-form') return;
+
+      var elementId = 'at-element-' + index;
+      var el = document.createElement('div');
+      el.id = elementId;
+
+      if (element.type === 'image' && element.props.url) {
+        el.innerHTML = '<img src="' + element.props.url + '" style="' +
+          'width: ' + element.width + 'px; ' +
+          'height: ' + element.height + 'px; ' +
+          'opacity: ' + (element.props.opacity / 100) + '; ' +
+          'border-radius: ' + element.props.borderRadius + 'px; ' +
+          'object-fit: ' + element.props.objectFit + ';" />';
+      } else if (element.type === 'text') {
+        el.innerHTML = '<div style="' +
+          'font-size: ' + element.props.fontSize + 'px; ' +
+          'font-weight: ' + element.props.fontWeight + '; ' +
+          'color: ' + element.props.color + '; ' +
+          'text-align: ' + element.props.textAlign + '; ' +
+          'width: ' + element.width + 'px;">' + element.props.text + '</div>';
+      } else if (element.type === 'gif' && element.props.url) {
+        el.innerHTML = '<img src="' + element.props.url + '" style="' +
+          'width: ' + element.width + 'px; ' +
+          'height: ' + element.height + 'px; ' +
+          'opacity: ' + (element.props.opacity / 100) + '; ' +
+          'border-radius: ' + element.props.borderRadius + 'px;" />';
+      }
+
+      if (el.innerHTML) {
+        document.body.appendChild(el);
+      }
+    });
+
+    log('Login design applied');
+  }
+
   // Main initialization
   function init() {
     if (!CONFIG_KEY) {
@@ -248,7 +391,12 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
             applyMenuConfig(config.menu);
             applyColorConfig(config.colors);
             applyLoadingConfig(config.loading);
-            applyLoginConfig(config.login);
+            // Use new login design if available, fall back to legacy config
+            if (config.login_design) {
+              applyLoginDesign(config.login_design);
+            } else {
+              applyLoginConfig(config.login);
+            }
             log('All customizations applied');
           } catch (e) {
             logError('Error applying customizations', e);

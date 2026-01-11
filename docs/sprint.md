@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 36% Complete (13 of 36 Features)
+## Progress: 39% Complete (14 of 36 Features)
 
 ---
 
@@ -22,7 +22,7 @@
 - [x] Feature 11: Menu Customizer - Presets List
 - [x] Feature 12: Menu Customizer - Visual Editor
 - [x] Feature 13: Apply Menu Config in Embed Script
-- [ ] Feature 14: Login Customizer Page
+- [x] Feature 14: Login Customizer Page (Canvas-based Designer)
 - [ ] Feature 15: Loading Animations Page
 - [ ] Feature 16: Dashboard Colors Page
 - [ ] Feature 17: Apply Visual Configs in Embed Script
@@ -328,3 +328,92 @@
 - 2026-01-10: Added @vercel/speed-insights for performance monitoring
 - 2026-01-10: GitHub repo: https://github.com/alanwallace9/AgencyToolKit
 - 2026-01-10: Vercel URL: https://agencytoolkit-alanwallace9-5200s-projects.vercel.app
+- 2026-01-11: Feature 14 implemented as drag-drop canvas designer (major differentiator vs competitors)
+
+### Feature 14: Login Customizer Page (Canvas-based Designer)
+**Completed:** 2026-01-11
+
+**Major Differentiator Feature** - True visual drag-drop canvas editor for login pages, unlike competitors who require Chrome extensions or CSS knowledge.
+
+- Created database infrastructure:
+  - `login_designs` table via Supabase migration
+  - Full TypeScript types in `types/database.ts` for canvas-based design
+  - Types include: LoginLayoutType, CanvasElementType, LoginDesignBackground, LoginDesignFormStyle, CanvasElement
+
+- Created server actions in `login/_actions/login-actions.ts`:
+  - getLoginDesigns, getDefaultLoginDesign
+  - createLoginDesign, updateLoginDesign, deleteLoginDesign
+  - setDefaultLoginDesign
+  - Default constants: DEFAULT_FORM_STYLE, DEFAULT_CANVAS, DEFAULT_LOGIN_FORM_ELEMENT
+
+- Created main designer components:
+  - `login-designer.tsx` - Main client component with DndContext, state management, save/load
+  - `element-panel.tsx` - Draggable element buttons (Image, Text, GIF, Testimonial, Shape, Button)
+  - `canvas.tsx` - Visual canvas with drag-drop positioning, aspect ratio container
+  - `properties-panel.tsx` - Properties editor for selected element (position, size, type-specific props)
+  - `preset-picker.tsx` - Layout preset dialog with 6 templates (Centered, Split-Left, Split-Right, Gradient, Minimal Dark, Blank)
+  - `background-panel.tsx` - Background editor (solid, gradient, image with blur/overlay)
+  - `form-style-panel.tsx` - Form styling (button, input, link colors with quick presets)
+
+- Created element components in `login/_components/elements/`:
+  - `image-element.tsx` - Image with URL, opacity, border-radius, object-fit
+  - `text-element.tsx` - Text with font controls (size, weight, color, alignment)
+  - `gif-element.tsx` - Animated GIF support
+  - `login-form-element.tsx` - Login form preview with form styling applied
+  - `testimonial-element.tsx` - Quote cards with 3 variants (card, minimal, quote-only)
+  - `shape-element.tsx` - Shapes (rectangle, circle, line)
+  - `button-element.tsx` - Custom CTA buttons
+
+- Updated page and API:
+  - `login/page.tsx` - Server component fetching designs, rendering LoginDesigner
+  - Updated `/api/config` to include `login_designs` in query and return `login_design` field
+
+- Updated embed script:
+  - Added `applyLoginDesign()` function for canvas-based designs
+  - Applies background (solid, gradient, image with overlay)
+  - Applies form styling (button, input, link colors)
+  - Injects canvas elements as positioned overlays (images, text, GIFs)
+  - Falls back to legacy `applyLoginConfig()` if no design exists
+
+- Added shadcn components: slider, textarea
+
+**Competitive Advantage:**
+| Feature | HL Pro Tools | Marketer's Toolkit | Extendly | **Agency Toolkit** |
+|---------|-------------|-------------------|----------|-------------------|
+| True drag-drop | ❌ | ❌ | ❌ | **✅** |
+| No extension | ❌ | ❌ (Magic CSS) | ✅ | **✅** |
+| Drag images anywhere | ❌ | ❌ | ❌ | **✅** |
+| Animated GIF support | ❌ | ❌ | ❌ | **✅** |
+| Live preview | Partial | Extension | ❌ | **✅** |
+
+---
+
+## Known Issues & Next Steps (Feature 14)
+
+### Issue: Canvas Drag Positioning
+**Status:** Needs fix in next session
+
+**Problem:**
+1. Native mouse event handling (current) - jerky, elements don't drag smoothly
+2. @dnd-kit (previous) - smooth dragging BUT position calculation wrong when releasing
+
+**Root Cause:**
+- The canvas displays at a scaled size (e.g., 600px wide) but elements are positioned using percentages based on virtual canvas (1600x900)
+- When dragging ends, the delta calculation doesn't properly convert screen pixels to canvas percentages
+- Elements also don't visually scale when browser window resizes
+
+**Solution (Hybrid Approach):**
+1. **Revert to @dnd-kit** - it had smoother dragging
+2. **Fix delta calculation** - need to use actual rendered canvas dimensions, not virtual canvas size
+3. **Add Center X/Y toggles** - in Properties panel, add buttons to auto-center element horizontally/vertically
+   - "Center X" → sets x position so element is horizontally centered
+   - "Center Y" → sets y position so element is vertically centered
+   - Formula: `centerX = 50 - (elementWidthPercent / 2)`
+4. **Fix element scaling** - elements should scale proportionally with canvas when browser resizes
+
+**Form Background:** ✅ Working - added `form_bg` to LoginDesignFormStyle
+
+**Files to revisit:**
+- `app/(dashboard)/login/_components/canvas.tsx` - drag handling
+- `app/(dashboard)/login/_components/login-designer.tsx` - @dnd-kit context
+- `app/(dashboard)/login/_components/properties-panel.tsx` - add Center X/Y buttons

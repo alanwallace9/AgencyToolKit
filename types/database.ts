@@ -36,6 +36,137 @@ export interface LoginConfig {
   button_text_color: string;
 }
 
+// Canvas-based Login Designer types
+export type LoginLayoutType =
+  | 'centered'
+  | 'split-left'
+  | 'split-right'
+  | 'gradient-overlay'
+  | 'minimal-dark'
+  | 'blank';
+
+export type BackgroundType = 'solid' | 'gradient' | 'image';
+
+export type CanvasElementType =
+  | 'image'
+  | 'text'
+  | 'gif'
+  | 'login-form'
+  | 'testimonial'
+  | 'shape'
+  | 'button';
+
+export interface LoginDesignBackground {
+  type: BackgroundType;
+  color?: string;
+  gradient?: {
+    from: string;
+    to: string;
+    angle: number;
+  };
+  image_url?: string;
+  image_blur?: number;
+  image_overlay?: string;
+}
+
+export interface LoginDesignFormStyle {
+  button_bg: string;
+  button_text: string;
+  input_bg: string;
+  input_border: string;
+  input_text: string;
+  link_color: string;
+  form_bg?: string; // Form container background
+}
+
+export interface CanvasElementBase {
+  id: string;
+  type: CanvasElementType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
+}
+
+export interface ImageElementProps {
+  url: string;
+  opacity: number;
+  borderRadius: number;
+  objectFit: 'cover' | 'contain' | 'fill';
+}
+
+export interface TextElementProps {
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: number;
+  color: string;
+  textAlign: 'left' | 'center' | 'right';
+}
+
+export interface GifElementProps {
+  url: string;
+  opacity: number;
+  borderRadius: number;
+}
+
+export interface TestimonialElementProps {
+  quote: string;
+  author: string;
+  variant: 'card' | 'minimal' | 'quote-only';
+  bgColor: string;
+  textColor: string;
+}
+
+export interface ShapeElementProps {
+  shapeType: 'line' | 'rectangle' | 'circle';
+  color: string;
+  opacity: number;
+  borderWidth?: number;
+}
+
+export interface ButtonElementProps {
+  text: string;
+  url: string;
+  bgColor: string;
+  textColor: string;
+  borderRadius: number;
+}
+
+export interface LoginFormElementProps {
+  // Login form is required, just controls position
+  variant: 'default' | 'compact';
+}
+
+export type CanvasElement = CanvasElementBase & {
+  props:
+    | ImageElementProps
+    | TextElementProps
+    | GifElementProps
+    | TestimonialElementProps
+    | ShapeElementProps
+    | ButtonElementProps
+    | LoginFormElementProps;
+};
+
+export interface LoginDesign {
+  id: string;
+  agency_id: string;
+  name: string;
+  is_default: boolean;
+  layout: LoginLayoutType;
+  canvas: {
+    width: number;
+    height: number;
+    background: LoginDesignBackground;
+  };
+  elements: CanvasElement[];
+  form_style: LoginDesignFormStyle;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LoadingConfig {
   animation_id: string;
   custom_css: string | null;
