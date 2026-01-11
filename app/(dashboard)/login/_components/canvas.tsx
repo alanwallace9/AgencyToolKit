@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useMemo, useCallback, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { ImageElement } from './elements/image-element';
 import { TextElement } from './elements/text-element';
@@ -24,8 +25,8 @@ interface DesignCanvasProps {
   elements: CanvasElement[];
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
-  onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
   formStyle: LoginDesignFormStyle;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function DesignCanvas({
@@ -33,25 +34,20 @@ export function DesignCanvas({
   elements,
   selectedElementId,
   onSelectElement,
-  onUpdateElement,
   formStyle,
+  canvasRef,
 }: DesignCanvasProps) {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'canvas',
+  });
 
-  // Track actual canvas dimensions for drag calculations
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (canvasRef.current) {
-        const rect = canvasRef.current.getBoundingClientRect();
-        setCanvasDimensions({ width: rect.width, height: rect.height });
-      }
-    };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
+  // Combine refs
+  const combinedRef = (node: HTMLDivElement) => {
+    setNodeRef(node);
+    if (canvasRef) {
+      (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  };
 
   // Calculate aspect ratio
   const aspectRatio = canvas.width / canvas.height;
@@ -81,33 +77,6 @@ export function DesignCanvas({
     }
   }, [canvas.background]);
 
-  // Handle element drag
-  const handleElementDrag = useCallback(
-    (elementId: string, deltaX: number, deltaY: number) => {
-      if (canvasDimensions.width === 0) return;
-
-      const element = elements.find((el) => el.id === elementId);
-      if (!element) return;
-
-      // Convert pixel delta to percentage based on actual canvas size
-      const percentX = (deltaX / canvasDimensions.width) * 100;
-      const percentY = (deltaY / canvasDimensions.height) * 100;
-
-      // Calculate element width as percentage
-      const elementWidthPercent = (element.width / canvas.width) * 100;
-      const elementHeightPercent = (element.height / canvas.height) * 100;
-
-      // Calculate new position with bounds checking
-      // Element shouldn't go off the left/top (min 0)
-      // Element shouldn't go off the right/bottom (max 100 - element size)
-      const newX = Math.max(0, Math.min(100 - elementWidthPercent, element.x + percentX));
-      const newY = Math.max(0, Math.min(100 - elementHeightPercent, element.y + percentY));
-
-      onUpdateElement(elementId, { x: newX, y: newY });
-    },
-    [canvasDimensions, elements, canvas.width, canvas.height, onUpdateElement]
-  );
-
   return (
     <div className="relative w-full">
       {/* Aspect ratio container */}
@@ -117,10 +86,11 @@ export function DesignCanvas({
       >
         {/* Canvas */}
         <div
-          ref={canvasRef}
+          ref={combinedRef}
           className={cn(
             'absolute inset-0 rounded-lg overflow-hidden',
-            'ring-1 ring-border'
+            'ring-1 ring-border',
+            isOver && 'ring-2 ring-primary'
           )}
           style={backgroundStyle}
           onClick={(e) => {
@@ -141,12 +111,11 @@ export function DesignCanvas({
           {elements
             .sort((a, b) => a.zIndex - b.zIndex)
             .map((element) => (
-              <DraggableElement
+              <CanvasElementWrapper
                 key={element.id}
                 element={element}
                 isSelected={element.id === selectedElementId}
                 onSelect={() => onSelectElement(element.id)}
-                onDrag={(deltaX, deltaY) => handleElementDrag(element.id, deltaX, deltaY)}
                 formStyle={formStyle}
                 canvasWidth={canvas.width}
                 canvasHeight={canvas.height}
@@ -164,52 +133,26 @@ export function DesignCanvas({
   );
 }
 
-interface DraggableElementProps {
+interface CanvasElementWrapperProps {
   element: CanvasElement;
   isSelected: boolean;
   onSelect: () => void;
-  onDrag: (deltaX: number, deltaY: number) => void;
   formStyle: LoginDesignFormStyle;
   canvasWidth: number;
   canvasHeight: number;
 }
 
-function DraggableElement({
+function CanvasElementWrapper({
   element,
   isSelected,
   onSelect,
-  onDrag,
   formStyle,
   canvasWidth,
   canvasHeight,
-}: DraggableElementProps) {
-  const elementRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onSelect();
-    setIsDragging(true);
-    dragStartRef.current = { x: e.clientX, y: e.clientY };
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - dragStartRef.current.x;
-      const deltaY = moveEvent.clientY - dragStartRef.current.y;
-      onDrag(deltaX, deltaY);
-      dragStartRef.current = { x: moveEvent.clientX, y: moveEvent.clientY };
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+}: CanvasElementWrapperProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: element.id,
+  });
 
   // Calculate element dimensions as percentage of canvas
   const widthPercent = (element.width / canvasWidth) * 100;
@@ -223,20 +166,29 @@ function DraggableElement({
     height: element.type === 'login-form' ? 'auto' : `${heightPercent}%`,
     minHeight: element.type === 'login-form' ? `${heightPercent}%` : undefined,
     zIndex: element.zIndex,
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
     cursor: isDragging ? 'grabbing' : 'grab',
-    userSelect: 'none',
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
   };
 
   return (
     <div
-      ref={elementRef}
+      ref={setNodeRef}
       style={style}
       className={cn(
         'group touch-none',
-        isDragging && 'opacity-80',
+        isDragging && 'opacity-70 z-50',
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-transparent rounded'
       )}
-      onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      {...attributes}
+      {...listeners}
     >
       {/* Render element based on type */}
       {element.type === 'image' && <ImageElement props={element.props as any} />}

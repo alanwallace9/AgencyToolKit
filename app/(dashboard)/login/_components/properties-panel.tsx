@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Trash2, Layers, Move, Palette } from 'lucide-react';
+import { Trash2, Layers, Move, Palette, AlignCenterHorizontal, AlignCenterVertical } from 'lucide-react';
 import type {
   CanvasElement,
   ImageElementProps,
@@ -28,9 +28,17 @@ interface PropertiesPanelProps {
   element: CanvasElement | null;
   onUpdate: (updates: Partial<CanvasElement>) => void;
   onDelete: () => void;
+  canvasWidth?: number;
+  canvasHeight?: number;
 }
 
-export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanelProps) {
+export function PropertiesPanel({
+  element,
+  onUpdate,
+  onDelete,
+  canvasWidth = 1600,
+  canvasHeight = 900,
+}: PropertiesPanelProps) {
   if (!element) {
     return (
       <Card>
@@ -54,6 +62,12 @@ export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanel
       props: { ...element.props, ...propUpdates } as CanvasElement['props'],
     });
   };
+
+  // Calculate centered positions
+  const elementWidthPercent = (element.width / canvasWidth) * 100;
+  const elementHeightPercent = (element.height / canvasHeight) * 100;
+  const centeredX = Math.round(((100 - elementWidthPercent) / 2) * 10) / 10;
+  const centeredY = Math.round(((100 - elementHeightPercent) / 2) * 10) / 10;
 
   return (
     <Card>
@@ -84,25 +98,47 @@ export function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanel
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">X (%)</Label>
-              <Input
-                type="number"
-                value={Math.round(element.x)}
-                onChange={(e) => onUpdate({ x: Number(e.target.value) })}
-                className="h-8"
-                min={0}
-                max={100}
-              />
+              <div className="flex gap-1">
+                <Input
+                  type="number"
+                  value={Math.round(element.x)}
+                  onChange={(e) => onUpdate({ x: Number(e.target.value) })}
+                  className="h-8"
+                  min={0}
+                  max={100}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 shrink-0"
+                  onClick={() => onUpdate({ x: centeredX })}
+                  title="Center horizontally"
+                >
+                  <AlignCenterHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
             <div>
               <Label className="text-xs">Y (%)</Label>
-              <Input
-                type="number"
-                value={Math.round(element.y)}
-                onChange={(e) => onUpdate({ y: Number(e.target.value) })}
-                className="h-8"
-                min={0}
-                max={100}
-              />
+              <div className="flex gap-1">
+                <Input
+                  type="number"
+                  value={Math.round(element.y)}
+                  onChange={(e) => onUpdate({ y: Number(e.target.value) })}
+                  className="h-8"
+                  min={0}
+                  max={100}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 shrink-0"
+                  onClick={() => onUpdate({ y: centeredY })}
+                  title="Center vertically"
+                >
+                  <AlignCenterVertical className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

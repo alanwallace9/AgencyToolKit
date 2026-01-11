@@ -388,32 +388,36 @@
 
 ---
 
-## Known Issues & Next Steps (Feature 14)
+## Known Issues & Fixes Applied (Feature 14)
 
 ### Issue: Canvas Drag Positioning
-**Status:** Needs fix in next session
+**Status:** ✅ FIXED (2026-01-11)
 
 **Problem:**
-1. Native mouse event handling (current) - jerky, elements don't drag smoothly
-2. @dnd-kit (previous) - smooth dragging BUT position calculation wrong when releasing
+1. Native mouse event handling (previous attempt) - jerky, elements don't drag smoothly
+2. @dnd-kit (original) - smooth dragging BUT position calculation wrong when releasing
 
 **Root Cause:**
 - The canvas displays at a scaled size (e.g., 600px wide) but elements are positioned using percentages based on virtual canvas (1600x900)
-- When dragging ends, the delta calculation doesn't properly convert screen pixels to canvas percentages
-- Elements also don't visually scale when browser window resizes
+- When dragging ends, the delta calculation didn't properly convert screen pixels to canvas percentages
 
-**Solution (Hybrid Approach):**
-1. **Revert to @dnd-kit** - it had smoother dragging
-2. **Fix delta calculation** - need to use actual rendered canvas dimensions, not virtual canvas size
-3. **Add Center X/Y toggles** - in Properties panel, add buttons to auto-center element horizontally/vertically
-   - "Center X" → sets x position so element is horizontally centered
-   - "Center Y" → sets y position so element is vertically centered
-   - Formula: `centerX = 50 - (elementWidthPercent / 2)`
-4. **Fix element scaling** - elements should scale proportionally with canvas when browser resizes
+**Solution Applied:**
+1. ✅ **Reverted to @dnd-kit** - smooth dragging restored
+2. ✅ **Fixed delta calculation** - now uses `canvasRef.getBoundingClientRect()` to get actual rendered dimensions
+   - `deltaXPercent = (delta.x / actualWidth) * 100`
+   - `deltaYPercent = (delta.y / actualHeight) * 100`
+3. ✅ **Added Center X/Y buttons** - in Properties panel with quick-center functionality
+   - Uses AlignCenterHorizontal and AlignCenterVertical icons
+   - Formula: `centeredX = (100 - elementWidthPercent) / 2`
+4. ✅ **Added bounds checking** - elements constrained to canvas (0% to 100%-elementWidth%)
+5. ✅ **Form background color** - added `form_bg` field to LoginDesignFormStyle
 
-**Form Background:** ✅ Working - added `form_bg` to LoginDesignFormStyle
+**Files modified:**
+- `app/(dashboard)/login/_components/canvas.tsx` - canvasRef for dimensions
+- `app/(dashboard)/login/_components/login-designer.tsx` - DndContext with handleDragEnd
+- `app/(dashboard)/login/_components/properties-panel.tsx` - Center X/Y buttons
+- `app/(dashboard)/login/_lib/defaults.ts` - moved constants out of "use server" file
+- `types/database.ts` - added form_bg to LoginDesignFormStyle
 
-**Files to revisit:**
-- `app/(dashboard)/login/_components/canvas.tsx` - drag handling
-- `app/(dashboard)/login/_components/login-designer.tsx` - @dnd-kit context
-- `app/(dashboard)/login/_components/properties-panel.tsx` - add Center X/Y buttons
+**Remaining (lower priority):**
+- Element visual scaling when browser resizes (elements currently use fixed % of canvas)

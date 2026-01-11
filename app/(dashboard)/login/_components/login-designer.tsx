@@ -1,6 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -48,7 +55,58 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
   const [activeTab, setActiveTab] = useState<'elements' | 'background' | 'form'>('elements');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Ref to get actual canvas dimensions for drag calculation
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // DnD sensors with activation constraint to prevent accidental drags
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
+
   const selectedElement = elements.find((el) => el.id === selectedElementId);
+
+  // Handle drag end - convert pixel delta to percentage
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, delta } = event;
+    if (!canvasRef.current) return;
+
+    // Get actual rendered canvas dimensions
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const actualWidth = canvasRect.width;
+    const actualHeight = canvasRect.height;
+
+    // Convert pixel delta to percentage delta
+    const deltaXPercent = (delta.x / actualWidth) * 100;
+    const deltaYPercent = (delta.y / actualHeight) * 100;
+
+    setElements((prev) =>
+      prev.map((el) => {
+        if (el.id === active.id) {
+          // Calculate new position with bounds checking
+          const elementWidthPercent = (el.width / canvas.width) * 100;
+          const elementHeightPercent = (el.height / canvas.height) * 100;
+
+          let newX = el.x + deltaXPercent;
+          let newY = el.y + deltaYPercent;
+
+          // Constrain to canvas bounds (0 to 100 - element size)
+          newX = Math.max(0, Math.min(100 - elementWidthPercent, newX));
+          newY = Math.max(0, Math.min(100 - elementHeightPercent, newY));
+
+          return {
+            ...el,
+            x: Math.round(newX * 10) / 10, // Round to 1 decimal
+            y: Math.round(newY * 10) / 10,
+          };
+        }
+        return el;
+      })
+    );
+  }, [canvas.width, canvas.height]);
 
   // Handle preset selection
   const handlePresetSelect = useCallback((preset: {
@@ -154,62 +212,66 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
       </div>
 
       {/* Main Layout */}
-      <div className="grid grid-cols-[300px_1fr_280px] gap-4">
-        {/* Left Panel - Elements & Settings */}
-        <div className="space-y-4">
-          <PresetPicker onSelect={handlePresetSelect} />
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-[300px_1fr_280px] gap-4">
+          {/* Left Panel - Elements & Settings */}
+          <div className="space-y-4">
+            <PresetPicker onSelect={handlePresetSelect} />
 
-          <Card>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-              <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="elements">Elements</TabsTrigger>
-                  <TabsTrigger value="background">Background</TabsTrigger>
-                  <TabsTrigger value="form">Form</TabsTrigger>
-                </TabsList>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <TabsContent value="elements" className="mt-0">
-                  <ElementPanel onAddElement={handleAddElement} />
-                </TabsContent>
-                <TabsContent value="background" className="mt-0">
-                  <BackgroundPanel
-                    background={canvas.background}
-                    onChange={(bg) => setCanvas({ ...canvas, background: bg })}
-                  />
-                </TabsContent>
-                <TabsContent value="form" className="mt-0">
-                  <FormStylePanel
-                    formStyle={formStyle}
-                    onChange={setFormStyle}
-                  />
-                </TabsContent>
-              </CardContent>
-            </Tabs>
+            <Card>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+                <CardHeader className="pb-3">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="elements">Elements</TabsTrigger>
+                    <TabsTrigger value="background">Background</TabsTrigger>
+                    <TabsTrigger value="form">Form</TabsTrigger>
+                  </TabsList>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <TabsContent value="elements" className="mt-0">
+                    <ElementPanel onAddElement={handleAddElement} />
+                  </TabsContent>
+                  <TabsContent value="background" className="mt-0">
+                    <BackgroundPanel
+                      background={canvas.background}
+                      onChange={(bg) => setCanvas({ ...canvas, background: bg })}
+                    />
+                  </TabsContent>
+                  <TabsContent value="form" className="mt-0">
+                    <FormStylePanel
+                      formStyle={formStyle}
+                      onChange={setFormStyle}
+                    />
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
+            </Card>
+          </div>
+
+          {/* Center - Canvas */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-4">
+              <DesignCanvas
+                canvas={canvas}
+                elements={elements}
+                selectedElementId={selectedElementId}
+                onSelectElement={setSelectedElementId}
+                formStyle={formStyle}
+                canvasRef={canvasRef}
+              />
+            </CardContent>
           </Card>
+
+          {/* Right Panel - Properties */}
+          <PropertiesPanel
+            element={selectedElement || null}
+            onUpdate={(updates) => selectedElementId && handleUpdateElement(selectedElementId, updates)}
+            onDelete={() => selectedElementId && handleDeleteElement(selectedElementId)}
+            canvasWidth={canvas.width}
+            canvasHeight={canvas.height}
+          />
         </div>
-
-        {/* Center - Canvas */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-4">
-            <DesignCanvas
-              canvas={canvas}
-              elements={elements}
-              selectedElementId={selectedElementId}
-              onSelectElement={setSelectedElementId}
-              onUpdateElement={handleUpdateElement}
-              formStyle={formStyle}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Right Panel - Properties */}
-        <PropertiesPanel
-          element={selectedElement || null}
-          onUpdate={(updates) => selectedElementId && handleUpdateElement(selectedElementId, updates)}
-          onDelete={() => selectedElementId && handleDeleteElement(selectedElementId)}
-        />
-      </div>
+      </DndContext>
     </div>
   );
 }
