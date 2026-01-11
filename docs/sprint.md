@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 14% Complete (5 of 36 Features)
+## Progress: 28% Complete (10 of 36 Features)
 
 ---
 
@@ -12,11 +12,11 @@
 - [x] Feature 3: Supabase Schema & Client Setup
 - [x] Feature 4: Clerk Webhook Handler
 - [x] Feature 5: Dashboard Layout Shell
-- [ ] Feature 6: Customers List Page
-- [ ] Feature 7: Customer Edit Page
-- [ ] Feature 8: Embed Code Display
-- [ ] Feature 9: Config API Endpoint
-- [ ] Feature 10: Basic Embed Script
+- [x] Feature 6: Customers List Page
+- [x] Feature 7: Customer Edit Page
+- [x] Feature 8: Embed Code Display
+- [x] Feature 9: Config API Endpoint
+- [x] Feature 10: Basic Embed Script
 
 ### Phase 2: Quick Wins / MVP
 - [ ] Feature 11: Menu Customizer - Presets List
@@ -60,9 +60,14 @@
 
 ### Completed This Session
 - [x] Feature 5 - Dashboard Layout Shell (sidebar fix applied)
+- [x] Feature 6 - Customers List Page
+- [x] Feature 7 - Customer Edit Page
+- [x] Feature 8 - Embed Code Display
+- [x] Feature 9 - Config API Endpoint
+- [x] Feature 10 - Basic Embed Script
 
 ### Up Next
-- Feature 6 - Customers List Page
+- Feature 11 - Menu Customizer - Presets List (Phase 2 begins)
 
 ---
 
@@ -147,6 +152,84 @@
 - Created `app/(dashboard)/upgrade/[feature]/page.tsx` for Pro feature upsell
 - Plan badge in header shows current tier (Toolkit/Pro)
 - Deleted unused sidebar files: `app-sidebar.tsx`, `search-form.tsx`, `version-switcher.tsx`
+
+### Feature 6: Customers List Page
+**Completed:** 2026-01-10
+
+- Created `app/api/customers/route.ts` (GET list, POST create)
+- Created `app/api/customers/[id]/route.ts` (GET, PATCH, DELETE)
+- Created server actions in `customers/_actions/customer-actions.ts`
+- Created components in `customers/_components/`:
+  - `customer-table.tsx` - Table with name, token (copy), GHL location, status, created date
+  - `customer-form.tsx` - Form for name, GHL location ID, GBP place ID
+  - `add-customer-dialog.tsx` - Dialog wrapper for creating customers
+  - `delete-customer-dialog.tsx` - Confirmation dialog for deletion
+  - `empty-state.tsx` - Empty state with CTA
+  - `customers-client.tsx` - Client wrapper with state management
+- Updated `customers/page.tsx` with server-side data fetching
+- Plan limit enforced (25 for Toolkit tier) with upgrade prompt
+- Added date-fns for relative date formatting
+- Added shadcn table and alert-dialog components
+
+### Feature 7: Customer Edit Page
+**Completed:** 2026-01-10
+
+- Created `app/(dashboard)/customers/[id]/page.tsx` with server-side data fetching
+- Created `customers/[id]/_components/customer-edit-form.tsx`:
+  - Editable fields: Name, GHL Location ID, GBP Place ID, Active status toggle
+  - Read-only token display with copy button
+  - GBP Dashboard URL display (when GBP Place ID is set)
+  - Back button navigation to customers list
+- Added `updateCustomer` server action to customer-actions.ts
+- API route `customers/[id]` already existed from Feature 6 (GET, PATCH, DELETE)
+
+### Feature 8: Embed Code Display
+**Completed:** 2026-01-10
+
+- Created `settings/_components/embed-code-display.tsx`:
+  - Displays script tag with agency token
+  - One-click copy button with toast notification
+  - Instructions accordion with 3 sections:
+    - Where to paste in GHL (step-by-step)
+    - What the script does (feature list)
+    - Troubleshooting tips
+- Updated `settings/page.tsx` to use the new component
+- Added improved agency details grid (name, email, plan, token)
+- Added shadcn accordion component
+
+### Feature 9: Config API Endpoint
+**Completed:** 2026-01-11
+
+- Created `app/api/config/route.ts`:
+  - Accepts `key` query parameter (agency token)
+  - Returns agency settings (menu, login, loading, colors)
+  - Returns active tours only (filtered by is_active)
+  - Returns whitelisted_locations array
+  - CORS headers for cross-origin access
+  - Cache-Control: 60 seconds
+  - Proper error handling (400 for missing key, 404 for invalid key)
+  - OPTIONS handler for preflight requests
+
+### Feature 10: Basic Embed Script
+**Completed:** 2026-01-11
+
+- Created `app/embed.js/route.ts` (dynamic JavaScript endpoint)
+- Script features:
+  - Accepts `key` query parameter
+  - Fetches config from /api/config
+  - Checks whitelisted_locations (skips if matched)
+  - Applies menu customizations (hide items, rename items, hide banners)
+  - Applies color customizations (primary, accent, sidebar colors)
+  - Applies loading animation (custom CSS)
+  - Applies login page customizations (logo, colors, background)
+  - MutationObserver for SPA support (re-applies on DOM changes)
+  - Graceful error handling (fails silently, doesn't break GHL)
+  - Debug mode in development
+  - Global config available at `window.__AGENCY_TOOLKIT_CONFIG__`
+- Cache-Control: 5 minutes
+- CORS enabled
+
+**Phase 1: Foundation Complete!**
 
 ---
 

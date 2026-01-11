@@ -1,36 +1,40 @@
-import { PageHeader } from "@/components/shared/page-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Users, Plus } from "lucide-react"
+import { getCurrentAgency } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { PageHeader } from '@/components/shared/page-header';
+import { CustomersClient } from './_components/customers-client';
 
-export default function CustomersPage() {
+export default async function CustomersPage() {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    redirect('/sign-in');
+  }
+
+  const supabase = await createClient();
+  const { data: customers } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('agency_id', agency.id)
+    .order('created_at', { ascending: false });
+
+  // Get customer count for plan limit display
+  const customerCount = customers?.length ?? 0;
+  const customerLimit = agency.plan === 'toolkit' ? 25 : null;
+  const isAtLimit = agency.plan === 'toolkit' && customerCount >= 25;
+
   return (
     <>
       <PageHeader
         title="Customers"
         description="Manage your GHL sub-account customers"
-        action={
-          <Button disabled>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Customer
-          </Button>
-        }
       />
-
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <Users className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-medium">No customers yet</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Add your first customer to start customizing their GHL experience.
-          </p>
-          <p className="text-xs text-muted-foreground mt-4">
-            Coming in Feature 6
-          </p>
-        </CardContent>
-      </Card>
+      <CustomersClient
+        customers={customers ?? []}
+        customerCount={customerCount}
+        customerLimit={customerLimit}
+        isAtLimit={isAtLimit}
+        plan={agency.plan}
+      />
     </>
-  )
+  );
 }
