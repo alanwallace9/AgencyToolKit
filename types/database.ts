@@ -62,6 +62,13 @@ export interface Customer {
   updated_at: string;
 }
 
+export interface MenuPresetDivider {
+  id: string;
+  type: string;
+  text: string;
+  visible: boolean;
+}
+
 export interface MenuPreset {
   id: string;
   agency_id: string;
@@ -72,6 +79,7 @@ export interface MenuPreset {
     renamed_items: Record<string, string>;
     item_order: string[];
     hidden_banners: string[];
+    dividers?: MenuPresetDivider[];
   };
   created_at: string;
   updated_at: string;

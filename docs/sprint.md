@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 28% Complete (10 of 36 Features)
+## Progress: 33% Complete (12 of 36 Features)
 
 ---
 
@@ -19,8 +19,8 @@
 - [x] Feature 10: Basic Embed Script
 
 ### Phase 2: Quick Wins / MVP
-- [ ] Feature 11: Menu Customizer - Presets List
-- [ ] Feature 12: Menu Customizer - Visual Editor
+- [x] Feature 11: Menu Customizer - Presets List
+- [x] Feature 12: Menu Customizer - Visual Editor
 - [ ] Feature 13: Apply Menu Config in Embed Script
 - [ ] Feature 14: Login Customizer Page
 - [ ] Feature 15: Loading Animations Page
@@ -65,9 +65,11 @@
 - [x] Feature 8 - Embed Code Display
 - [x] Feature 9 - Config API Endpoint
 - [x] Feature 10 - Basic Embed Script
+- [x] Feature 11 - Menu Customizer - Presets List
+- [x] Feature 12 - Menu Customizer - Visual Editor
 
 ### Up Next
-- Feature 11 - Menu Customizer - Presets List (Phase 2 begins)
+- Feature 13 - Apply Menu Config in Embed Script
 
 ---
 
@@ -230,6 +232,69 @@
 - CORS enabled
 
 **Phase 1: Foundation Complete!**
+
+### Feature 11: Menu Customizer - Presets List
+**Completed:** 2026-01-11
+
+- Created `lib/constants.ts` with GHL menu items (16 items matching sidebar IDs)
+- Added 2 built-in preset templates:
+  - **Reputation Management** - 6 visible items with renames (Reviews, Inbox, Social Planner)
+  - **Voice AI Package** - 8 visible items (RM + AI Agents, Automation)
+- Created `app/api/menu-presets/route.ts` (GET list, POST create)
+- Created `app/api/menu-presets/[id]/route.ts` (GET, PATCH, DELETE)
+- Created server actions in `menu/_actions/menu-actions.ts`:
+  - createMenuPreset, createMenuPresetFromTemplate, deleteMenuPreset, setDefaultPreset, updatePresetConfig
+- Created components in `menu/_components/`:
+  - `preset-card.tsx` - Card showing preset name, summary, default badge
+  - `add-preset-dialog.tsx` - Dialog with template selector dropdown
+  - `delete-preset-dialog.tsx` - Confirmation dialog for deletion
+  - `menu-client.tsx` - Shows built-in templates + custom presets
+- Updated `menu/page.tsx` with server-side data fetching
+- Preset cards show: hidden items count, renamed items count, hidden banners count
+- Default preset management (only one default at a time)
+- Added shadcn select component
+
+### Feature 12: Menu Customizer - Visual Editor
+**Completed:** 2026-01-11
+
+- Created `app/(dashboard)/menu/[id]/page.tsx` - Preset editor page with server-side data fetching
+- Created components in `menu/[id]/_components/`:
+  - `menu-editor.tsx` - Main editor with state management for items, visibility, renames, ordering, banners
+  - `menu-sortable-list.tsx` - DndContext wrapper using @dnd-kit for drag-drop reordering
+  - `menu-item-row.tsx` - Individual sortable row with drag handle, toggle switch, label, rename input
+  - `banner-options.tsx` - Toggle switches for hiding promos, warnings, and connect prompts
+  - `menu-preview.tsx` - Live sidebar preview showing visible items with icons and custom names
+- Features:
+  - Drag-and-drop reordering using @dnd-kit/sortable
+  - Toggle visibility for each menu item
+  - Rename input field (disabled when item is hidden)
+  - Live preview panel showing how sidebar will appear
+  - Banner options (hide promos, hide warnings, hide connects)
+  - Save changes persists to database via updatePresetConfig server action
+- Added `@dnd-kit/utilities` package for CSS transforms
+- Updated `lib/constants.ts` with `GHL_HIDE_OPTIONS` array
+- Icon mapping for all 16 GHL sidebar items in preview component
+
+**Enhancements (2026-01-11):**
+- Consolidated menu UI to single-page editor (presets at top, visual editor always visible)
+- Added divider support:
+  - `lib/constants.ts` - Added DIVIDER_TYPES (plain and labeled)
+  - `menu/_components/divider-row.tsx` - Sortable divider component with dashed border
+  - Updated `menu-sortable-list.tsx` to render both MenuItemRow and DividerRow
+  - "Add Divider" dropdown button with Plain/Labeled options
+- Added CSS generation:
+  - `lib/css-generator.ts` - Generates CSS for menu customization
+  - `menu/_components/css-preview-panel.tsx` - Collapsible CSS preview with small copy icon
+  - Help accordion (Where to paste, What it does, Troubleshooting)
+- Updated MenuPreview:
+  - Renders dividers (plain lines and labeled sections)
+  - "Apply colors" button to preview with agency colors
+  - "Set custom colors" link to /colors page
+- Added Custom Menu Links placeholder:
+  - `menu/_components/custom-links-section.tsx` - GHL sync placeholder
+  - "Sync with GHL" button disabled with "Coming Soon" tooltip
+- Added shadcn collapsible component
+- Updated database types to include dividers in MenuPreset config
 
 ---
 

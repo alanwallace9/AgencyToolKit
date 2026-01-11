@@ -144,6 +144,9 @@ Feature gating is implemented via `agency.plan` field in database.
 - 2026-01-10: Renamed project to Agency Toolkit
 ```
 
+## Testing Rules
+  - CHeck to see if teh dev server is running before trying to start a new one.
+
 ## Code Standards
 
 ### Before Writing Code
