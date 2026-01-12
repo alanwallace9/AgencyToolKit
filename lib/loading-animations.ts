@@ -133,11 +133,11 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
 .at-wave{display:flex;gap:3px;align-items:end;height:32px}
 .at-wave span{width:4px;background:var(--loading-color,#3b82f6);border-radius:2px}
-.at-wave span:nth-child(1){animation:at-voice1 0.9s steps(4) infinite}
-.at-wave span:nth-child(2){animation:at-voice2 0.8s steps(4) infinite}
-.at-wave span:nth-child(3){animation:at-voice3 1s steps(4) infinite}
-.at-wave span:nth-child(4){animation:at-voice4 0.85s steps(4) infinite}
-.at-wave span:nth-child(5){animation:at-voice5 0.95s steps(4) infinite}
+.at-wave span:nth-child(1){animation:at-voice1 1.8s steps(4) infinite}
+.at-wave span:nth-child(2){animation:at-voice2 1.6s steps(4) infinite}
+.at-wave span:nth-child(3){animation:at-voice3 2s steps(4) infinite}
+.at-wave span:nth-child(4){animation:at-voice4 1.7s steps(4) infinite}
+.at-wave span:nth-child(5){animation:at-voice5 1.9s steps(4) infinite}
 @keyframes at-voice1{0%{height:8px}25%{height:24px}50%{height:12px}75%{height:28px}100%{height:8px}}
 @keyframes at-voice2{0%{height:20px}25%{height:8px}50%{height:32px}75%{height:16px}100%{height:20px}}
 @keyframes at-voice3{0%{height:12px}25%{height:28px}50%{height:8px}75%{height:20px}100%{height:12px}}
@@ -181,7 +181,8 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
 
   // Custom 3x3 Grid Animations
   // Grid positions: 1 2 3 / 4 5 6 / 7 8 9
-  // Slide sequence: 5 empty → 2 fills 5 (2 empty) → 1 fills 2 (1 empty) → 4 fills 1 (4 empty) → etc.
+  // Full 8-step slide: 5 empty → 4→5 → 7→4 → 8→7 → 9→8 → 6→9 → 3→6 → 2→3 → 5→2 → loop
+  // Each step ~10%, with pause at end before instant reset
   {
     id: 'grid-slide',
     label: 'Grid Slide',
@@ -189,20 +190,23 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
     category: 'creative',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
-.at-grid{display:grid;grid-template-columns:repeat(3,12px);gap:3px;position:relative}
+.at-grid{display:grid;grid-template-columns:repeat(3,12px);gap:3px}
 .at-grid span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px}
-.at-grid span:nth-child(1){animation:at-p1 6s ease-in-out infinite}
-.at-grid span:nth-child(2){animation:at-p2 6s ease-in-out infinite}
-.at-grid span:nth-child(4){animation:at-p4 6s ease-in-out infinite}
-.at-grid span:nth-child(5){animation:at-p5 6s ease-in-out infinite}
-.at-grid span:nth-child(7){animation:at-p7 6s ease-in-out infinite}
-.at-grid span:nth-child(8){animation:at-p8 6s ease-in-out infinite}
-@keyframes at-p5{0%,8%{opacity:0}8.1%,100%{opacity:1}}
-@keyframes at-p2{0%{transform:translate(0,0)}8%{transform:translate(0,15px)}8.1%,16%{transform:translate(0,15px);opacity:0}16.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes at-p1{0%,8%{transform:translate(0,0)}16%{transform:translate(15px,0)}16.1%,25%{transform:translate(15px,0);opacity:0}25.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes at-p4{0%,16%{transform:translate(0,0)}25%{transform:translate(0,-15px)}25.1%,33%{transform:translate(0,-15px);opacity:0}33.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes at-p7{0%,25%{transform:translate(0,0)}33%{transform:translate(0,-15px)}33.1%,41%{transform:translate(0,-15px);opacity:0}41.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
-@keyframes at-p8{0%,33%{transform:translate(0,0)}41%{transform:translate(-15px,0)}41.1%,50%{transform:translate(-15px,0);opacity:0}50.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
+.at-grid span:nth-child(5){opacity:0}
+.at-grid span:nth-child(4){animation:at-s4 10s linear infinite}
+.at-grid span:nth-child(7){animation:at-s7 10s linear infinite}
+.at-grid span:nth-child(8){animation:at-s8 10s linear infinite}
+.at-grid span:nth-child(9){animation:at-s9 10s linear infinite}
+.at-grid span:nth-child(6){animation:at-s6 10s linear infinite}
+.at-grid span:nth-child(3){animation:at-s3 10s linear infinite}
+.at-grid span:nth-child(2){animation:at-s2 10s linear infinite}
+@keyframes at-s4{0%{transform:translate(0,0)}10%,70%{transform:translate(15px,0)}80%,89%{transform:translate(15px,-15px)}90%,100%{transform:translate(0,0)}}
+@keyframes at-s7{0%,10%{transform:translate(0,0)}20%,89%{transform:translate(0,-15px)}90%,100%{transform:translate(0,0)}}
+@keyframes at-s8{0%,20%{transform:translate(0,0)}30%,89%{transform:translate(-15px,0)}90%,100%{transform:translate(0,0)}}
+@keyframes at-s9{0%,30%{transform:translate(0,0)}40%,89%{transform:translate(-15px,0)}90%,100%{transform:translate(0,0)}}
+@keyframes at-s6{0%,40%{transform:translate(0,0)}50%,89%{transform:translate(0,15px)}90%,100%{transform:translate(0,0)}}
+@keyframes at-s3{0%,50%{transform:translate(0,0)}60%,89%{transform:translate(0,15px)}90%,100%{transform:translate(0,0)}}
+@keyframes at-s2{0%,60%{transform:translate(0,0)}70%,89%{transform:translate(15px,0)}90%,100%{transform:translate(0,0)}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
   },
@@ -237,25 +241,23 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
 .at-grid-fold{display:grid;grid-template-columns:repeat(3,12px);gap:3px;perspective:200px}
-.at-grid-fold span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px;transform-style:preserve-3d}
-.at-grid-fold span:nth-child(7){animation:at-f7 8s ease-in-out infinite;transform-origin:center top}
-.at-grid-fold span:nth-child(4){animation:at-f4 8s ease-in-out infinite;transform-origin:center top}
-.at-grid-fold span:nth-child(1){animation:at-f1 8s ease-in-out infinite;transform-origin:right center}
-.at-grid-fold span:nth-child(2){animation:at-f2 8s ease-in-out infinite;transform-origin:right center}
-.at-grid-fold span:nth-child(3){animation:at-f3 8s ease-in-out infinite;transform-origin:center bottom}
-.at-grid-fold span:nth-child(6){animation:at-f6 8s ease-in-out infinite;transform-origin:center bottom}
-.at-grid-fold span:nth-child(9){animation:at-f9 8s ease-in-out infinite;transform-origin:left center}
-.at-grid-fold span:nth-child(8){animation:at-f8 8s ease-in-out infinite;transform-origin:center top}
-.at-grid-fold span:nth-child(5){animation:at-f5 8s ease-in-out infinite}
-@keyframes at-f7{0%,2.5%{transform:rotateX(0);opacity:1}5%,47.5%{transform:rotateX(-90deg);opacity:0}50%{transform:rotateX(-90deg);opacity:0}52.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
-@keyframes at-f4{0%,5%{transform:rotateX(0);opacity:1}7.5%,50%{transform:rotateX(-90deg);opacity:0}55%{transform:rotateX(-90deg);opacity:0}57.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
-@keyframes at-f1{0%,7.5%{transform:rotateY(0);opacity:1}10%,52.5%{transform:rotateY(-90deg);opacity:0}57.5%{transform:rotateY(-90deg);opacity:0}60%{transform:rotateY(0);opacity:1}100%{transform:rotateY(0);opacity:1}}
-@keyframes at-f2{0%,10%{transform:rotateY(0);opacity:1}12.5%,55%{transform:rotateY(-90deg);opacity:0}60%{transform:rotateY(-90deg);opacity:0}62.5%{transform:rotateY(0);opacity:1}100%{transform:rotateY(0);opacity:1}}
-@keyframes at-f3{0%,12.5%{transform:rotateX(0);opacity:1}15%,57.5%{transform:rotateX(90deg);opacity:0}62.5%{transform:rotateX(90deg);opacity:0}65%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
-@keyframes at-f6{0%,15%{transform:rotateX(0);opacity:1}17.5%,60%{transform:rotateX(90deg);opacity:0}65%{transform:rotateX(90deg);opacity:0}67.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
-@keyframes at-f9{0%,17.5%{transform:rotateY(0);opacity:1}20%,62.5%{transform:rotateY(90deg);opacity:0}67.5%{transform:rotateY(90deg);opacity:0}70%{transform:rotateY(0);opacity:1}100%{transform:rotateY(0);opacity:1}}
-@keyframes at-f8{0%,20%{transform:rotateX(0);opacity:1}22.5%,65%{transform:rotateX(-90deg);opacity:0}70%{transform:rotateX(-90deg);opacity:0}72.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
-@keyframes at-f5{0%,22.5%{opacity:1}25%,67.5%{opacity:0}72.5%{opacity:0}75%{opacity:1}100%{opacity:1}}
+.at-grid-fold span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px}
+.at-grid-fold span:nth-child(7){animation:at-f7 10s ease-in-out infinite;transform-origin:center top}
+.at-grid-fold span:nth-child(4){animation:at-f4 10s ease-in-out infinite;transform-origin:center top}
+.at-grid-fold span:nth-child(1){animation:at-f1 10s ease-in-out infinite;transform-origin:center right}
+.at-grid-fold span:nth-child(2){animation:at-f2 10s ease-in-out infinite;transform-origin:center right}
+.at-grid-fold span:nth-child(3){animation:at-f3 10s ease-in-out infinite;transform-origin:center bottom}
+.at-grid-fold span:nth-child(6){animation:at-f6 10s ease-in-out infinite;transform-origin:center bottom}
+.at-grid-fold span:nth-child(9){animation:at-f9 10s ease-in-out infinite;transform-origin:center left}
+.at-grid-fold span:nth-child(8){animation:at-f8 10s ease-in-out infinite;transform-origin:center top}
+@keyframes at-f7{0%,5%{transform:rotateX(0);opacity:1}10%{transform:rotateX(-90deg);opacity:0}90%{transform:rotateX(-90deg);opacity:0}95%,100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f4{0%,10%{transform:rotateX(0);opacity:1}15%{transform:rotateX(-90deg);opacity:0}85%{transform:rotateX(-90deg);opacity:0}90%,100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f1{0%,15%{transform:rotateY(0);opacity:1}20%{transform:rotateY(90deg);opacity:0}80%{transform:rotateY(90deg);opacity:0}85%,100%{transform:rotateY(0);opacity:1}}
+@keyframes at-f2{0%,20%{transform:rotateY(0);opacity:1}25%{transform:rotateY(90deg);opacity:0}75%{transform:rotateY(90deg);opacity:0}80%,100%{transform:rotateY(0);opacity:1}}
+@keyframes at-f3{0%,25%{transform:rotateX(0);opacity:1}30%{transform:rotateX(90deg);opacity:0}70%{transform:rotateX(90deg);opacity:0}75%,100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f6{0%,30%{transform:rotateX(0);opacity:1}35%{transform:rotateX(90deg);opacity:0}65%{transform:rotateX(90deg);opacity:0}70%,100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f9{0%,35%{transform:rotateY(0);opacity:1}40%{transform:rotateY(-90deg);opacity:0}60%{transform:rotateY(-90deg);opacity:0}65%,100%{transform:rotateY(0);opacity:1}}
+@keyframes at-f8{0%,40%{transform:rotateX(0);opacity:1}45%{transform:rotateX(-90deg);opacity:0}55%{transform:rotateX(-90deg);opacity:0}60%,100%{transform:rotateX(0);opacity:1}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-grid-fold"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
   },

@@ -46,20 +46,20 @@ const bgSwatches = [
 ];
 
 function getSpeedLabel(speed: number): string {
-  if (speed <= 0.3) return `${speed.toFixed(2)}x (Slowest)`;
-  if (speed <= 0.6) return `${speed.toFixed(2)}x (Slow)`;
-  if (speed >= 0.9 && speed <= 1.1) return `${speed.toFixed(2)}x (Normal)`;
-  if (speed >= 1.5) return `${speed.toFixed(2)}x (Fast)`;
-  return `${speed.toFixed(2)}x`;
+  if (speed <= 0.55) return `${speed.toFixed(1)}x (Slowest)`;
+  if (speed <= 0.75) return `${speed.toFixed(1)}x (Slow)`;
+  if (speed >= 0.95 && speed <= 1.05) return `1x (Normal)`;
+  if (speed >= 1.25) return `${speed.toFixed(1)}x (Fast)`;
+  return `${speed.toFixed(1)}x`;
 }
 
-const sizeLabels: Record<number, string> = {
-  0.5: '0.5x (Small)',
-  0.75: '0.75x',
-  1: '1x (Default)',
-  1.5: '1.5x',
-  2: '2x (Large)',
-};
+function getSizeLabel(size: number): string {
+  if (size <= 0.55) return `${size.toFixed(1)}x (Smallest)`;
+  if (size <= 0.75) return `${size.toFixed(1)}x (Small)`;
+  if (size >= 0.95 && size <= 1.05) return `1x (Default)`;
+  if (size >= 1.25) return `${size.toFixed(1)}x (Large)`;
+  return `${size.toFixed(1)}x`;
+}
 
 export function ColorSettings({
   animationColor,
@@ -91,15 +91,15 @@ export function ColorSettings({
           <Slider
             value={[animationSpeed]}
             onValueChange={([v]) => onSpeedChange(v)}
-            min={0.25}
-            max={2}
+            min={0.5}
+            max={1.5}
             step={0.05}
             className="w-full"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Slowest</span>
-            <span>Normal</span>
-            <span>Fast</span>
+            <span>0.5x</span>
+            <span>1x</span>
+            <span>1.5x</span>
           </div>
         </div>
 
@@ -108,21 +108,21 @@ export function ColorSettings({
           <div className="flex items-center justify-between">
             <Label className="text-xs">Animation Size</Label>
             <span className="text-xs text-muted-foreground">
-              {sizeLabels[animationSize] || `${animationSize}x`}
+              {getSizeLabel(animationSize)}
             </span>
           </div>
           <Slider
             value={[animationSize]}
             onValueChange={([v]) => onSizeChange(v)}
             min={0.5}
-            max={2}
-            step={0.25}
+            max={1.5}
+            step={0.05}
             className="w-full"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Small</span>
-            <span>Default</span>
-            <span>Large</span>
+            <span>0.5x</span>
+            <span>1x</span>
+            <span>1.5x</span>
           </div>
         </div>
 
