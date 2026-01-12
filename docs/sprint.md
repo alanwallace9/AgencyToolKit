@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 39% Complete (14 of 36 Features)
+## Progress: 42% Complete (15 of 36 Features)
 
 ---
 
@@ -23,8 +23,8 @@
 - [x] Feature 12: Menu Customizer - Visual Editor
 - [x] Feature 13: Apply Menu Config in Embed Script
 - [x] Feature 14: Login Customizer Page (Canvas-based Designer)
-- [ ] Feature 15: Loading Animations Page **UP NEXT**
-- [ ] Feature 16: Dashboard Colors Page
+- [x] Feature 15: Loading Animations Page
+- [ ] Feature 16: Dashboard Colors Page **UP NEXT**
 - [ ] Feature 17: Apply Visual Configs in Embed Script
 
 ### Phase 3: Onboarding Tours
@@ -60,22 +60,25 @@
 
 ### Completed
 - ✅ Feature 14 - Login Designer (Canvas-based Designer) - COMPLETE
+- ✅ Feature 15 - Loading Animations Page - COMPLETE
 
 ### Session Progress (Jan 11, 2026)
 **Completed this session:**
-- ✅ File upload button fixed (dnd-kit was blocking pointer events)
-- ✅ Supabase "assets" storage bucket created
-- ✅ URL display cleanup ("Image uploaded" instead of raw URL)
-- ✅ Form auto-switch tab (clicking form switches to Form tab)
-- ✅ Delete key support (Delete/Backspace removes elements)
-- ✅ Font scaling (form elements scale with width)
-- ✅ Preset form X positioning (form moves to correct side)
-- ✅ Resize handle anchoring (all corner handles now anchor opposite corner)
-- ✅ Preset form Y position (form positioned appropriately per layout)
-- ✅ Preset preview thumbnails (split layouts show correct arrangement)
+- ✅ Feature 15: Loading Animations - Full implementation
+  - 13 animations (10 standard + 3 custom 3x3 grids)
+  - Category filter (minimal, playful, professional, creative)
+  - Hover-to-preview in large preview area
+  - Click-to-select with auto-save + sonner toast
+  - Color customization with swatches
+  - Brand color toggle
+  - Copy CSS button
+  - Currently Active indicator
+- ✅ Added Executive Plan template to CLAUDE.md
+- ✅ Added Commit Workflow to CLAUDE.md
 
 ### Up Next
-- Feature 15 - Loading Animations Page
+- Feature 15 Polish: Speed slider, fix Grid Fold/Slide/Wave animations
+- Feature 16 - Dashboard Colors Page
 
 ---
 
@@ -204,7 +207,6 @@
 - Updated `settings/page.tsx` to use the new component
 - Added improved agency details grid (name, email, plan, token)
 - Added shadcn accordion component
-
 ### Feature 9: Config API Endpoint
 **Completed:** 2026-01-11
 
