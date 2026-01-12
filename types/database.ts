@@ -177,7 +177,10 @@ export interface LoginDesign {
 
 export interface LoadingConfig {
   animation_id: string;
-  custom_css: string | null;
+  custom_color?: string;
+  use_brand_color?: boolean;
+  background_color?: string;
+  custom_css?: string | null;
 }
 
 export interface ColorConfig {

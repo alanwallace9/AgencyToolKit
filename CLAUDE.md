@@ -117,6 +117,90 @@ Feature gating is implemented via `agency.plan` field in database.
 - When in doubt, stop and ask
 - If you get an error, stop and present the plan to fix it before continuing
 
+### Executive Plan (REQUIRED Before Implementation)
+
+**Before starting ANY feature, present an Executive Plan for user approval.**
+
+| Step | Action | Wait for User? |
+|------|--------|----------------|
+| 1 | **Read Feature Doc** - Check `docs/features/feature-N-*.md` | No |
+| 2 | **Present Executive Plan** - Use template below | **YES - WAIT** |
+| 3 | **Get Approval** - User confirms approach | **YES - WAIT** |
+| 4 | **Implement** - Follow the approved plan | No |
+| 5 | **Confirm** - Show user the results | **YES - WAIT** |
+| 6 | **Ready to Commit?** - Ask before committing | **YES - WAIT** |
+
+**Executive Plan Template:**
+
+```markdown
+## Executive Plan: Feature N - [Title]
+
+### What We're Building
+[2-3 sentence summary of what we're building and why it matters to users]
+
+### UI/UX Placement
+- Where new components will appear in the UI
+- How they integrate with existing pages
+- Visual mockup description if helpful
+
+### Key Deliverables
+| Component | Description |
+|-----------|-------------|
+| [Component 1] | [What it does] |
+| [Component 2] | [What it does] |
+
+### Order of Operations
+1. [First task] - why this order
+2. [Second task] - dependencies on #1
+...
+
+### Database Changes
+- [Table/column changes if any, or "None - uses existing schema"]
+
+### Key Decisions (Need Your Input)
+- [Decision 1]: [Options and recommendation]
+- [Decision 2]: [Options and recommendation]
+
+### Scope Boundaries
+| In Scope | Out of Scope |
+|----------|--------------|
+| [Item] | [Item] |
+
+### Quick Wins (UX Improvements) ⭐ REQUIRED
+**ALWAYS include 3-5 suggestions to enhance the user experience.**
+
+| Suggestion | Why It Helps | Effort |
+|------------|--------------|--------|
+| [UX improvement idea] | [User benefit] | Low/Medium/High |
+| [Convenience feature] | [User benefit] | Low/Medium/High |
+| [Wow factor idea] | [User benefit] | Low/Medium/High |
+
+*Think: What would make the user say "wow" or "that's convenient"? What keeps them coming back?*
+
+### Questions for You
+- [Any clarifying questions about requirements or preferences]
+```
+
+**Wait for user approval before proceeding to implementation.**
+
+### Commit Workflow (WAIT FOR USER APPROVAL)
+
+After feature completion:
+
+1. **ASK USER**: "Feature complete - ready to commit?" - **WAIT FOR APPROVAL**
+2. **CHECK ALL MODIFIED FILES**: Run `git status` and review ALL uncommitted changes
+   - List all modified files to the user
+   - Identify which files are related to the current work
+   - Flag any files that were modified but might be forgotten
+   - **ASK**: "These files have uncommitted changes. Should they be included?"
+   - **IMPORTANT**: Code imports from other files may have been added - ensure those files are committed too
+3. **RUN BUILD**: `pnpm build` - **MUST PASS before committing**
+4. Stage ALL approved files, commit with format: `feat: [Feature #] - description`
+5. **WAIT** for user approval before pushing
+
+**DO NOT commit without user approval. DO NOT push without passing build.**
+**DO NOT leave related files uncommitted - this causes production build failures.**
+
 ### Sprint Tracking
 - Maintain a `docs/SPRINT.md` file in the project root
 - Update it after completing each task with:
