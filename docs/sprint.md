@@ -75,9 +75,16 @@
   - Currently Active indicator
 - ✅ Added Executive Plan template to CLAUDE.md
 - ✅ Added Commit Workflow to CLAUDE.md
+- ✅ Feature 15 Polish:
+  - Global speed slider (0.5x - 2x) with real-time preview
+  - Fixed Grid Fold animation (domino flip - each square flips toward next)
+  - Fixed Grid Slide animation (sliding puzzle with empty center space)
+  - Fixed Wave Bars animation (staccato voice/audio style like Wispr)
+  - Speed multiplier adjusts CSS animation durations dynamically
+  - All settings auto-save to database
 
 ### Up Next
-- Feature 15 Polish: Speed slider, fix Grid Fold/Slide/Wave animations
+- Feature 15 Polish: Hover-to-animate option (revisit later)
 - Feature 16 - Dashboard Colors Page
 
 ---

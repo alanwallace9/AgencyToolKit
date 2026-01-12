@@ -13,6 +13,7 @@ interface AnimationCardProps {
   isSelected: boolean;
   previewColor: string;
   previewBgColor: string;
+  speed: number;
   onSelect: () => void;
   onHover: () => void;
 }
@@ -29,6 +30,7 @@ export function AnimationCard({
   isSelected,
   previewColor,
   previewBgColor,
+  speed,
   onSelect,
   onHover,
 }: AnimationCardProps) {
@@ -39,11 +41,17 @@ export function AnimationCard({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Create scoped CSS
+    // Create scoped CSS with speed adjustment
+    // Speed multiplier: 1 = normal, 0.5 = half speed (2x duration), 2 = double speed (0.5x duration)
+    const durationMultiplier = 1 / speed;
     const scopedCss = animation.css
       .replace(/\.at-/g, `.at-card-${animation.id} .at-`)
       .replace(/var\(--loading-color,[^)]+\)/g, previewColor)
-      .replace(/var\(--loading-bg,[^)]+\)/g, previewBgColor);
+      .replace(/var\(--loading-bg,[^)]+\)/g, previewBgColor)
+      .replace(/animation:([^;]+?)(\d+\.?\d*)(s|ms)/g, (match, before, duration, unit) => {
+        const newDuration = parseFloat(duration) * durationMultiplier;
+        return `animation:${before}${newDuration.toFixed(2)}${unit}`;
+      });
 
     // Create or update style element
     if (!styleRef.current) {
@@ -58,7 +66,7 @@ export function AnimationCard({
         styleRef.current = null;
       }
     };
-  }, [animation.id, animation.css, previewColor, previewBgColor]);
+  }, [animation.id, animation.css, previewColor, previewBgColor, speed]);
 
   const handleCopyCSS = (e: React.MouseEvent) => {
     e.stopPropagation();

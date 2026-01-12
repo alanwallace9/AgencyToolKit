@@ -127,18 +127,22 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
   {
     id: 'wave-bars',
     label: 'Wave Bars',
-    description: 'Equalizer-style bars',
+    description: 'Voice/audio visualization',
     category: 'playful',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
-.at-wave{display:flex;gap:4px;align-items:center;height:32px}
-.at-wave span{width:4px;height:100%;background:var(--loading-color,#3b82f6);border-radius:2px;animation:at-wave 1s ease-in-out infinite}
-.at-wave span:nth-child(1){animation-delay:0s}
-.at-wave span:nth-child(2){animation-delay:0.1s}
-.at-wave span:nth-child(3){animation-delay:0.2s}
-.at-wave span:nth-child(4){animation-delay:0.3s}
-.at-wave span:nth-child(5){animation-delay:0.4s}
-@keyframes at-wave{0%,100%{transform:scaleY(0.4)}50%{transform:scaleY(1)}}
+.at-wave{display:flex;gap:3px;align-items:end;height:32px}
+.at-wave span{width:4px;background:var(--loading-color,#3b82f6);border-radius:2px}
+.at-wave span:nth-child(1){animation:at-voice1 0.4s steps(4) infinite}
+.at-wave span:nth-child(2){animation:at-voice2 0.35s steps(4) infinite}
+.at-wave span:nth-child(3){animation:at-voice3 0.45s steps(4) infinite}
+.at-wave span:nth-child(4){animation:at-voice4 0.38s steps(4) infinite}
+.at-wave span:nth-child(5){animation:at-voice5 0.42s steps(4) infinite}
+@keyframes at-voice1{0%{height:8px}25%{height:24px}50%{height:12px}75%{height:28px}100%{height:8px}}
+@keyframes at-voice2{0%{height:20px}25%{height:8px}50%{height:32px}75%{height:16px}100%{height:20px}}
+@keyframes at-voice3{0%{height:12px}25%{height:28px}50%{height:8px}75%{height:20px}100%{height:12px}}
+@keyframes at-voice4{0%{height:28px}25%{height:12px}50%{height:24px}75%{height:8px}100%{height:28px}}
+@keyframes at-voice5{0%{height:16px}25%{height:32px}50%{height:20px}75%{height:12px}100%{height:16px}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-wave"><span></span><span></span><span></span><span></span><span></span></div></div>',
   },
@@ -164,22 +168,21 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
   {
     id: 'grid-slide',
     label: 'Grid Slide',
-    description: '3x3 sliding puzzle effect',
+    description: '3x3 sliding puzzle',
     category: 'creative',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
 .at-grid{display:grid;grid-template-columns:repeat(3,12px);gap:3px}
-.at-grid span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px;animation:at-grid-slide 2s ease-in-out infinite}
-.at-grid span:nth-child(1){animation-delay:0s}
-.at-grid span:nth-child(2){animation-delay:0.1s}
-.at-grid span:nth-child(3){animation-delay:0.2s}
-.at-grid span:nth-child(4){animation-delay:0.7s}
-.at-grid span:nth-child(5){animation-delay:0.4s;opacity:0}
-.at-grid span:nth-child(6){animation-delay:0.3s}
-.at-grid span:nth-child(7){animation-delay:0.6s}
-.at-grid span:nth-child(8){animation-delay:0.5s}
-.at-grid span:nth-child(9){animation-delay:0.4s}
-@keyframes at-grid-slide{0%,100%{transform:translate(0,0);opacity:1}25%{transform:translate(15px,0)}50%{transform:translate(15px,15px)}75%{transform:translate(0,15px)}}
+.at-grid span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px}
+.at-grid span:nth-child(5){opacity:0}
+.at-grid span:nth-child(2){animation:at-slide-down 2.4s ease-in-out infinite}
+.at-grid span:nth-child(4){animation:at-slide-right 2.4s ease-in-out 0.6s infinite}
+.at-grid span:nth-child(8){animation:at-slide-up 2.4s ease-in-out 1.2s infinite}
+.at-grid span:nth-child(6){animation:at-slide-left 2.4s ease-in-out 1.8s infinite}
+@keyframes at-slide-down{0%,20%{transform:translateY(0)}10%{transform:translateY(15px)}10.1%,100%{transform:translateY(0)}}
+@keyframes at-slide-right{0%,20%{transform:translateX(0)}10%{transform:translateX(15px)}10.1%,100%{transform:translateX(0)}}
+@keyframes at-slide-up{0%,20%{transform:translateY(0)}10%{transform:translateY(-15px)}10.1%,100%{transform:translateY(0)}}
+@keyframes at-slide-left{0%,20%{transform:translateX(0)}10%{transform:translateX(-15px)}10.1%,100%{transform:translateX(0)}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
   },
@@ -209,29 +212,25 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
   {
     id: 'grid-fold',
     label: 'Grid Fold',
-    description: '3x3 folding around perimeter',
+    description: '3x3 domino fold effect',
     category: 'creative',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
-.at-grid-fold{display:grid;grid-template-columns:repeat(3,12px);gap:3px;perspective:120px}
+.at-grid-fold{display:grid;grid-template-columns:repeat(3,12px);gap:3px;perspective:200px}
 .at-grid-fold span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px;transform-style:preserve-3d}
-.at-grid-fold span:nth-child(1){animation:at-fold-1 2.4s ease-in-out infinite}
-.at-grid-fold span:nth-child(2){animation:at-fold-2 2.4s ease-in-out 0.3s infinite}
-.at-grid-fold span:nth-child(3){animation:at-fold-3 2.4s ease-in-out 0.6s infinite}
-.at-grid-fold span:nth-child(6){animation:at-fold-4 2.4s ease-in-out 0.9s infinite}
-.at-grid-fold span:nth-child(9){animation:at-fold-5 2.4s ease-in-out 1.2s infinite}
-.at-grid-fold span:nth-child(8){animation:at-fold-6 2.4s ease-in-out 1.5s infinite}
-.at-grid-fold span:nth-child(7){animation:at-fold-7 2.4s ease-in-out 1.8s infinite}
-.at-grid-fold span:nth-child(4){animation:at-fold-8 2.4s ease-in-out 2.1s infinite}
-.at-grid-fold span:nth-child(5){opacity:0.4}
-@keyframes at-fold-1{0%,20%,100%{transform:rotateY(0)}10%{transform:rotateY(90deg)}}
-@keyframes at-fold-2{0%,20%,100%{transform:rotateX(0)}10%{transform:rotateX(-90deg)}}
-@keyframes at-fold-3{0%,20%,100%{transform:rotateY(0)}10%{transform:rotateY(-90deg)}}
-@keyframes at-fold-4{0%,20%,100%{transform:rotateX(0)}10%{transform:rotateX(-90deg)}}
-@keyframes at-fold-5{0%,20%,100%{transform:rotateY(0)}10%{transform:rotateY(-90deg)}}
-@keyframes at-fold-6{0%,20%,100%{transform:rotateX(0)}10%{transform:rotateX(90deg)}}
-@keyframes at-fold-7{0%,20%,100%{transform:rotateY(0)}10%{transform:rotateY(90deg)}}
-@keyframes at-fold-8{0%,20%,100%{transform:rotateX(0)}10%{transform:rotateX(90deg)}}
+.at-grid-fold span:nth-child(5){opacity:0.3}
+.at-grid-fold span:nth-child(1){animation:at-flip-right 2.4s ease-in-out infinite;transform-origin:right center}
+.at-grid-fold span:nth-child(2){animation:at-flip-right 2.4s ease-in-out 0.3s infinite;transform-origin:right center}
+.at-grid-fold span:nth-child(3){animation:at-flip-down 2.4s ease-in-out 0.6s infinite;transform-origin:center bottom}
+.at-grid-fold span:nth-child(6){animation:at-flip-down 2.4s ease-in-out 0.9s infinite;transform-origin:center bottom}
+.at-grid-fold span:nth-child(9){animation:at-flip-left 2.4s ease-in-out 1.2s infinite;transform-origin:left center}
+.at-grid-fold span:nth-child(8){animation:at-flip-left 2.4s ease-in-out 1.5s infinite;transform-origin:left center}
+.at-grid-fold span:nth-child(7){animation:at-flip-up 2.4s ease-in-out 1.8s infinite;transform-origin:center top}
+.at-grid-fold span:nth-child(4){animation:at-flip-up 2.4s ease-in-out 2.1s infinite;transform-origin:center top}
+@keyframes at-flip-right{0%,15%,100%{transform:rotateY(0)}7.5%{transform:rotateY(-90deg)}}
+@keyframes at-flip-down{0%,15%,100%{transform:rotateX(0)}7.5%{transform:rotateX(90deg)}}
+@keyframes at-flip-left{0%,15%,100%{transform:rotateY(0)}7.5%{transform:rotateY(90deg)}}
+@keyframes at-flip-up{0%,15%,100%{transform:rotateX(0)}7.5%{transform:rotateX(-90deg)}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-grid-fold"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
   },

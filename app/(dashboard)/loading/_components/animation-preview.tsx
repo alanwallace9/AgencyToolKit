@@ -8,9 +8,10 @@ interface AnimationPreviewProps {
   animation: LoadingAnimation | null;
   color: string;
   backgroundColor: string;
+  speed: number;
 }
 
-export function AnimationPreview({ animation, color, backgroundColor }: AnimationPreviewProps) {
+export function AnimationPreview({ animation, color, backgroundColor, speed }: AnimationPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
 
@@ -18,11 +19,16 @@ export function AnimationPreview({ animation, color, backgroundColor }: Animatio
   useEffect(() => {
     if (!animation || !containerRef.current) return;
 
-    // Create scoped CSS for preview
+    // Create scoped CSS for preview with speed adjustment
+    const durationMultiplier = 1 / speed;
     const scopedCss = animation.css
       .replace(/\.at-/g, '.at-preview .at-')
       .replace(/var\(--loading-color,[^)]+\)/g, color)
-      .replace(/var\(--loading-bg,[^)]+\)/g, backgroundColor);
+      .replace(/var\(--loading-bg,[^)]+\)/g, backgroundColor)
+      .replace(/animation:([^;]+?)(\d+\.?\d*)(s|ms)/g, (match, before, duration, unit) => {
+        const newDuration = parseFloat(duration) * durationMultiplier;
+        return `animation:${before}${newDuration.toFixed(2)}${unit}`;
+      });
 
     // Create or update style element
     if (!styleRef.current) {
@@ -37,7 +43,7 @@ export function AnimationPreview({ animation, color, backgroundColor }: Animatio
         styleRef.current = null;
       }
     };
-  }, [animation, color, backgroundColor]);
+  }, [animation, color, backgroundColor, speed]);
 
   return (
     <Card>

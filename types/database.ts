@@ -180,6 +180,7 @@ export interface LoadingConfig {
   custom_color?: string;
   use_brand_color?: boolean;
   background_color?: string;
+  animation_speed?: number; // 0.5 to 2.0 (1.0 = normal)
   custom_css?: string | null;
 }
 

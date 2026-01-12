@@ -43,6 +43,9 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
   const [useBrandColor, setUseBrandColor] = useState<boolean>(
     initialConfig?.use_brand_color || false
   );
+  const [animationSpeed, setAnimationSpeed] = useState<number>(
+    initialConfig?.animation_speed || 1
+  );
   const [categoryFilter, setCategoryFilter] = useState<AnimationCategory | 'all'>('all');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -75,6 +78,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         custom_color: animationColor,
         use_brand_color: useBrandColor,
         background_color: backgroundColor,
+        animation_speed: animationSpeed,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -87,7 +91,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
 
       setIsSaving(false);
     },
-    [animationColor, useBrandColor, backgroundColor]
+    [animationColor, useBrandColor, backgroundColor, animationSpeed]
   );
 
   const handleColorChange = useCallback(
@@ -100,6 +104,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         custom_color: color,
         use_brand_color: false,
         background_color: backgroundColor,
+        animation_speed: animationSpeed,
       };
 
       setUseBrandColor(false);
@@ -109,7 +114,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save color');
       }
     },
-    [selectedId, backgroundColor]
+    [selectedId, backgroundColor, animationSpeed]
   );
 
   const handleBgColorChange = useCallback(
@@ -122,6 +127,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         custom_color: animationColor,
         use_brand_color: useBrandColor,
         background_color: color,
+        animation_speed: animationSpeed,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -130,7 +136,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save background');
       }
     },
-    [selectedId, animationColor, useBrandColor]
+    [selectedId, animationColor, useBrandColor, animationSpeed]
   );
 
   const handleUseBrandColorChange = useCallback(
@@ -142,6 +148,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         custom_color: animationColor,
         use_brand_color: use,
         background_color: backgroundColor,
+        animation_speed: animationSpeed,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -152,7 +159,28 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save');
       }
     },
-    [selectedId, animationColor, backgroundColor]
+    [selectedId, animationColor, backgroundColor, animationSpeed]
+  );
+
+  const handleSpeedChange = useCallback(
+    async (speed: number) => {
+      setAnimationSpeed(speed);
+
+      const config: LoadingConfig = {
+        animation_id: selectedId,
+        custom_color: animationColor,
+        use_brand_color: useBrandColor,
+        background_color: backgroundColor,
+        animation_speed: speed,
+      };
+
+      const result = await saveLoadingAnimation(config);
+
+      if (!result.success) {
+        toast.error('Failed to save speed');
+      }
+    },
+    [selectedId, animationColor, useBrandColor, backgroundColor]
   );
 
   return (
@@ -193,6 +221,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
                 isSelected={selectedId === animation.id}
                 previewColor={effectiveColor}
                 previewBgColor={backgroundColor}
+                speed={animationSpeed}
                 onSelect={() => handleSelect(animation.id)}
                 onHover={() => setHoveredId(animation.id)}
               />
@@ -204,6 +233,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
             animation={previewAnimation}
             color={effectiveColor}
             backgroundColor={backgroundColor}
+            speed={animationSpeed}
           />
         </div>
 
@@ -214,9 +244,11 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
             backgroundColor={backgroundColor}
             useBrandColor={useBrandColor}
             brandColors={brandColors}
+            animationSpeed={animationSpeed}
             onAnimationColorChange={handleColorChange}
             onBackgroundColorChange={handleBgColorChange}
             onUseBrandColorChange={handleUseBrandColorChange}
+            onSpeedChange={handleSpeedChange}
           />
 
           {/* Currently Active Info */}

@@ -3,6 +3,7 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ColorConfig } from '@/types/database';
 
@@ -11,9 +12,11 @@ interface ColorSettingsProps {
   backgroundColor: string;
   useBrandColor: boolean;
   brandColors: ColorConfig | null;
+  animationSpeed: number;
   onAnimationColorChange: (color: string) => void;
   onBackgroundColorChange: (color: string) => void;
   onUseBrandColorChange: (use: boolean) => void;
+  onSpeedChange: (speed: number) => void;
 }
 
 const colorSwatches = [
@@ -40,21 +43,54 @@ const bgSwatches = [
   { color: 'transparent', label: 'Transparent' },
 ];
 
+const speedLabels: Record<number, string> = {
+  0.5: '0.5x (Slow)',
+  0.75: '0.75x',
+  1: '1x (Normal)',
+  1.5: '1.5x',
+  2: '2x (Fast)',
+};
+
 export function ColorSettings({
   animationColor,
   backgroundColor,
   useBrandColor,
   brandColors,
+  animationSpeed,
   onAnimationColorChange,
   onBackgroundColorChange,
   onUseBrandColorChange,
+  onSpeedChange,
 }: ColorSettingsProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Color Settings</CardTitle>
+        <CardTitle className="text-sm font-medium">Animation Settings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Speed Slider */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Animation Speed</Label>
+            <span className="text-xs text-muted-foreground">
+              {speedLabels[animationSpeed] || `${animationSpeed}x`}
+            </span>
+          </div>
+          <Slider
+            value={[animationSpeed]}
+            onValueChange={([v]) => onSpeedChange(v)}
+            min={0.5}
+            max={2}
+            step={0.25}
+            className="w-full"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>Slow</span>
+            <span>Normal</span>
+            <span>Fast</span>
+          </div>
+        </div>
+
         {/* Use Brand Color Toggle */}
         {brandColors && (
           <div className="flex items-center justify-between">
