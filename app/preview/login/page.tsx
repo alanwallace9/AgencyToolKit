@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { LoginPreview } from './_components/login-preview';
 import type { LoginDesign } from '@/types/database';
 
@@ -16,7 +16,7 @@ export default async function LoginPreviewPage() {
     );
   }
 
-  const supabase = await createServerClient();
+  const supabase = await createClient();
 
   // Get the agency
   const { data: agency } = await supabase
