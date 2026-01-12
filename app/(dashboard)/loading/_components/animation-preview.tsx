@@ -9,9 +9,10 @@ interface AnimationPreviewProps {
   color: string;
   backgroundColor: string;
   speed: number;
+  size: number;
 }
 
-export function AnimationPreview({ animation, color, backgroundColor, speed }: AnimationPreviewProps) {
+export function AnimationPreview({ animation, color, backgroundColor, speed, size }: AnimationPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
 
@@ -55,11 +56,14 @@ export function AnimationPreview({ animation, color, backgroundColor, speed }: A
       <CardContent>
         <div
           ref={containerRef}
-          className="at-preview h-48 rounded-lg flex items-center justify-center transition-colors"
+          className="at-preview h-48 rounded-lg flex items-center justify-center transition-colors overflow-hidden"
           style={{ backgroundColor }}
         >
           {animation ? (
-            <div dangerouslySetInnerHTML={{ __html: animation.html }} />
+            <div
+              style={{ transform: `scale(${size})`, transformOrigin: 'center' }}
+              dangerouslySetInnerHTML={{ __html: animation.html }}
+            />
           ) : (
             <p className="text-muted-foreground text-sm">
               Hover over an animation to preview it here

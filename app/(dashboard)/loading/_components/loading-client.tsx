@@ -46,6 +46,9 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
   const [animationSpeed, setAnimationSpeed] = useState<number>(
     initialConfig?.animation_speed || 1
   );
+  const [animationSize, setAnimationSize] = useState<number>(
+    initialConfig?.animation_size || 1
+  );
   const [categoryFilter, setCategoryFilter] = useState<AnimationCategory | 'all'>('all');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -79,6 +82,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         use_brand_color: useBrandColor,
         background_color: backgroundColor,
         animation_speed: animationSpeed,
+        animation_size: animationSize,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -91,7 +95,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
 
       setIsSaving(false);
     },
-    [animationColor, useBrandColor, backgroundColor, animationSpeed]
+    [animationColor, useBrandColor, backgroundColor, animationSpeed, animationSize]
   );
 
   const handleColorChange = useCallback(
@@ -105,6 +109,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         use_brand_color: false,
         background_color: backgroundColor,
         animation_speed: animationSpeed,
+        animation_size: animationSize,
       };
 
       setUseBrandColor(false);
@@ -114,7 +119,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save color');
       }
     },
-    [selectedId, backgroundColor, animationSpeed]
+    [selectedId, backgroundColor, animationSpeed, animationSize]
   );
 
   const handleBgColorChange = useCallback(
@@ -128,6 +133,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         use_brand_color: useBrandColor,
         background_color: color,
         animation_speed: animationSpeed,
+        animation_size: animationSize,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -136,7 +142,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save background');
       }
     },
-    [selectedId, animationColor, useBrandColor, animationSpeed]
+    [selectedId, animationColor, useBrandColor, animationSpeed, animationSize]
   );
 
   const handleUseBrandColorChange = useCallback(
@@ -149,6 +155,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         use_brand_color: use,
         background_color: backgroundColor,
         animation_speed: animationSpeed,
+        animation_size: animationSize,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -159,7 +166,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save');
       }
     },
-    [selectedId, animationColor, backgroundColor, animationSpeed]
+    [selectedId, animationColor, backgroundColor, animationSpeed, animationSize]
   );
 
   const handleSpeedChange = useCallback(
@@ -172,6 +179,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         use_brand_color: useBrandColor,
         background_color: backgroundColor,
         animation_speed: speed,
+        animation_size: animationSize,
       };
 
       const result = await saveLoadingAnimation(config);
@@ -180,7 +188,29 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
         toast.error('Failed to save speed');
       }
     },
-    [selectedId, animationColor, useBrandColor, backgroundColor]
+    [selectedId, animationColor, useBrandColor, backgroundColor, animationSize]
+  );
+
+  const handleSizeChange = useCallback(
+    async (size: number) => {
+      setAnimationSize(size);
+
+      const config: LoadingConfig = {
+        animation_id: selectedId,
+        custom_color: animationColor,
+        use_brand_color: useBrandColor,
+        background_color: backgroundColor,
+        animation_speed: animationSpeed,
+        animation_size: size,
+      };
+
+      const result = await saveLoadingAnimation(config);
+
+      if (!result.success) {
+        toast.error('Failed to save size');
+      }
+    },
+    [selectedId, animationColor, useBrandColor, backgroundColor, animationSpeed]
   );
 
   return (
@@ -222,6 +252,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
                 previewColor={effectiveColor}
                 previewBgColor={backgroundColor}
                 speed={animationSpeed}
+                size={animationSize}
                 onSelect={() => handleSelect(animation.id)}
                 onHover={() => setHoveredId(animation.id)}
               />
@@ -234,6 +265,7 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
             color={effectiveColor}
             backgroundColor={backgroundColor}
             speed={animationSpeed}
+            size={animationSize}
           />
         </div>
 
@@ -245,10 +277,12 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
             useBrandColor={useBrandColor}
             brandColors={brandColors}
             animationSpeed={animationSpeed}
+            animationSize={animationSize}
             onAnimationColorChange={handleColorChange}
             onBackgroundColorChange={handleBgColorChange}
             onUseBrandColorChange={handleUseBrandColorChange}
             onSpeedChange={handleSpeedChange}
+            onSizeChange={handleSizeChange}
           />
 
           {/* Currently Active Info */}

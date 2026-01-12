@@ -84,8 +84,56 @@
   - All settings auto-save to database
 
 ### Up Next
-- Feature 15 Polish: Hover-to-animate option (revisit later)
+- Feature 15 Polish: Remaining animation fixes (see details below)
 - Feature 16 - Dashboard Colors Page
+
+---
+
+## Feature 15 Polish - Remaining Items (Jan 11, 2026)
+
+### Slider Alignment
+- Both Speed and Size sliders should have 1x (Default/Normal) visually centered
+- Currently Speed is 0.25-2x and Size is 0.5-2x, so midpoints don't align
+- **Fix**: Adjust ranges so 1x is in the middle of both sliders
+
+### Wave Bars Animation
+- At 1x speed, still too fast
+- **Fix**: Slow down base animation durations further
+
+### Grid Slide Animation - SPECIFIC REQUIREMENTS
+Grid positions: `1 2 3 / 4 5 6 / 7 8 9`
+
+**Sequence (continuous loop, NO reappearing):**
+1. Start: Position 5 (center) is EMPTY
+2. Position 4 (center-left) slides RIGHT into 5 → now 4 is empty
+3. Position 7 (bottom-left) slides UP into 4 → now 7 is empty
+4. Position 8 (bottom-middle) slides LEFT into 7 → now 8 is empty
+5. Continue around the grid clockwise
+6. When pattern completes and center is empty again, keep looping seamlessly
+7. **KEY**: No reappearing, no resetting - continuous sliding motion
+
+### Grid Fold Animation - SPECIFIC REQUIREMENTS
+Grid positions: `1 2 3 / 4 5 6 / 7 8 9`
+
+**Fold Phase:**
+1. Start: All 9 squares visible
+2. Position 7 (bottom-left) folds UP onto position 4 (should look like folding ON TOP)
+3. Continue folding around clockwise into the center
+4. All outer squares fold into center area
+
+**Unfold Phase:**
+1. Center square (5) APPEARS
+2. Unfolds DOWN to position 8 (bottom-middle)
+3. Unfolds to position 9 (bottom-right)
+4. Unfolds UP the right side
+5. Continues around back to starting state
+6. **KEY**: Should unfold in reverse order, not just reappear
+
+**Speed**: Too fast at 1x - slow down base animation
+
+### Notes
+- CSS-only animations (no JavaScript randomization needed for now)
+- User is okay with deterministic patterns
 
 ---
 

@@ -13,10 +13,12 @@ interface ColorSettingsProps {
   useBrandColor: boolean;
   brandColors: ColorConfig | null;
   animationSpeed: number;
+  animationSize: number;
   onAnimationColorChange: (color: string) => void;
   onBackgroundColorChange: (color: string) => void;
   onUseBrandColorChange: (use: boolean) => void;
   onSpeedChange: (speed: number) => void;
+  onSizeChange: (size: number) => void;
 }
 
 const colorSwatches = [
@@ -43,12 +45,20 @@ const bgSwatches = [
   { color: 'transparent', label: 'Transparent' },
 ];
 
-const speedLabels: Record<number, string> = {
-  0.5: '0.5x (Slow)',
+function getSpeedLabel(speed: number): string {
+  if (speed <= 0.3) return `${speed.toFixed(2)}x (Slowest)`;
+  if (speed <= 0.6) return `${speed.toFixed(2)}x (Slow)`;
+  if (speed >= 0.9 && speed <= 1.1) return `${speed.toFixed(2)}x (Normal)`;
+  if (speed >= 1.5) return `${speed.toFixed(2)}x (Fast)`;
+  return `${speed.toFixed(2)}x`;
+}
+
+const sizeLabels: Record<number, string> = {
+  0.5: '0.5x (Small)',
   0.75: '0.75x',
-  1: '1x (Normal)',
+  1: '1x (Default)',
   1.5: '1.5x',
-  2: '2x (Fast)',
+  2: '2x (Large)',
 };
 
 export function ColorSettings({
@@ -57,10 +67,12 @@ export function ColorSettings({
   useBrandColor,
   brandColors,
   animationSpeed,
+  animationSize,
   onAnimationColorChange,
   onBackgroundColorChange,
   onUseBrandColorChange,
   onSpeedChange,
+  onSizeChange,
 }: ColorSettingsProps) {
   return (
     <Card>
@@ -73,39 +85,64 @@ export function ColorSettings({
           <div className="flex items-center justify-between">
             <Label className="text-xs">Animation Speed</Label>
             <span className="text-xs text-muted-foreground">
-              {speedLabels[animationSpeed] || `${animationSpeed}x`}
+              {getSpeedLabel(animationSpeed)}
             </span>
           </div>
           <Slider
             value={[animationSpeed]}
             onValueChange={([v]) => onSpeedChange(v)}
+            min={0.25}
+            max={2}
+            step={0.05}
+            className="w-full"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>Slowest</span>
+            <span>Normal</span>
+            <span>Fast</span>
+          </div>
+        </div>
+
+        {/* Size Slider */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Animation Size</Label>
+            <span className="text-xs text-muted-foreground">
+              {sizeLabels[animationSize] || `${animationSize}x`}
+            </span>
+          </div>
+          <Slider
+            value={[animationSize]}
+            onValueChange={([v]) => onSizeChange(v)}
             min={0.5}
             max={2}
             step={0.25}
             className="w-full"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Slow</span>
-            <span>Normal</span>
-            <span>Fast</span>
+            <span>Small</span>
+            <span>Default</span>
+            <span>Large</span>
           </div>
         </div>
 
         {/* Use Brand Color Toggle */}
-        {brandColors && (
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-sm">Use brand color</Label>
-              <p className="text-xs text-muted-foreground">
-                Auto-match your primary brand color
-              </p>
-            </div>
-            <Switch
-              checked={useBrandColor}
-              onCheckedChange={onUseBrandColorChange}
-            />
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-sm">Use brand color</Label>
+            <p className="text-xs text-muted-foreground">
+              {brandColors
+                ? 'Auto-match your primary brand color'
+                : <a href="/colors" className="text-primary hover:underline">Set brand colors first →</a>
+              }
+            </p>
           </div>
-        )}
+          <Switch
+            checked={useBrandColor}
+            onCheckedChange={onUseBrandColorChange}
+            disabled={!brandColors}
+          />
+        </div>
 
         {/* Animation Color */}
         <div className="space-y-2">

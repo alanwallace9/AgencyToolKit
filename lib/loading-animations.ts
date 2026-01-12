@@ -36,7 +36,7 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
     category: 'professional',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
-.at-ring{width:40px;height:40px;border:3px solid rgba(0,0,0,0.1);border-top-color:var(--loading-color,#3b82f6);border-radius:50%;animation:at-spin 0.8s linear infinite}
+.at-ring{width:40px;height:40px;border:3px solid rgba(0,0,0,0.1);border-top-color:var(--loading-color,#3b82f6);border-radius:50%;animation:at-spin 1.5s linear infinite}
 @keyframes at-spin{to{transform:rotate(360deg)}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-ring"></div></div>',
@@ -90,8 +90,8 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
 .at-squares{position:relative;width:40px;height:40px}
 .at-squares span{position:absolute;width:16px;height:16px;background:var(--loading-color,#3b82f6)}
-.at-squares span:first-child{top:0;left:0;animation:at-sq1 1s ease-in-out infinite}
-.at-squares span:last-child{bottom:0;right:0;animation:at-sq2 1s ease-in-out infinite}
+.at-squares span:first-child{top:0;left:0;animation:at-sq1 2.5s ease-in-out infinite}
+.at-squares span:last-child{bottom:0;right:0;animation:at-sq2 2.5s ease-in-out infinite}
 @keyframes at-sq1{0%,100%{transform:translate(0,0)}25%{transform:translate(24px,0)}50%{transform:translate(24px,24px)}75%{transform:translate(0,24px)}}
 @keyframes at-sq2{0%,100%{transform:translate(0,0)}25%{transform:translate(-24px,0)}50%{transform:translate(-24px,-24px)}75%{transform:translate(0,-24px)}}
     `.trim(),
@@ -104,7 +104,7 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
     category: 'creative',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
-.at-gradient{width:40px;height:40px;border-radius:50%;background:conic-gradient(from 0deg,transparent,var(--loading-color,#3b82f6));animation:at-spin 0.8s linear infinite;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
+.at-gradient{width:40px;height:40px;border-radius:50%;background:conic-gradient(from 0deg,transparent,var(--loading-color,#3b82f6));animation:at-spin 1.5s linear infinite;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
 @keyframes at-spin{to{transform:rotate(360deg)}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-gradient"></div></div>',
@@ -133,11 +133,11 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
 .at-wave{display:flex;gap:3px;align-items:end;height:32px}
 .at-wave span{width:4px;background:var(--loading-color,#3b82f6);border-radius:2px}
-.at-wave span:nth-child(1){animation:at-voice1 0.4s steps(4) infinite}
-.at-wave span:nth-child(2){animation:at-voice2 0.35s steps(4) infinite}
-.at-wave span:nth-child(3){animation:at-voice3 0.45s steps(4) infinite}
-.at-wave span:nth-child(4){animation:at-voice4 0.38s steps(4) infinite}
-.at-wave span:nth-child(5){animation:at-voice5 0.42s steps(4) infinite}
+.at-wave span:nth-child(1){animation:at-voice1 0.9s steps(4) infinite}
+.at-wave span:nth-child(2){animation:at-voice2 0.8s steps(4) infinite}
+.at-wave span:nth-child(3){animation:at-voice3 1s steps(4) infinite}
+.at-wave span:nth-child(4){animation:at-voice4 0.85s steps(4) infinite}
+.at-wave span:nth-child(5){animation:at-voice5 0.95s steps(4) infinite}
 @keyframes at-voice1{0%{height:8px}25%{height:24px}50%{height:12px}75%{height:28px}100%{height:8px}}
 @keyframes at-voice2{0%{height:20px}25%{height:8px}50%{height:32px}75%{height:16px}100%{height:20px}}
 @keyframes at-voice3{0%{height:12px}25%{height:28px}50%{height:8px}75%{height:20px}100%{height:12px}}
@@ -163,8 +163,25 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
     `.trim(),
     html: '<div class="at-loader"><div class="at-orbit"><span></span><span></span><span></span><span></span></div></div>',
   },
+  {
+    id: 'typing-dots',
+    label: 'Typing Dots',
+    description: 'iPhone-style typing indicator',
+    category: 'minimal',
+    css: `
+.at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
+.at-typing{display:flex;gap:4px;padding:12px 16px;background:rgba(0,0,0,0.08);border-radius:20px}
+.at-typing span{width:8px;height:8px;background:var(--loading-color,#3b82f6);border-radius:50%;opacity:0.4;animation:at-typing-pulse 1.4s ease-in-out infinite}
+.at-typing span:nth-child(2){animation-delay:0.2s}
+.at-typing span:nth-child(3){animation-delay:0.4s}
+@keyframes at-typing-pulse{0%,60%,100%{opacity:0.4;transform:scale(1)}30%{opacity:1;transform:scale(1.2)}}
+    `.trim(),
+    html: '<div class="at-loader"><div class="at-typing"><span></span><span></span><span></span></div></div>',
+  },
 
   // Custom 3x3 Grid Animations
+  // Grid positions: 1 2 3 / 4 5 6 / 7 8 9
+  // Slide sequence: 5 empty → 2 fills 5 (2 empty) → 1 fills 2 (1 empty) → 4 fills 1 (4 empty) → etc.
   {
     id: 'grid-slide',
     label: 'Grid Slide',
@@ -172,17 +189,20 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
     category: 'creative',
     css: `
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
-.at-grid{display:grid;grid-template-columns:repeat(3,12px);gap:3px}
+.at-grid{display:grid;grid-template-columns:repeat(3,12px);gap:3px;position:relative}
 .at-grid span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px}
-.at-grid span:nth-child(5){opacity:0}
-.at-grid span:nth-child(2){animation:at-slide-down 2.4s ease-in-out infinite}
-.at-grid span:nth-child(4){animation:at-slide-right 2.4s ease-in-out 0.6s infinite}
-.at-grid span:nth-child(8){animation:at-slide-up 2.4s ease-in-out 1.2s infinite}
-.at-grid span:nth-child(6){animation:at-slide-left 2.4s ease-in-out 1.8s infinite}
-@keyframes at-slide-down{0%,20%{transform:translateY(0)}10%{transform:translateY(15px)}10.1%,100%{transform:translateY(0)}}
-@keyframes at-slide-right{0%,20%{transform:translateX(0)}10%{transform:translateX(15px)}10.1%,100%{transform:translateX(0)}}
-@keyframes at-slide-up{0%,20%{transform:translateY(0)}10%{transform:translateY(-15px)}10.1%,100%{transform:translateY(0)}}
-@keyframes at-slide-left{0%,20%{transform:translateX(0)}10%{transform:translateX(-15px)}10.1%,100%{transform:translateX(0)}}
+.at-grid span:nth-child(1){animation:at-p1 6s ease-in-out infinite}
+.at-grid span:nth-child(2){animation:at-p2 6s ease-in-out infinite}
+.at-grid span:nth-child(4){animation:at-p4 6s ease-in-out infinite}
+.at-grid span:nth-child(5){animation:at-p5 6s ease-in-out infinite}
+.at-grid span:nth-child(7){animation:at-p7 6s ease-in-out infinite}
+.at-grid span:nth-child(8){animation:at-p8 6s ease-in-out infinite}
+@keyframes at-p5{0%,8%{opacity:0}8.1%,100%{opacity:1}}
+@keyframes at-p2{0%{transform:translate(0,0)}8%{transform:translate(0,15px)}8.1%,16%{transform:translate(0,15px);opacity:0}16.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
+@keyframes at-p1{0%,8%{transform:translate(0,0)}16%{transform:translate(15px,0)}16.1%,25%{transform:translate(15px,0);opacity:0}25.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
+@keyframes at-p4{0%,16%{transform:translate(0,0)}25%{transform:translate(0,-15px)}25.1%,33%{transform:translate(0,-15px);opacity:0}33.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
+@keyframes at-p7{0%,25%{transform:translate(0,0)}33%{transform:translate(0,-15px)}33.1%,41%{transform:translate(0,-15px);opacity:0}41.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
+@keyframes at-p8{0%,33%{transform:translate(0,0)}41%{transform:translate(-15px,0)}41.1%,50%{transform:translate(-15px,0);opacity:0}50.1%{opacity:1;transform:translate(0,0)}100%{transform:translate(0,0)}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
   },
@@ -218,19 +238,24 @@ export const LOADING_ANIMATIONS: LoadingAnimation[] = [
 .at-loader{display:flex;align-items:center;justify-content:center;height:100%;background:var(--loading-bg,transparent)}
 .at-grid-fold{display:grid;grid-template-columns:repeat(3,12px);gap:3px;perspective:200px}
 .at-grid-fold span{width:12px;height:12px;background:var(--loading-color,#3b82f6);border-radius:2px;transform-style:preserve-3d}
-.at-grid-fold span:nth-child(5){opacity:0.3}
-.at-grid-fold span:nth-child(1){animation:at-flip-right 2.4s ease-in-out infinite;transform-origin:right center}
-.at-grid-fold span:nth-child(2){animation:at-flip-right 2.4s ease-in-out 0.3s infinite;transform-origin:right center}
-.at-grid-fold span:nth-child(3){animation:at-flip-down 2.4s ease-in-out 0.6s infinite;transform-origin:center bottom}
-.at-grid-fold span:nth-child(6){animation:at-flip-down 2.4s ease-in-out 0.9s infinite;transform-origin:center bottom}
-.at-grid-fold span:nth-child(9){animation:at-flip-left 2.4s ease-in-out 1.2s infinite;transform-origin:left center}
-.at-grid-fold span:nth-child(8){animation:at-flip-left 2.4s ease-in-out 1.5s infinite;transform-origin:left center}
-.at-grid-fold span:nth-child(7){animation:at-flip-up 2.4s ease-in-out 1.8s infinite;transform-origin:center top}
-.at-grid-fold span:nth-child(4){animation:at-flip-up 2.4s ease-in-out 2.1s infinite;transform-origin:center top}
-@keyframes at-flip-right{0%,15%,100%{transform:rotateY(0)}7.5%{transform:rotateY(-90deg)}}
-@keyframes at-flip-down{0%,15%,100%{transform:rotateX(0)}7.5%{transform:rotateX(90deg)}}
-@keyframes at-flip-left{0%,15%,100%{transform:rotateY(0)}7.5%{transform:rotateY(90deg)}}
-@keyframes at-flip-up{0%,15%,100%{transform:rotateX(0)}7.5%{transform:rotateX(-90deg)}}
+.at-grid-fold span:nth-child(7){animation:at-f7 8s ease-in-out infinite;transform-origin:center top}
+.at-grid-fold span:nth-child(4){animation:at-f4 8s ease-in-out infinite;transform-origin:center top}
+.at-grid-fold span:nth-child(1){animation:at-f1 8s ease-in-out infinite;transform-origin:right center}
+.at-grid-fold span:nth-child(2){animation:at-f2 8s ease-in-out infinite;transform-origin:right center}
+.at-grid-fold span:nth-child(3){animation:at-f3 8s ease-in-out infinite;transform-origin:center bottom}
+.at-grid-fold span:nth-child(6){animation:at-f6 8s ease-in-out infinite;transform-origin:center bottom}
+.at-grid-fold span:nth-child(9){animation:at-f9 8s ease-in-out infinite;transform-origin:left center}
+.at-grid-fold span:nth-child(8){animation:at-f8 8s ease-in-out infinite;transform-origin:center top}
+.at-grid-fold span:nth-child(5){animation:at-f5 8s ease-in-out infinite}
+@keyframes at-f7{0%,2.5%{transform:rotateX(0);opacity:1}5%,47.5%{transform:rotateX(-90deg);opacity:0}50%{transform:rotateX(-90deg);opacity:0}52.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f4{0%,5%{transform:rotateX(0);opacity:1}7.5%,50%{transform:rotateX(-90deg);opacity:0}55%{transform:rotateX(-90deg);opacity:0}57.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f1{0%,7.5%{transform:rotateY(0);opacity:1}10%,52.5%{transform:rotateY(-90deg);opacity:0}57.5%{transform:rotateY(-90deg);opacity:0}60%{transform:rotateY(0);opacity:1}100%{transform:rotateY(0);opacity:1}}
+@keyframes at-f2{0%,10%{transform:rotateY(0);opacity:1}12.5%,55%{transform:rotateY(-90deg);opacity:0}60%{transform:rotateY(-90deg);opacity:0}62.5%{transform:rotateY(0);opacity:1}100%{transform:rotateY(0);opacity:1}}
+@keyframes at-f3{0%,12.5%{transform:rotateX(0);opacity:1}15%,57.5%{transform:rotateX(90deg);opacity:0}62.5%{transform:rotateX(90deg);opacity:0}65%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f6{0%,15%{transform:rotateX(0);opacity:1}17.5%,60%{transform:rotateX(90deg);opacity:0}65%{transform:rotateX(90deg);opacity:0}67.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f9{0%,17.5%{transform:rotateY(0);opacity:1}20%,62.5%{transform:rotateY(90deg);opacity:0}67.5%{transform:rotateY(90deg);opacity:0}70%{transform:rotateY(0);opacity:1}100%{transform:rotateY(0);opacity:1}}
+@keyframes at-f8{0%,20%{transform:rotateX(0);opacity:1}22.5%,65%{transform:rotateX(-90deg);opacity:0}70%{transform:rotateX(-90deg);opacity:0}72.5%{transform:rotateX(0);opacity:1}100%{transform:rotateX(0);opacity:1}}
+@keyframes at-f5{0%,22.5%{opacity:1}25%,67.5%{opacity:0}72.5%{opacity:0}75%{opacity:1}100%{opacity:1}}
     `.trim(),
     html: '<div class="at-loader"><div class="at-grid-fold"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
   },

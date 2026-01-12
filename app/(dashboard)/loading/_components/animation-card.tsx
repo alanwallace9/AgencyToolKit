@@ -14,6 +14,7 @@ interface AnimationCardProps {
   previewColor: string;
   previewBgColor: string;
   speed: number;
+  size: number;
   onSelect: () => void;
   onHover: () => void;
 }
@@ -31,6 +32,7 @@ export function AnimationCard({
   previewColor,
   previewBgColor,
   speed,
+  size,
   onSelect,
   onHover,
 }: AnimationCardProps) {
