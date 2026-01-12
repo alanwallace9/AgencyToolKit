@@ -107,10 +107,18 @@ Canvas-based drag-drop designer for customizing GHL login pages.
 
 ### High Priority
 
-#### 1. Preview Page (404 Error)
-- **Issue:** Preview button opens `/preview/login` which doesn't exist
-- **Solution:** Create preview page that renders the saved design full-screen
-- **Location:** `app/(preview)/login/page.tsx` or similar
+#### 1. Preview Page Not Loading Saved Design
+- **Issue:** Preview page shows default blank form instead of the user's saved design with all elements (images, text, testimonials, buttons, etc.)
+- **Symptoms:** User creates complex design in editor → clicks Preview → sees only default form on dark background
+- **Possible causes:**
+  1. Design not saving to database when Save clicked
+  2. Preview page not fetching the saved design correctly (queries `is_default: true`)
+  3. Design saved but `is_default` not set to true
+- **Debug steps for next session:**
+  1. Check Supabase `login_designs` table - is there a saved design?
+  2. Check if `is_default` is true on the saved design
+  3. Verify preview page query is working
+- **Files:** `app/preview/login/page.tsx`, `login/_actions/login-actions.ts`
 
 #### 2. UI Layout Reorganization
 - **Issue:** Form styling split between left panel (Form tab) and right panel (Properties)
