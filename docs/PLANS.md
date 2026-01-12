@@ -6,7 +6,7 @@ Reference to detailed plans created during development. Full plan files are stor
 
 | Plan | Summary | File |
 |------|---------|------|
-| Loading Animations (Feature 15) | Gallery of 10 pre-built CSS animations, one-click selection, color customization | `~/.claude/plans/feature-15-loading-animations.md` |
+| Loading Animations (Feature 15) | Gallery of 10 pre-built CSS animations, one-click selection, color customization | `docs/features/feature-15-loading-animations.md` |
 
 ## Completed
 
