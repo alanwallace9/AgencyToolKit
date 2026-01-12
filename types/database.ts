@@ -77,8 +77,13 @@ export interface LoginDesignFormStyle {
   input_text: string;
   link_color: string;
   form_bg?: string; // Form container background
+  form_border?: string; // Form container border color
+  form_border_width?: number; // Form container border width in px
+  form_border_radius?: number; // Form container border radius in px
   label_color?: string; // Form field label color (Email, Password)
   logo_url?: string; // Custom logo URL for the form
+  form_heading?: string; // Heading text displayed above form fields
+  form_heading_color?: string; // Heading text color
 }
 
 export interface CanvasElementBase {

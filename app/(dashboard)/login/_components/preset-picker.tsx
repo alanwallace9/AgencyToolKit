@@ -24,6 +24,7 @@ interface PresetPickerProps {
     elements: CanvasElement[];
     background: LoginDesignBackground;
   }) => void;
+  activePreset?: LoginLayoutType | null;
 }
 
 interface Preset {
@@ -53,8 +54,8 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 35,
-        y: 15,
+        x: 38, // Centered (was 35)
+        y: 12,
         width: 400,
         height: 50,
         zIndex: 1,
@@ -89,10 +90,10 @@ const PRESETS: Preset[] = [
         x: 0,
         y: 0,
         width: 800,
-        height: 1080,
+        height: 900,
         zIndex: 1,
         props: {
-          url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=1080&fit=crop',
+          url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=900&fit=crop',
           opacity: 100,
           borderRadius: 0,
           objectFit: 'cover' as const,
@@ -101,8 +102,8 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 55,
-        y: 20,
+        x: 64, // Centered on right side
+        y: 9,  // Above form
         width: 350,
         height: 50,
         zIndex: 2,
@@ -112,7 +113,7 @@ const PRESETS: Preset[] = [
           fontFamily: 'Inter',
           fontWeight: 600,
           color: '#ffffff',
-          textAlign: 'left' as const,
+          textAlign: 'center' as const, // Centered (was left)
         },
       },
     ],
@@ -136,14 +137,31 @@ const PRESETS: Preset[] = [
         type: 'image',
         x: 50,
         y: 0,
-        width: 960,
-        height: 1080,
+        width: 800,
+        height: 900,
         zIndex: 1,
         props: {
-          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=960&h=1080&fit=crop',
+          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=900&fit=crop',
           opacity: 100,
           borderRadius: 0,
           objectFit: 'cover' as const,
+        },
+      },
+      {
+        id: 'preset-text-1',
+        type: 'text',
+        x: 14, // Centered on left side
+        y: 9, // Above form
+        width: 350,
+        height: 50,
+        zIndex: 2,
+        props: {
+          text: 'Sign In',
+          fontSize: 32,
+          fontFamily: 'Inter',
+          fontWeight: 600,
+          color: '#ffffff',
+          textAlign: 'center' as const,
         },
       },
     ],
@@ -166,13 +184,13 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 35,
-        y: 12,
+        x: 38, // Centered
+        y: 10,
         width: 400,
         height: 50,
         zIndex: 1,
         props: {
-          text: 'Your Dashboard',
+          text: 'Welcome',
           fontSize: 40,
           fontFamily: 'Inter',
           fontWeight: 700,
@@ -183,13 +201,13 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-2',
         type: 'text',
-        x: 30,
-        y: 18,
+        x: 33, // Centered
+        y: 16,
         width: 500,
         height: 30,
         zIndex: 2,
         props: {
-          text: 'Sign in to access your account',
+          text: 'Sign in to continue',
           fontSize: 18,
           fontFamily: 'Inter',
           fontWeight: 400,
@@ -209,16 +227,12 @@ const PRESETS: Preset[] = [
     description: 'Clean, dark, modern aesthetic',
     icon: Moon,
     background: {
-      type: 'gradient',
-      gradient: {
-        from: '#0a0a0a',
-        to: '#171717',
-        angle: 180,
-      },
+      type: 'solid',
+      color: '#0f172a',
     },
     elements: [],
     preview: {
-      bgClass: 'bg-black',
+      bgClass: 'bg-slate-900',
       layoutClass: 'items-center justify-center',
     },
   },
@@ -229,17 +243,17 @@ const PRESETS: Preset[] = [
     icon: Maximize2,
     background: {
       type: 'solid',
-      color: '#1e293b',
+      color: '#ffffff', // White background (was gray)
     },
     elements: [],
     preview: {
-      bgClass: 'bg-slate-800',
+      bgClass: 'bg-white',
       layoutClass: 'items-center justify-center',
     },
   },
 ];
 
-export function PresetPicker({ onSelect }: PresetPickerProps) {
+export function PresetPicker({ onSelect, activePreset }: PresetPickerProps) {
   const [open, setOpen] = useState(false);
 
   const handleSelect = (preset: Preset) => {
@@ -250,6 +264,11 @@ export function PresetPicker({ onSelect }: PresetPickerProps) {
     });
     setOpen(false);
   };
+
+  // Get the name of the active preset
+  const activePresetName = activePreset
+    ? PRESETS.find((p) => p.id === activePreset)?.name
+    : null;
 
   return (
     <Card>
@@ -262,11 +281,16 @@ export function PresetPicker({ onSelect }: PresetPickerProps) {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
+        {activePresetName && (
+          <p className="text-xs text-muted-foreground mb-2">
+            Current: <span className="font-medium text-foreground">{activePresetName}</span>
+          </p>
+        )}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="w-full justify-start gap-2">
               <Layout className="h-4 w-4" />
-              Choose a Layout Preset
+              {activePresetName ? 'Change Layout Preset' : 'Choose a Layout Preset'}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-2xl">
@@ -301,6 +325,11 @@ function PresetCard({
 }) {
   const Icon = preset.icon;
 
+  // Determine layout direction for split presets
+  const isSplitLeft = preset.id === 'split-left';
+  const isSplitRight = preset.id === 'split-right';
+  const isSplit = isSplitLeft || isSplitRight;
+
   return (
     <button
       onClick={onClick}
@@ -314,11 +343,31 @@ function PresetCard({
         className={cn(
           'h-28 flex p-4',
           preset.preview.bgClass,
-          preset.preview.layoutClass
+          preset.preview.layoutClass,
+          // For split layouts, arrange items in a row
+          isSplit && 'flex-row gap-2'
         )}
       >
+        {/* Image placeholder - only for split layouts */}
+        {isSplit && (
+          <div
+            className={cn(
+              'flex-1 rounded bg-gradient-to-br from-blue-600/30 to-purple-600/30',
+              // Order: image left for split-left, image right for split-right
+              isSplitRight && 'order-2'
+            )}
+          />
+        )}
+
         {/* Mini form preview */}
-        <div className="w-16 h-20 bg-white/10 rounded-md backdrop-blur flex flex-col items-center justify-center gap-1 p-1">
+        <div
+          className={cn(
+            'w-16 h-20 bg-white/10 rounded-md backdrop-blur flex flex-col items-center justify-center gap-1 p-1',
+            // For split layouts, don't shrink and position correctly
+            isSplit && 'flex-shrink-0',
+            isSplitRight && 'order-1'
+          )}
+        >
           <div className="w-10 h-1.5 bg-white/30 rounded" />
           <div className="w-10 h-1.5 bg-white/30 rounded" />
           <div className="w-8 h-2 bg-blue-500/50 rounded mt-1" />

@@ -11,7 +11,7 @@ interface FormStylePanelProps {
 }
 
 export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
-  const updateStyle = (key: keyof LoginDesignFormStyle, value: string) => {
+  const updateStyle = (key: keyof LoginDesignFormStyle, value: string | number) => {
     onChange({ ...formStyle, [key]: value });
   };
 
@@ -61,6 +61,68 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           <p className="text-xs text-muted-foreground mt-1">
             Use rgba() for transparency
           </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs">Border Color</Label>
+            <div className="flex gap-1">
+              <Input
+                type="color"
+                value={formStyle.form_border?.startsWith('rgba') ? '#000000' : (formStyle.form_border || '#000000')}
+                onChange={(e) => updateStyle('form_border', e.target.value)}
+                className="h-8 w-10 p-1"
+              />
+              <Input
+                value={formStyle.form_border || ''}
+                onChange={(e) => updateStyle('form_border', e.target.value)}
+                placeholder="none"
+                className="h-8 flex-1 text-xs"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Border Width</Label>
+            <Input
+              type="number"
+              value={formStyle.form_border_width ?? 1}
+              onChange={(e) => updateStyle('form_border_width', Number(e.target.value))}
+              className="h-8"
+              min={0}
+              max={10}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Form Heading */}
+      <div className="space-y-3">
+        <Label className="text-xs font-medium text-muted-foreground uppercase">
+          Form Heading
+        </Label>
+        <div>
+          <Label className="text-xs">Text</Label>
+          <Input
+            value={formStyle.form_heading || ''}
+            onChange={(e) => updateStyle('form_heading', e.target.value)}
+            placeholder="e.g., Welcome Back"
+            className="h-8"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Color</Label>
+          <div className="flex gap-1">
+            <Input
+              type="color"
+              value={formStyle.form_heading_color || '#111827'}
+              onChange={(e) => updateStyle('form_heading_color', e.target.value)}
+              className="h-8 w-10 p-1"
+            />
+            <Input
+              value={formStyle.form_heading_color || '#111827'}
+              onChange={(e) => updateStyle('form_heading_color', e.target.value)}
+              className="h-8 flex-1 text-xs"
+            />
+          </div>
         </div>
       </div>
 
@@ -218,13 +280,16 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           <button
             onClick={() =>
               onChange({
+                ...formStyle,
                 button_bg: '#2563eb',
                 button_text: '#ffffff',
                 input_bg: '#ffffff',
                 input_border: '#d1d5db',
                 input_text: '#111827',
                 link_color: '#2563eb',
+                label_color: '#2563eb',
                 form_bg: 'rgba(255, 255, 255, 0.05)',
+                form_heading_color: '#2563eb',
               })
             }
             className="text-xs px-3 py-2 rounded border hover:border-primary"
@@ -234,13 +299,16 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           <button
             onClick={() =>
               onChange({
+                ...formStyle,
                 button_bg: '#18181b',
                 button_text: '#ffffff',
                 input_bg: '#27272a',
                 input_border: '#3f3f46',
                 input_text: '#fafafa',
                 link_color: '#a1a1aa',
+                label_color: '#a1a1aa',
                 form_bg: 'rgba(0, 0, 0, 0.3)',
+                form_heading_color: '#fafafa',
               })
             }
             className="text-xs px-3 py-2 rounded border hover:border-primary"
@@ -250,13 +318,16 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           <button
             onClick={() =>
               onChange({
+                ...formStyle,
                 button_bg: '#059669',
                 button_text: '#ffffff',
                 input_bg: '#ffffff',
                 input_border: '#d1d5db',
                 input_text: '#111827',
                 link_color: '#059669',
+                label_color: '#059669',
                 form_bg: 'rgba(255, 255, 255, 0.9)',
+                form_heading_color: '#059669',
               })
             }
             className="text-xs px-3 py-2 rounded border hover:border-primary"
@@ -266,13 +337,16 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           <button
             onClick={() =>
               onChange({
+                ...formStyle,
                 button_bg: '#7c3aed',
                 button_text: '#ffffff',
                 input_bg: '#ffffff',
                 input_border: '#d1d5db',
                 input_text: '#111827',
                 link_color: '#7c3aed',
+                label_color: '#7c3aed',
                 form_bg: 'rgba(124, 58, 237, 0.1)',
+                form_heading_color: '#7c3aed',
               })
             }
             className="text-xs px-3 py-2 rounded border hover:border-primary"

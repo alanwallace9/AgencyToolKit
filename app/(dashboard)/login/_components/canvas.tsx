@@ -27,7 +27,7 @@ interface DesignCanvasProps {
   elements: CanvasElement[];
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
-  onResizeElement?: (id: string, width: number, height: number) => void;
+  onResizeElement?: (id: string, width: number, height: number, x?: number, y?: number) => void;
   formStyle: LoginDesignFormStyle;
   canvasRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -143,7 +143,7 @@ interface CanvasElementWrapperProps {
   element: CanvasElement;
   isSelected: boolean;
   onSelect: () => void;
-  onResize?: (id: string, width: number, height: number) => void;
+  onResize?: (id: string, width: number, height: number, x?: number, y?: number) => void;
   formStyle: LoginDesignFormStyle;
   canvasWidth: number;
   canvasHeight: number;
@@ -165,7 +165,15 @@ function CanvasElementWrapper({
   });
 
   const [isResizing, setIsResizing] = useState(false);
-  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number; handle: ResizeHandle } | null>(null);
+  const resizeStartRef = useRef<{
+    mouseX: number;
+    mouseY: number;
+    width: number;
+    height: number;
+    elemX: number;
+    elemY: number;
+    handle: ResizeHandle;
+  } | null>(null);
 
   // Calculate element dimensions as percentage of canvas
   const widthPercent = (element.width / canvasWidth) * 100;
@@ -190,33 +198,35 @@ function CanvasElementWrapper({
     onSelect();
   };
 
-  // Handle resize start
-  const handleResizeStart = useCallback((e: React.MouseEvent, handle: ResizeHandle) => {
+  // Handle resize start (using PointerEvent to properly capture from @dnd-kit's PointerSensor)
+  const handleResizeStart = useCallback((e: React.PointerEvent | React.MouseEvent, handle: ResizeHandle) => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
     resizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
+      mouseX: e.clientX,
+      mouseY: e.clientY,
       width: element.width,
       height: element.height,
+      elemX: element.x,
+      elemY: element.y,
       handle,
     };
-  }, [element.width, element.height]);
+  }, [element.width, element.height, element.x, element.y]);
 
-  // Handle resize move and end
+  // Handle resize move and end - using pointer events to match onPointerDown
   useEffect(() => {
     if (!isResizing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!resizeStartRef.current || !containerRef.current || !onResize) return;
 
       const containerRect = containerRef.current.getBoundingClientRect();
       const start = resizeStartRef.current;
 
       // Calculate delta in pixels
-      const deltaX = e.clientX - start.x;
-      const deltaY = e.clientY - start.y;
+      const deltaX = e.clientX - start.mouseX;
+      const deltaY = e.clientY - start.mouseY;
 
       // Convert pixel delta to canvas units (using the ratio between container and canvas)
       const scaleX = canvasWidth / containerRect.width;
@@ -224,35 +234,89 @@ function CanvasElementWrapper({
 
       let newWidth = start.width;
       let newHeight = start.height;
+      let newX = start.elemX;
+      let newY = start.elemY;
 
-      // Apply resize based on handle
-      if (start.handle === 'se' || start.handle === 'ne') {
-        newWidth = Math.max(50, start.width + deltaX * scaleX);
-      }
-      if (start.handle === 'sw' || start.handle === 'nw') {
-        newWidth = Math.max(50, start.width - deltaX * scaleX);
-      }
-      if (start.handle === 'se' || start.handle === 'sw') {
-        newHeight = Math.max(50, start.height + deltaY * scaleY);
-      }
-      if (start.handle === 'ne' || start.handle === 'nw') {
-        newHeight = Math.max(50, start.height - deltaY * scaleY);
+      // Calculate the fixed corner positions (the corner that should stay in place)
+      const startWidthPercent = (start.width / canvasWidth) * 100;
+      const startHeightPercent = (start.height / canvasHeight) * 100;
+
+      // Apply resize based on handle - anchor opposite corner
+      // Note: For elements with height='auto' (like login-form), we only resize width
+      const isAutoHeight = element.type === 'login-form';
+
+      switch (start.handle) {
+        case 'se': // Anchor NW (top-left stays fixed)
+          newWidth = Math.max(50, start.width + deltaX * scaleX);
+          if (!isAutoHeight) {
+            newHeight = Math.max(50, start.height + deltaY * scaleY);
+          }
+          // x, y stay the same
+          break;
+        case 'sw': { // Anchor NE (top-right stays fixed)
+          newWidth = Math.max(50, start.width - deltaX * scaleX);
+          if (!isAutoHeight) {
+            newHeight = Math.max(50, start.height + deltaY * scaleY);
+          }
+          // Calculate new x to keep right edge fixed
+          const fixedRightEdge = start.elemX + startWidthPercent;
+          const newWidthPercent = (newWidth / canvasWidth) * 100;
+          newX = fixedRightEdge - newWidthPercent;
+          break;
+        }
+        case 'ne': { // Anchor SW (bottom-left stays fixed)
+          newWidth = Math.max(50, start.width + deltaX * scaleX);
+          if (!isAutoHeight) {
+            newHeight = Math.max(50, start.height - deltaY * scaleY);
+            // Calculate new y to keep bottom edge fixed
+            const fixedBottomEdge = start.elemY + startHeightPercent;
+            const newHeightPercent = (newHeight / canvasHeight) * 100;
+            newY = fixedBottomEdge - newHeightPercent;
+          }
+          // For auto-height elements, x and y stay the same, only width changes
+          break;
+        }
+        case 'nw': { // Anchor SE (bottom-right stays fixed)
+          newWidth = Math.max(50, start.width - deltaX * scaleX);
+          // Calculate new x to keep right edge fixed
+          const fixedRight = start.elemX + startWidthPercent;
+          const newWPercent = (newWidth / canvasWidth) * 100;
+          newX = fixedRight - newWPercent;
+          if (!isAutoHeight) {
+            newHeight = Math.max(50, start.height - deltaY * scaleY);
+            // Calculate new y to keep bottom edge fixed
+            const fixedBottom = start.elemY + startHeightPercent;
+            const newHPercent = (newHeight / canvasHeight) * 100;
+            newY = fixedBottom - newHPercent;
+          }
+          break;
+        }
       }
 
-      onResize(element.id, Math.round(newWidth), Math.round(newHeight));
+      // Clamp position to canvas bounds
+      newX = Math.max(0, Math.min(100 - (newWidth / canvasWidth) * 100, newX));
+      newY = Math.max(0, Math.min(100 - (newHeight / canvasHeight) * 100, newY));
+
+      onResize(
+        element.id,
+        Math.round(newWidth),
+        Math.round(newHeight),
+        Math.round(newX * 10) / 10,
+        Math.round(newY * 10) / 10
+      );
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       setIsResizing(false);
       resizeStartRef.current = null;
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
     };
   }, [isResizing, element.id, canvasWidth, canvasHeight, containerRef, onResize]);
 
@@ -276,7 +340,7 @@ function CanvasElementWrapper({
       {element.type === 'text' && <TextElement props={element.props as any} />}
       {element.type === 'gif' && <GifElement props={element.props as any} />}
       {element.type === 'login-form' && (
-        <LoginFormElement props={element.props as any} formStyle={formStyle} />
+        <LoginFormElement props={element.props as any} formStyle={formStyle} width={element.width} />
       )}
       {element.type === 'testimonial' && <TestimonialElement props={element.props as any} />}
       {element.type === 'shape' && <ShapeElement props={element.props as any} />}
@@ -287,28 +351,28 @@ function CanvasElementWrapper({
         <div className="absolute -inset-1 border-2 border-primary border-dashed rounded pointer-events-none" />
       )}
 
-      {/* Resize handles - only show when selected */}
+      {/* Resize handles - only show when selected. onPointerDown stops propagation to prevent dnd-kit drag */}
       {isSelected && onResize && (
         <>
           {/* NW handle */}
           <div
             className={cn(handleStyle, '-top-1.5 -left-1.5 cursor-nwse-resize')}
-            onMouseDown={(e) => handleResizeStart(e, 'nw')}
+            onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'nw'); }}
           />
           {/* NE handle */}
           <div
             className={cn(handleStyle, '-top-1.5 -right-1.5 cursor-nesw-resize')}
-            onMouseDown={(e) => handleResizeStart(e, 'ne')}
+            onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'ne'); }}
           />
           {/* SW handle */}
           <div
             className={cn(handleStyle, '-bottom-1.5 -left-1.5 cursor-nesw-resize')}
-            onMouseDown={(e) => handleResizeStart(e, 'sw')}
+            onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'sw'); }}
           />
           {/* SE handle */}
           <div
             className={cn(handleStyle, '-bottom-1.5 -right-1.5 cursor-nwse-resize')}
-            onMouseDown={(e) => handleResizeStart(e, 'se')}
+            onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'se'); }}
           />
         </>
       )}

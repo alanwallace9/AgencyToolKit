@@ -5,18 +5,46 @@ import type { LoginFormElementProps, LoginDesignFormStyle } from '@/types/databa
 interface Props {
   props: LoginFormElementProps;
   formStyle: LoginDesignFormStyle;
+  width?: number; // Element width for font scaling
 }
 
-export function LoginFormElement({ props, formStyle }: Props) {
+// Base width for scale calculation (from DEFAULT_LOGIN_FORM_ELEMENT)
+const BASE_WIDTH = 400;
+
+export function LoginFormElement({ props, formStyle, width = BASE_WIDTH }: Props) {
   const isCompact = props.variant === 'compact';
   const labelColor = formStyle.label_color || 'rgba(255, 255, 255, 0.6)';
 
+  // Calculate scale factor based on width (min 0.5, max 1.5)
+  const scale = Math.max(0.5, Math.min(1.5, width / BASE_WIDTH));
+
+  // Scaled font sizes
+  const fontXs = `${Math.round(12 * scale)}px`;
+  const fontSm = `${Math.round(14 * scale)}px`;
+  const fontBase = `${Math.round(16 * scale)}px`;
+
+  // Scaled heights
+  const inputHeight = `${Math.round(36 * scale)}px`;
+  const buttonHeight = `${Math.round(40 * scale)}px`;
+  const logoHeight = `${Math.round(40 * scale)}px`;
+  const padding = `${Math.round(24 * scale)}px`;
+
+  // Border radius (default 12px)
+  const borderRadius = formStyle.form_border_radius ?? 12;
+  const borderWidth = formStyle.form_border_width ?? 1;
+
+  // Scaled heading font size
+  const headingFontSize = `${Math.round(24 * scale)}px`;
+
   return (
     <div
-      className="w-full h-full rounded-lg p-6 flex flex-col"
+      className="w-full h-full flex flex-col"
       style={{
         backgroundColor: formStyle.form_bg || 'rgba(255,255,255,0.05)',
         backdropFilter: 'blur(8px)',
+        padding,
+        borderRadius: `${borderRadius}px`,
+        border: formStyle.form_border ? `${borderWidth}px solid ${formStyle.form_border}` : undefined,
       }}
     >
       {/* Logo */}
@@ -24,27 +52,55 @@ export function LoginFormElement({ props, formStyle }: Props) {
         <img
           src={formStyle.logo_url}
           alt="Logo"
-          className="h-10 w-auto mx-auto mb-4 object-contain"
+          className="w-auto mx-auto object-contain"
+          style={{ height: logoHeight, marginBottom: `${Math.round(16 * scale)}px` }}
         />
       ) : (
-        <div className="w-10 h-10 bg-white/10 rounded-lg mx-auto mb-4 flex items-center justify-center">
-          <span className="text-white/50 text-xs">Logo</span>
+        <div
+          className="bg-white/10 rounded-lg mx-auto flex items-center justify-center"
+          style={{
+            width: logoHeight,
+            height: logoHeight,
+            marginBottom: `${Math.round(16 * scale)}px`,
+          }}
+        >
+          <span className="text-white/50" style={{ fontSize: fontXs }}>Logo</span>
         </div>
       )}
 
+      {/* Heading */}
+      {formStyle.form_heading && (
+        <h2
+          className="text-center font-semibold"
+          style={{
+            fontSize: headingFontSize,
+            color: formStyle.form_heading_color || '#111827',
+            marginBottom: `${Math.round(16 * scale)}px`,
+          }}
+        >
+          {formStyle.form_heading}
+        </h2>
+      )}
+
       {/* Form fields */}
-      <div className={`flex-1 flex flex-col ${isCompact ? 'gap-2' : 'gap-3'}`}>
+      <div
+        className="flex-1 flex flex-col"
+        style={{ gap: isCompact ? `${Math.round(8 * scale)}px` : `${Math.round(12 * scale)}px` }}
+      >
         {/* Email */}
         <div>
           <label
-            className="text-xs mb-1 block"
-            style={{ color: labelColor }}
+            className="block"
+            style={{ color: labelColor, fontSize: fontXs, marginBottom: `${Math.round(4 * scale)}px` }}
           >
             Email
           </label>
           <div
-            className="h-9 rounded-md px-3 flex items-center text-sm"
+            className="rounded-md flex items-center"
             style={{
+              height: inputHeight,
+              padding: `0 ${Math.round(12 * scale)}px`,
+              fontSize: fontSm,
               backgroundColor: formStyle.input_bg,
               border: `1px solid ${formStyle.input_border}`,
               color: formStyle.input_text,
@@ -57,14 +113,17 @@ export function LoginFormElement({ props, formStyle }: Props) {
         {/* Password */}
         <div>
           <label
-            className="text-xs mb-1 block"
-            style={{ color: labelColor }}
+            className="block"
+            style={{ color: labelColor, fontSize: fontXs, marginBottom: `${Math.round(4 * scale)}px` }}
           >
             Password
           </label>
           <div
-            className="h-9 rounded-md px-3 flex items-center text-sm"
+            className="rounded-md flex items-center"
             style={{
+              height: inputHeight,
+              padding: `0 ${Math.round(12 * scale)}px`,
+              fontSize: fontSm,
               backgroundColor: formStyle.input_bg,
               border: `1px solid ${formStyle.input_border}`,
               color: formStyle.input_text,
@@ -77,8 +136,8 @@ export function LoginFormElement({ props, formStyle }: Props) {
         {/* Forgot password link */}
         <div className="text-right">
           <span
-            className="text-xs cursor-pointer"
-            style={{ color: formStyle.link_color }}
+            className="cursor-pointer"
+            style={{ color: formStyle.link_color, fontSize: fontXs }}
           >
             Forgot password?
           </span>
@@ -86,8 +145,10 @@ export function LoginFormElement({ props, formStyle }: Props) {
 
         {/* Submit button */}
         <button
-          className="h-10 rounded-md font-medium text-sm mt-auto"
+          className="rounded-md font-medium mt-auto"
           style={{
+            height: buttonHeight,
+            fontSize: fontSm,
             backgroundColor: formStyle.button_bg,
             color: formStyle.button_text,
           }}

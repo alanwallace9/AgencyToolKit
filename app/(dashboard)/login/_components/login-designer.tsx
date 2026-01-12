@@ -54,6 +54,7 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'elements' | 'background' | 'form'>('elements');
   const [isSaving, setIsSaving] = useState(false);
+  const [activePreset, setActivePreset] = useState<LoginLayoutType | null>(currentDesign?.layout || null);
 
   // Ref to get actual canvas dimensions for drag calculation
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -153,11 +154,36 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
       ...canvas,
       background: preset.background,
     });
+
+    // Position the form based on preset layout
+    let formX = DEFAULT_LOGIN_FORM_ELEMENT.x; // Default centered (37.5%)
+    let formY = 20; // Default slightly higher than center for better visual balance
+
+    if (preset.layout === 'split-left') {
+      // Image on left, form on right
+      formX = 62;
+      formY = 18; // Slightly higher for split layouts
+    } else if (preset.layout === 'split-right') {
+      // Form on left, image on right
+      formX = 12;
+      formY = 18; // Slightly higher for split layouts
+    } else if (preset.layout === 'centered' || preset.layout === 'gradient-overlay') {
+      // Centered layouts - position form below any header text
+      formY = 25;
+    }
+
+    const positionedForm: CanvasElement = {
+      ...DEFAULT_LOGIN_FORM_ELEMENT,
+      x: formX,
+      y: formY,
+    };
+
     setElements([
-      DEFAULT_LOGIN_FORM_ELEMENT,
+      positionedForm,
       ...preset.elements.filter((el) => el.type !== 'login-form'),
     ]);
     setSelectedElementId(null);
+    setActivePreset(preset.layout);
     toast.success('Preset applied');
   }, [canvas]);
 
@@ -188,12 +214,16 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
     setSelectedElementId(null);
   }, [elements]);
 
-  // Handle element resize
-  const handleResizeElement = useCallback((id: string, width: number, height: number) => {
+  // Handle element resize (with optional position for anchor-based resizing)
+  const handleResizeElement = useCallback((id: string, width: number, height: number, x?: number, y?: number) => {
     setElements((prev) =>
-      prev.map((el) =>
-        el.id === id ? { ...el, width, height } : el
-      )
+      prev.map((el) => {
+        if (el.id !== id) return el;
+        const updates: Partial<CanvasElement> = { width, height };
+        if (x !== undefined) updates.x = x;
+        if (y !== undefined) updates.y = y;
+        return { ...el, ...updates };
+      })
     );
   }, []);
 
@@ -260,7 +290,7 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
         <div className="grid grid-cols-[300px_1fr_280px] gap-4">
           {/* Left Panel - Elements & Settings */}
           <div className="space-y-4">
-            <PresetPicker onSelect={handlePresetSelect} />
+            <PresetPicker onSelect={handlePresetSelect} activePreset={activePreset} />
 
             <Card>
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
@@ -314,6 +344,8 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
             onDelete={() => selectedElementId && handleDeleteElement(selectedElementId)}
             canvasWidth={canvas.width}
             canvasHeight={canvas.height}
+            formStyle={formStyle}
+            onFormStyleChange={setFormStyle}
           />
         </div>
       </DndContext>

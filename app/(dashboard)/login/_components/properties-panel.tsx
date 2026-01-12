@@ -23,6 +23,7 @@ import type {
   TestimonialElementProps,
   ShapeElementProps,
   ButtonElementProps,
+  LoginDesignFormStyle,
 } from '@/types/database';
 
 interface PropertiesPanelProps {
@@ -31,6 +32,8 @@ interface PropertiesPanelProps {
   onDelete: () => void;
   canvasWidth?: number;
   canvasHeight?: number;
+  formStyle?: LoginDesignFormStyle;
+  onFormStyleChange?: (formStyle: LoginDesignFormStyle) => void;
 }
 
 export function PropertiesPanel({
@@ -39,6 +42,8 @@ export function PropertiesPanel({
   onDelete,
   canvasWidth = 1600,
   canvasHeight = 900,
+  formStyle,
+  onFormStyleChange,
 }: PropertiesPanelProps) {
   if (!element) {
     return (
@@ -172,16 +177,6 @@ export function PropertiesPanel({
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs">Z-Index</Label>
-            <Input
-              type="number"
-              value={element.zIndex}
-              onChange={(e) => onUpdate({ zIndex: Number(e.target.value) })}
-              className="h-8"
-              min={0}
-            />
-          </div>
         </div>
 
         {/* Type-specific properties */}
@@ -222,10 +217,22 @@ export function PropertiesPanel({
               onChange={updateProps}
             />
           )}
-          {element.type === 'login-form' && (
-            <p className="text-xs text-muted-foreground">
-              Form styling is controlled in the Form tab. Drag to reposition.
-            </p>
+          {element.type === 'login-form' && formStyle && onFormStyleChange && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Corner Radius ({formStyle.form_border_radius ?? 12}px)</Label>
+                <Slider
+                  value={[formStyle.form_border_radius ?? 12]}
+                  onValueChange={([v]) => onFormStyleChange({ ...formStyle, form_border_radius: v })}
+                  min={0}
+                  max={32}
+                  step={2}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Colors and other form styling in the Form tab
+              </p>
+            </div>
           )}
         </div>
       </CardContent>

@@ -168,21 +168,53 @@ export function BackgroundPanel({ background, onChange }: BackgroundPanelProps) 
 
       {/* Color Presets */}
       <div>
-        <Label className="text-xs mb-2 block">Quick Presets</Label>
+        <Label className="text-xs mb-2 block">Quick Presets - Solid</Label>
         <div className="flex gap-1 flex-wrap">
           {[
-            { color: '#1e293b', label: 'Slate' },
-            { color: '#0f172a', label: 'Navy' },
-            { color: '#18181b', label: 'Dark' },
-            { color: '#0a0a0a', label: 'Black' },
-            { color: '#1e3a5f', label: 'Blue' },
-            { color: '#312e81', label: 'Indigo' },
+            { color: '#ffffff', label: 'White' },
+            { color: '#f8fafc', label: 'Light Gray' },
+            { color: '#f1f5f9', label: 'Slate 100' },
+            { color: '#1e293b', label: 'Slate 800' },
+            { color: '#0f172a', label: 'Slate 900' },
+            { color: '#3b82f6', label: 'Blue' },
+            { color: '#8b5cf6', label: 'Violet' },
+            { color: '#06b6d4', label: 'Cyan' },
+            { color: '#10b981', label: 'Emerald' },
+            { color: '#f97316', label: 'Orange' },
           ].map((preset) => (
             <button
               key={preset.color}
               onClick={() => updateBackground({ type: 'solid', color: preset.color })}
               className="w-6 h-6 rounded border border-border hover:ring-2 ring-primary"
               style={{ backgroundColor: preset.color }}
+              title={preset.label}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Gradient Presets */}
+      <div>
+        <Label className="text-xs mb-2 block">Quick Presets - Gradient</Label>
+        <div className="flex gap-1 flex-wrap">
+          {[
+            { from: '#667eea', to: '#764ba2', angle: 135, label: 'Purple Dream' },
+            { from: '#f093fb', to: '#f5576c', angle: 135, label: 'Pink Sunset' },
+            { from: '#4facfe', to: '#00f2fe', angle: 135, label: 'Ocean Blue' },
+            { from: '#43e97b', to: '#38f9d7', angle: 135, label: 'Fresh Mint' },
+            { from: '#fa709a', to: '#fee140', angle: 135, label: 'Warm Glow' },
+            { from: '#a8edea', to: '#fed6e3', angle: 135, label: 'Soft Pastel' },
+            { from: '#1a1a2e', to: '#16213e', angle: 180, label: 'Deep Night' },
+            { from: '#0f0c29', to: '#302b63', angle: 135, label: 'Midnight' },
+          ].map((preset, i) => (
+            <button
+              key={i}
+              onClick={() => updateBackground({
+                type: 'gradient',
+                gradient: { from: preset.from, to: preset.to, angle: preset.angle }
+              })}
+              className="w-6 h-6 rounded border border-border hover:ring-2 ring-primary"
+              style={{ background: `linear-gradient(${preset.angle}deg, ${preset.from}, ${preset.to})` }}
               title={preset.label}
             />
           ))}

@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 36% Complete (13 of 36 Features)
+## Progress: 39% Complete (14 of 36 Features)
 
 ---
 
@@ -22,8 +22,8 @@
 - [x] Feature 11: Menu Customizer - Presets List
 - [x] Feature 12: Menu Customizer - Visual Editor
 - [x] Feature 13: Apply Menu Config in Embed Script
-- [ ] Feature 14: Login Customizer Page (Canvas-based Designer) **IN PROGRESS**
-- [ ] Feature 15: Loading Animations Page
+- [x] Feature 14: Login Customizer Page (Canvas-based Designer)
+- [ ] Feature 15: Loading Animations Page **UP NEXT**
 - [ ] Feature 16: Dashboard Colors Page
 - [ ] Feature 17: Apply Visual Configs in Embed Script
 
@@ -58,8 +58,21 @@
 
 ## Current Sprint
 
-### In Progress
-- Feature 14 - Login Designer polish (see `docs/features/feature-14-login-designer.md`)
+### Completed
+- ✅ Feature 14 - Login Designer (Canvas-based Designer) - COMPLETE
+
+### Session Progress (Jan 11, 2026)
+**Completed this session:**
+- ✅ File upload button fixed (dnd-kit was blocking pointer events)
+- ✅ Supabase "assets" storage bucket created
+- ✅ URL display cleanup ("Image uploaded" instead of raw URL)
+- ✅ Form auto-switch tab (clicking form switches to Form tab)
+- ✅ Delete key support (Delete/Backspace removes elements)
+- ✅ Font scaling (form elements scale with width)
+- ✅ Preset form X positioning (form moves to correct side)
+- ✅ Resize handle anchoring (all corner handles now anchor opposite corner)
+- ✅ Preset form Y position (form positioned appropriately per layout)
+- ✅ Preset preview thumbnails (split layouts show correct arrangement)
 
 ### Up Next
 - Feature 15 - Loading Animations Page
