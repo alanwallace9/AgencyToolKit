@@ -161,14 +161,112 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     if (!loadingConfig) return;
     log('Applying loading config', loadingConfig);
 
-    // Custom loading animation logic would go here
-    // This depends on the specific animations available
-    if (loadingConfig.custom_css) {
+    // Remove existing loading styles/elements
+    var existingStyle = document.getElementById('agency-toolkit-loading');
+    if (existingStyle) existingStyle.remove();
+    var existingHideStyle = document.getElementById('agency-toolkit-hide-ghl-loader');
+    if (existingHideStyle) existingHideStyle.remove();
+    var existingLoader = document.getElementById('agency-toolkit-loader');
+    if (existingLoader) existingLoader.remove();
+
+    // Inject animation CSS if available
+    if (loadingConfig.css) {
       var style = document.createElement('style');
       style.id = 'agency-toolkit-loading';
-      style.textContent = loadingConfig.custom_css;
+
+      var css = loadingConfig.css;
+
+      // Apply speed modifier (adjust animation durations)
+      // Speed > 1 = faster = shorter duration
+      if (loadingConfig.speed && loadingConfig.speed !== 1) {
+        var speedMultiplier = 1 / loadingConfig.speed;
+        css = css.replace(/(\\d+\\.?\\d*)s/g, function(match, duration) {
+          return (parseFloat(duration) * speedMultiplier).toFixed(2) + 's';
+        });
+      }
+
+      // Apply size modifier via transform scale on loader children
+      if (loadingConfig.size && loadingConfig.size !== 1) {
+        css += '\\n.at-loader > * { transform: scale(' + loadingConfig.size + '); transform-origin: center; }';
+      }
+
+      style.textContent = css;
       document.head.appendChild(style);
+      log('Loading animation CSS injected');
     }
+
+    // Hide GHL's default loading spinners
+    var hideGHLLoader = document.createElement('style');
+    hideGHLLoader.id = 'agency-toolkit-hide-ghl-loader';
+    hideGHLLoader.textContent = [
+      '/* Hide GHL default loaders when our loader is active */',
+      '.hl-loader, .hl-loading, [class*="hl-spinner"],',
+      '.loading-spinner, .page-loader, .hl-page-loader,',
+      '[class*="loading-indicator"], .spinner-border,',
+      '.hl-loading-overlay .hl-loading-spinner { display: none !important; }',
+      '/* Ensure our loader container shows */',
+      '.hl-loading-overlay { background: var(--loading-bg, transparent) !important; }'
+    ].join('\\n');
+    document.head.appendChild(hideGHLLoader);
+
+    // Inject our custom loader HTML
+    if (loadingConfig.html) {
+      // Find GHL loading containers and inject our loader
+      function injectLoader() {
+        var loader = document.createElement('div');
+        loader.id = 'agency-toolkit-loader';
+        loader.innerHTML = loadingConfig.html;
+
+        // Look for GHL loading overlay containers
+        var loaderContainers = document.querySelectorAll('.hl-loading-overlay, .hl-loader-container, .loading-container, [class*="loader-wrapper"]');
+
+        if (loaderContainers.length > 0) {
+          loaderContainers.forEach(function(container) {
+            // Check if we haven't already added our loader
+            if (!container.querySelector('#agency-toolkit-loader')) {
+              var clone = loader.cloneNode(true);
+              clone.removeAttribute('id');
+              clone.classList.add('agency-toolkit-loader-instance');
+              container.appendChild(clone);
+            }
+          });
+          log('Custom loader injected into ' + loaderContainers.length + ' container(s)');
+        }
+      }
+
+      // Inject immediately and also watch for dynamically added loaders
+      injectLoader();
+
+      // Watch for new loading containers being added (GHL SPA behavior)
+      var loaderObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) {
+              var isLoaderContainer = node.classList && (
+                node.classList.contains('hl-loading-overlay') ||
+                node.classList.contains('hl-loader-container')
+              );
+              if (isLoaderContainer) {
+                injectLoader();
+              }
+            }
+          });
+        });
+      });
+
+      loaderObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // Expose global helper functions
+    window.AgencyToolkit = window.AgencyToolkit || {};
+    window.AgencyToolkit.showLoader = function() {
+      var loaders = document.querySelectorAll('.agency-toolkit-loader-instance, #agency-toolkit-loader');
+      loaders.forEach(function(l) { l.style.display = 'flex'; });
+    };
+    window.AgencyToolkit.hideLoader = function() {
+      var loaders = document.querySelectorAll('.agency-toolkit-loader-instance, #agency-toolkit-loader');
+      loaders.forEach(function(l) { l.style.display = 'none'; });
+    };
   }
 
   // Apply login page customizations (legacy simple config)

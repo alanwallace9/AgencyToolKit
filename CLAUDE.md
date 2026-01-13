@@ -201,20 +201,33 @@ After feature completion:
 **DO NOT commit without user approval. DO NOT push without passing build.**
 **DO NOT leave related files uncommitted - this causes production build failures.**
 
+### Feature Documentation (On Commit)
+
+When a feature is complete and committed:
+
+1. **Update the Feature File** (`docs/features/feature-N-*.md`)
+   - Add "## Implementation Notes" section with what was actually built
+   - Document any deviations from the original plan
+   - List files created/modified
+   - Note any gotchas or lessons learned
+
+2. **Update SPRINT.md** (Status Only)
+   - Mark the feature as completed with date
+   - Update "In Progress" to show the next feature
+   - Keep it brief - details go in feature files
+
+**Feature files are the source of truth for what was built. SPRINT.md is just a status tracker.**
+
 ### Sprint Tracking
 - Maintain a `docs/SPRINT.md` file in the project root
-- Update it after completing each task with:
-  - Date/time completed
-  - What was done (brief summary)
-  - Any decisions made
-  - What's next
+- Keep entries brief - just status updates
 - Before starting work, check SPRINT.md for current status
 - Format:
 ```
 ## Current Sprint
 
 ### Completed
-- [x] 2026-01-10: Feature 1 - Project scaffolding (Next.js, deps installed)
+- [x] 2026-01-10: Feature 1 - Project scaffolding
 - [x] 2026-01-10: Feature 2 - Clerk auth setup
 
 ### In Progress
@@ -225,7 +238,6 @@ After feature completion:
 
 ### Decisions Log
 - 2026-01-10: Using pnpm over npm for faster installs
-- 2026-01-10: Renamed project to Agency Toolkit
 ```
 
 ## Testing Rules

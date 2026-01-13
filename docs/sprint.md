@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 42% Complete (15 of 36 Features)
+## Progress: 47% Complete (17 of 36 Features)
 
 ---
 
@@ -24,11 +24,11 @@
 - [x] Feature 13: Apply Menu Config in Embed Script
 - [x] Feature 14: Login Customizer Page (Canvas-based Designer)
 - [x] Feature 15: Loading Animations Page
-- [ ] Feature 16: Dashboard Colors Page **UP NEXT**
-- [ ] Feature 17: Apply Visual Configs in Embed Script
+- [x] Feature 16: Dashboard Colors Page
+- [x] Feature 17: Apply Visual Configs in Embed Script
 
 ### Phase 3: Onboarding Tours
-- [ ] Feature 18: Tours List Page
+- [ ] Feature 18: Tours List Page **UP NEXT**
 - [ ] Feature 19: Tour Builder - Basic UI
 - [ ] Feature 20: Tour Builder - Step Editor
 - [ ] Feature 21: Tour Preview
@@ -59,33 +59,17 @@
 ## Current Sprint
 
 ### Completed
-- ✅ Feature 14 - Login Designer (Canvas-based Designer) - COMPLETE
-- ✅ Feature 15 - Loading Animations Page - COMPLETE
+- ✅ 2026-01-12: Feature 14 - Login Designer (Canvas-based Designer)
+- ✅ 2026-01-12: Feature 15 - Loading Animations Page
+- ✅ 2026-01-12: Feature 16 - Dashboard Colors Page
+- ✅ 2026-01-13: Feature 17 - Apply Visual Configs in Embed Script
 
-### Session Progress (Jan 11, 2026)
-**Completed this session:**
-- ✅ Feature 15: Loading Animations - Full implementation
-  - 13 animations (10 standard + 3 custom 3x3 grids)
-  - Category filter (minimal, playful, professional, creative)
-  - Hover-to-preview in large preview area
-  - Click-to-select with auto-save + sonner toast
-  - Color customization with swatches
-  - Brand color toggle
-  - Copy CSS button
-  - Currently Active indicator
-- ✅ Added Executive Plan template to CLAUDE.md
-- ✅ Added Commit Workflow to CLAUDE.md
-- ✅ Feature 15 Polish:
-  - Global speed slider (0.5x - 2x) with real-time preview
-  - Fixed Grid Fold animation (domino flip - each square flips toward next)
-  - Fixed Grid Slide animation (sliding puzzle with empty center space)
-  - Fixed Wave Bars animation (staccato voice/audio style like Wispr)
-  - Speed multiplier adjusts CSS animation durations dynamically
-  - All settings auto-save to database
+### In Progress
+- [ ] Feature 18: Tours List Page
 
 ### Up Next
-- Feature 15 Polish: Remaining animation fixes (see `docs/features/feature-15-loading-animations.md`)
-- Feature 16 - Dashboard Colors Page
+- Feature 19: Tour Builder - Basic UI
+- Feature 20: Tour Builder - Step Editor
 
 ---
 
@@ -435,3 +419,79 @@
 - `types/database.ts` - added form_bg to LoginDesignFormStyle
 
 **Remaining:** See `docs/features/feature-14-login-designer.md` for polish items
+
+### Feature 15: Loading Animations Page
+**Completed:** 2026-01-11
+
+- Created animation library in `lib/loading-animations.ts`:
+  - 13 animations across 4 categories (minimal, playful, professional, creative)
+  - Each animation includes CSS keyframes + HTML structure
+  - CSS uses variables: `--loading-color`, `--loading-bg` for customization
+- Created server actions in `loading/_actions/loading-actions.ts`:
+  - getLoadingConfig, saveLoadingAnimation
+- Created components in `loading/_components/`:
+  - `loading-client.tsx` - Main client with state, category filter, preview
+  - `animation-card.tsx` - Grid card with live animation preview
+  - `animation-preview.tsx` - Large preview area (hover-to-preview)
+  - `color-settings.tsx` - Color picker, brand color toggle, speed slider
+- Features:
+  - Category filter tabs (All, Minimal, Playful, Professional, Creative)
+  - Hover-to-preview in large preview area
+  - Click-to-select with auto-save
+  - Color customization with preset swatches
+  - "Use brand color" toggle (pulls from Dashboard Colors)
+  - Speed slider (0.5x - 2x) with real-time preview
+  - Copy CSS button
+  - "Currently Active" badge
+
+### Feature 16: Dashboard Colors Page
+**Completed:** 2026-01-12
+
+**Major Feature** - Premium color theme builder with competitor-beating UX.
+
+- Created database infrastructure:
+  - `color_presets` table via Supabase migration
+  - RLS policies for agency isolation
+
+- Created color utilities in `colors/_lib/color-utils.ts`:
+  - HSL conversion (hexToHsl, hslToHex)
+  - Harmony calculations (complementary, triadic, analogous)
+  - WCAG contrast ratio checking (AA 4.5:1, AAA 7:1)
+  - Color name lookup
+
+- Created server actions in `colors/_actions/color-actions.ts`:
+  - createColorPreset, updateColorPreset, deleteColorPreset
+  - setDefaultColorPreset, saveAgencyColors
+
+- Created 3-panel layout components:
+  - `colors-client.tsx` - Main orchestrator with auto-save debounce
+  - `theme-gallery.tsx` - Left panel: 8 built-in + custom presets, hover-to-preview
+  - `preview-panel.tsx` - Center panel: Tabbed GHL mockup (Pipeline/Dashboard/Reviews)
+  - `color-studio.tsx` - Right panel: 4 color pickers, harmony suggestions, logo drop
+  - `glass-styles.tsx` - Glass morphism CSS styling
+
+- Updated `lib/constants.ts` with 8 COLOR_PRESETS:
+  - Midnight Blue, Ocean Breeze (blue dark/light)
+  - Forest Night, Fresh Mint (green dark/light)
+  - Sunset Ember, Coral Sunrise (orange dark/light)
+  - Executive Gold (luxury black/gold)
+  - Clean Slate (neutral light/purple)
+
+- Created shared component `components/shared/color-picker-with-presets.tsx`:
+  - Color picker + hex input + "From Theme" dropdown
+  - `ThemeSelector` component for applying full themes
+  - Integrated into Login Designer (Background + Form panels)
+
+- Updated Login Designer starting point templates to use theme colors
+
+- Added packages: `colorthief` (logo color extraction), `@/components/ui/popover`
+
+**Competitive Advantage:**
+| Feature | GHL Style | Marketer's Toolkit | HL Pro Tools | **Agency Toolkit** |
+|---------|-----------|-------------------|--------------|-------------------|
+| Free visual builder | ✅ | ❌ ($97/mo) | ❌ (subscription) | **✅** |
+| Logo color extraction | ❌ | ❌ | ❌ | **✅** |
+| Harmony suggestions | ❌ | ❌ | ❌ | **✅** |
+| WCAG contrast check | ❌ | ❌ | ❌ | **✅** |
+| Single embed code | N/A | ❌ (3 sections) | ✅ | **✅** |
+| Live GHL mockup | ❌ | ❌ | Partial | **✅** |

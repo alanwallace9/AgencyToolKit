@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getAnimationById } from '@/lib/loading-animations';
 
 // CORS headers for public access
 const corsHeaders = {
@@ -106,6 +107,35 @@ export async function GET(request: Request) {
       (design: { is_default: boolean }) => design.is_default
     );
 
+    // Build loading config with generated CSS/HTML
+    let loadingPayload = null;
+    const loadingSettings = agency.settings?.loading;
+
+    if (loadingSettings?.animation_id) {
+      const animation = getAnimationById(loadingSettings.animation_id);
+      if (animation) {
+        // Resolve effective color (use brand color if specified)
+        const effectiveColor = loadingSettings.use_brand_color && agency.settings?.colors?.primary
+          ? agency.settings.colors.primary
+          : loadingSettings.custom_color || '#3b82f6';
+
+        const backgroundColor = loadingSettings.background_color || 'transparent';
+
+        // Generate CSS with colors applied
+        let css = animation.css;
+        css = css.replace(/var\(--loading-color,[^)]+\)/g, effectiveColor);
+        css = css.replace(/var\(--loading-bg,[^)]+\)/g, backgroundColor);
+
+        loadingPayload = {
+          animation_id: loadingSettings.animation_id,
+          css: css,
+          html: animation.html,
+          speed: loadingSettings.animation_speed || 1,
+          size: loadingSettings.animation_size || 1,
+        };
+      }
+    }
+
     // Return configuration for embed script
     const config = {
       token: agency.token,
@@ -113,7 +143,7 @@ export async function GET(request: Request) {
       menu: menuConfig,
       login: agency.settings?.login || null,
       login_design: defaultLoginDesign || null,
-      loading: agency.settings?.loading || null,
+      loading: loadingPayload,
       colors: agency.settings?.colors || null,
       whitelisted_locations: agency.settings?.whitelisted_locations || [],
       tours: activeTours.map((tour: { id: string; name: string; page: string; trigger: string; steps: unknown[] }) => ({
