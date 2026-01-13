@@ -116,39 +116,105 @@ export const LOADING_ANIMATIONS = [
   { id: 'gradient-spinner', label: 'Gradient Spinner', description: 'Gradient colored spinner' },
 ] as const;
 
-// Color presets
+// Color presets - 8 built-in themes
+// Design philosophy: Like customizing a Jeep - neutral base with accent colors
 export const COLOR_PRESETS = [
+  // Blue variants - trust, professional
   {
-    id: 'default',
-    label: 'Default',
+    id: 'blue-dark',
+    label: 'Midnight Blue',
+    description: 'Professional dark theme with cool blue tones',
     colors: {
       primary: '#2563eb',
-      accent: '#10b981',
-      sidebar_bg: '#1f2937',
-      sidebar_text: '#f9fafb',
-    },
-  },
-  {
-    id: 'dark',
-    label: 'Dark Mode',
-    colors: {
-      primary: '#3b82f6',
-      accent: '#22c55e',
+      accent: '#06b6d4',
       sidebar_bg: '#0f172a',
       sidebar_text: '#e2e8f0',
     },
   },
   {
-    id: 'light',
-    label: 'Light Mode',
+    id: 'blue-light',
+    label: 'Ocean Breeze',
+    description: 'Clean light theme with ocean-inspired colors',
     colors: {
       primary: '#1d4ed8',
-      accent: '#059669',
+      accent: '#0891b2',
+      sidebar_bg: '#f0f9ff',
+      sidebar_text: '#0c4a6e',
+    },
+  },
+  // Green variants - growth, eco, health
+  {
+    id: 'green-dark',
+    label: 'Forest Night',
+    description: 'Deep forest tones for a natural feel',
+    colors: {
+      primary: '#16a34a',
+      accent: '#84cc16',
+      sidebar_bg: '#14532d',
+      sidebar_text: '#dcfce7',
+    },
+  },
+  {
+    id: 'green-light',
+    label: 'Fresh Mint',
+    description: 'Light and fresh with mint accents',
+    colors: {
+      primary: '#059669',
+      accent: '#10b981',
+      sidebar_bg: '#ecfdf5',
+      sidebar_text: '#064e3b',
+    },
+  },
+  // Orange variants - energy, creative, bold
+  {
+    id: 'orange-dark',
+    label: 'Sunset Ember',
+    description: 'Warm dark theme with fiery accents',
+    colors: {
+      primary: '#ea580c',
+      accent: '#f59e0b',
+      sidebar_bg: '#431407',
+      sidebar_text: '#fed7aa',
+    },
+  },
+  {
+    id: 'orange-light',
+    label: 'Coral Sunrise',
+    description: 'Bright and energetic coral tones',
+    colors: {
+      primary: '#f97316',
+      accent: '#fbbf24',
+      sidebar_bg: '#fff7ed',
+      sidebar_text: '#7c2d12',
+    },
+  },
+  // Luxury/Finance - gold on black
+  {
+    id: 'gold-black',
+    label: 'Executive Gold',
+    description: 'Premium dark theme with gold accents',
+    colors: {
+      primary: '#d97706',
+      accent: '#fbbf24',
+      sidebar_bg: '#0a0a0a',
+      sidebar_text: '#fef3c7',
+    },
+  },
+  // Neutral/Elegant - versatile base
+  {
+    id: 'neutral-light',
+    label: 'Clean Slate',
+    description: 'Minimal light theme with purple accents',
+    colors: {
+      primary: '#6366f1',
+      accent: '#8b5cf6',
       sidebar_bg: '#f8fafc',
-      sidebar_text: '#1e293b',
+      sidebar_text: '#334155',
     },
   },
 ] as const;
+
+export type ColorPresetId = (typeof COLOR_PRESETS)[number]['id'];
 
 // Plan definitions
 export const PLANS = {

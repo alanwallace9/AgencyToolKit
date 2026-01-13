@@ -1,29 +1,66 @@
-import { PageHeader } from "@/components/shared/page-header"
-import { Card, CardContent } from "@/components/ui/card"
-import { Palette } from "lucide-react"
+import { PageHeader } from '@/components/shared/page-header';
+import { getCurrentAgency } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
+import { ColorsClient } from './_components/colors-client';
+import { GlassStyles } from './_components/glass-styles';
+import type { ColorConfig } from '@/types/database';
 
-export default function ColorsPage() {
+interface ColorPreset {
+  id: string;
+  agency_id: string;
+  name: string;
+  is_default: boolean;
+  colors: ColorConfig;
+  created_at: string;
+  updated_at: string;
+}
+
+async function getColorData() {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    return { presets: [], colors: null };
+  }
+
+  const supabase = await createClient();
+
+  // Fetch custom presets
+  const { data: presets } = await supabase
+    .from('color_presets')
+    .select('*')
+    .eq('agency_id', agency.id)
+    .order('created_at', { ascending: true });
+
+  // Get current colors from settings or default preset
+  let colors: ColorConfig | null = null;
+
+  // Check for default preset first
+  const defaultPreset = presets?.find((p: ColorPreset) => p.is_default);
+  if (defaultPreset) {
+    colors = defaultPreset.colors;
+  } else if (agency.settings?.colors) {
+    colors = agency.settings.colors;
+  }
+
+  return {
+    presets: (presets as ColorPreset[]) || [],
+    colors,
+  };
+}
+
+export default async function ColorsPage() {
+  const { presets, colors } = await getColorData();
+
   return (
-    <>
+    <div className="colors-page">
       <PageHeader
         title="Dashboard Colors"
-        description="Customize the GHL dashboard color theme"
+        description="Customize your GHL dashboard theme. Changes apply automatically via your embed script."
       />
 
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <Palette className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-medium">Color customization coming soon</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Set primary colors, accent colors, and sidebar themes for your GHL dashboard.
-          </p>
-          <p className="text-xs text-muted-foreground mt-4">
-            Coming in Feature 16
-          </p>
-        </CardContent>
-      </Card>
-    </>
-  )
+      <ColorsClient initialPresets={presets} initialColors={colors} />
+
+      {/* Glass morphism styles */}
+      <GlassStyles />
+    </div>
+  );
 }

@@ -3,7 +3,9 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { FileUpload } from '@/components/shared/file-upload';
-import type { LoginDesignFormStyle } from '@/types/database';
+import { ThemeSelector } from '@/components/shared/color-picker-with-presets';
+import { COLOR_PRESETS } from '@/lib/constants';
+import type { LoginDesignFormStyle, ColorConfig } from '@/types/database';
 
 interface FormStylePanelProps {
   formStyle: LoginDesignFormStyle;
@@ -15,11 +17,34 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
     onChange({ ...formStyle, [key]: value });
   };
 
+  // Apply theme colors to form style
+  const handleApplyTheme = (colors: ColorConfig) => {
+    onChange({
+      ...formStyle,
+      button_bg: colors.primary,
+      button_text: '#ffffff',
+      link_color: colors.primary,
+      label_color: colors.primary,
+      form_heading_color: colors.primary,
+      // Keep input styling neutral for readability
+      input_bg: '#ffffff',
+      input_border: '#d1d5db',
+      input_text: '#111827',
+    });
+  };
+
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Style the login form container, inputs, and button
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Style the login form container, inputs, and button
+        </p>
+        <ThemeSelector
+          label="From Theme"
+          onApplyTheme={handleApplyTheme}
+          compact
+        />
+      </div>
 
       {/* Logo */}
       <div className="space-y-3">

@@ -12,11 +12,15 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { Sparkles, Layout, SplitSquareHorizontal, Layers, Moon, Maximize2 } from 'lucide-react';
+import { COLOR_PRESETS } from '@/lib/constants';
 import type {
   LoginLayoutType,
   CanvasElement,
   LoginDesignBackground,
 } from '@/types/database';
+
+// Get theme colors by ID for cleaner preset definitions
+const getTheme = (id: string) => COLOR_PRESETS.find((p) => p.id === id)?.colors;
 
 interface PresetPickerProps {
   onSelect: (preset: {
@@ -40,21 +44,23 @@ interface Preset {
   };
 }
 
+// Each preset uses a different built-in theme for variety
 const PRESETS: Preset[] = [
   {
+    // Uses: Midnight Blue theme
     id: 'centered',
     name: 'Centered Classic',
     description: 'Clean, centered form on solid background',
     icon: Layout,
     background: {
       type: 'solid',
-      color: '#1e293b',
+      color: getTheme('blue-dark')?.sidebar_bg || '#0f172a',
     },
     elements: [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 38, // Centered (was 35)
+        x: 38,
         y: 12,
         width: 400,
         height: 50,
@@ -64,24 +70,25 @@ const PRESETS: Preset[] = [
           fontSize: 36,
           fontFamily: 'Inter',
           fontWeight: 700,
-          color: '#ffffff',
+          color: getTheme('blue-dark')?.sidebar_text || '#e2e8f0',
           textAlign: 'center' as const,
         },
       },
     ],
     preview: {
-      bgClass: 'bg-slate-800',
+      bgClass: 'bg-slate-900',
       layoutClass: 'items-center justify-center',
     },
   },
   {
+    // Uses: Ocean Breeze theme (light blue)
     id: 'split-left',
     name: 'Split - Image Left',
     description: 'Hero image left, form right',
     icon: SplitSquareHorizontal,
     background: {
       type: 'solid',
-      color: '#0f172a',
+      color: getTheme('blue-light')?.sidebar_bg || '#f0f9ff',
     },
     elements: [
       {
@@ -102,8 +109,8 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 64, // Centered on right side
-        y: 9,  // Above form
+        x: 64,
+        y: 9,
         width: 350,
         height: 50,
         zIndex: 2,
@@ -112,24 +119,25 @@ const PRESETS: Preset[] = [
           fontSize: 32,
           fontFamily: 'Inter',
           fontWeight: 600,
-          color: '#ffffff',
-          textAlign: 'center' as const, // Centered (was left)
+          color: getTheme('blue-light')?.sidebar_text || '#0c4a6e',
+          textAlign: 'center' as const,
         },
       },
     ],
     preview: {
-      bgClass: 'bg-slate-900',
+      bgClass: 'bg-sky-50',
       layoutClass: '',
     },
   },
   {
+    // Uses: Forest Night theme (dark green)
     id: 'split-right',
     name: 'Split - Image Right',
     description: 'Form left, hero image right',
     icon: SplitSquareHorizontal,
     background: {
       type: 'solid',
-      color: '#0f172a',
+      color: getTheme('green-dark')?.sidebar_bg || '#14532d',
     },
     elements: [
       {
@@ -150,8 +158,8 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 14, // Centered on left side
-        y: 9, // Above form
+        x: 14,
+        y: 9,
         width: 350,
         height: 50,
         zIndex: 2,
@@ -160,17 +168,18 @@ const PRESETS: Preset[] = [
           fontSize: 32,
           fontFamily: 'Inter',
           fontWeight: 600,
-          color: '#ffffff',
+          color: getTheme('green-dark')?.sidebar_text || '#dcfce7',
           textAlign: 'center' as const,
         },
       },
     ],
     preview: {
-      bgClass: 'bg-slate-900',
+      bgClass: 'bg-green-950',
       layoutClass: '',
     },
   },
   {
+    // Uses: Sunset Ember theme (orange gradient)
     id: 'gradient-overlay',
     name: 'Gradient Overlay',
     description: 'Background image with gradient',
@@ -178,13 +187,13 @@ const PRESETS: Preset[] = [
     background: {
       type: 'image',
       image_url: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920&h=1080&fit=crop',
-      image_overlay: 'rgba(15, 23, 42, 0.75)',
+      image_overlay: 'rgba(67, 20, 7, 0.8)', // Sunset Ember sidebar_bg with alpha
     },
     elements: [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 38, // Centered
+        x: 38,
         y: 10,
         width: 400,
         height: 50,
@@ -194,14 +203,14 @@ const PRESETS: Preset[] = [
           fontSize: 40,
           fontFamily: 'Inter',
           fontWeight: 700,
-          color: '#ffffff',
+          color: getTheme('orange-dark')?.sidebar_text || '#fed7aa',
           textAlign: 'center' as const,
         },
       },
       {
         id: 'preset-text-2',
         type: 'text',
-        x: 33, // Centered
+        x: 33,
         y: 16,
         width: 500,
         height: 30,
@@ -211,43 +220,45 @@ const PRESETS: Preset[] = [
           fontSize: 18,
           fontFamily: 'Inter',
           fontWeight: 400,
-          color: '#94a3b8',
+          color: getTheme('orange-dark')?.accent || '#f59e0b',
           textAlign: 'center' as const,
         },
       },
     ],
     preview: {
-      bgClass: 'bg-gradient-to-br from-purple-900 to-slate-900',
+      bgClass: 'bg-gradient-to-br from-orange-900 to-amber-950',
       layoutClass: 'items-center justify-center',
     },
   },
   {
+    // Uses: Executive Gold theme (black with gold)
     id: 'minimal-dark',
     name: 'Minimal Dark',
     description: 'Clean, dark, modern aesthetic',
     icon: Moon,
     background: {
       type: 'solid',
-      color: '#0f172a',
+      color: getTheme('gold-black')?.sidebar_bg || '#0a0a0a',
     },
     elements: [],
     preview: {
-      bgClass: 'bg-slate-900',
+      bgClass: 'bg-black',
       layoutClass: 'items-center justify-center',
     },
   },
   {
+    // Uses: Clean Slate theme (neutral light)
     id: 'blank',
     name: 'Blank Canvas',
     description: 'Start from scratch',
     icon: Maximize2,
     background: {
       type: 'solid',
-      color: '#ffffff', // White background (was gray)
+      color: getTheme('neutral-light')?.sidebar_bg || '#f8fafc',
     },
     elements: [],
     preview: {
-      bgClass: 'bg-white',
+      bgClass: 'bg-slate-50',
       layoutClass: 'items-center justify-center',
     },
   },

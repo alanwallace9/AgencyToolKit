@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { LoginDesignBackground, BackgroundType } from '@/types/database';
+import { ThemeSelector } from '@/components/shared/color-picker-with-presets';
+import type { LoginDesignBackground, BackgroundType, ColorConfig } from '@/types/database';
 
 interface BackgroundPanelProps {
   background: LoginDesignBackground;
@@ -22,11 +23,26 @@ export function BackgroundPanel({ background, onChange }: BackgroundPanelProps) 
     onChange({ ...background, ...updates });
   };
 
+  // Apply theme's sidebar_bg as background color
+  const handleApplyTheme = (colors: ColorConfig) => {
+    updateBackground({
+      type: 'solid',
+      color: colors.sidebar_bg,
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Background Type */}
-      <div>
+      <div className="flex items-center justify-between">
         <Label className="text-xs">Type</Label>
+        <ThemeSelector
+          label="From Theme"
+          onApplyTheme={handleApplyTheme}
+          compact
+        />
+      </div>
+      <div>
         <Select
           value={background.type}
           onValueChange={(value: BackgroundType) =>
