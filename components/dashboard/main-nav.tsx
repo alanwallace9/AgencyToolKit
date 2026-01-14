@@ -64,30 +64,32 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
       <NavigationMenuList>
         {/* Dashboard - direct link */}
         <NavigationMenuItem>
-          <Link href="/dashboard" legacyBehavior passHref>
-            <NavigationMenuLink
+          <NavigationMenuLink asChild>
+            <Link
+              href="/dashboard"
               className={cn(
                 navigationMenuTriggerStyle(),
                 pathname === "/dashboard" && "bg-accent text-accent-foreground"
               )}
             >
               Dashboard
-            </NavigationMenuLink>
-          </Link>
+            </Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
 
         {/* Customers - direct link */}
         <NavigationMenuItem>
-          <Link href="/customers" legacyBehavior passHref>
-            <NavigationMenuLink
+          <NavigationMenuLink asChild>
+            <Link
+              href="/customers"
               className={cn(
                 navigationMenuTriggerStyle(),
                 pathname === "/customers" && "bg-accent text-accent-foreground"
               )}
             >
               Customers
-            </NavigationMenuLink>
-          </Link>
+            </Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
 
         {/* Customize dropdown */}
@@ -144,16 +146,17 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
 
         {/* Settings - direct link */}
         <NavigationMenuItem>
-          <Link href="/settings" legacyBehavior passHref>
-            <NavigationMenuLink
+          <NavigationMenuLink asChild>
+            <Link
+              href="/settings"
               className={cn(
                 navigationMenuTriggerStyle(),
                 pathname === "/settings" && "bg-accent text-accent-foreground"
               )}
             >
               Settings
-            </NavigationMenuLink>
-          </Link>
+            </Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>

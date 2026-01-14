@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 47% Complete (17 of 36 Features)
+## Progress: 50% Complete (18 of 36 Features)
 
 ---
 
@@ -27,10 +27,10 @@
 - [x] Feature 16: Dashboard Colors Page
 - [x] Feature 17: Apply Visual Configs in Embed Script
 
-### Phase 3: Onboarding Tours
-- [ ] Feature 18: Tours List Page **UP NEXT**
-- [ ] Feature 19: Tour Builder - Basic UI
-- [ ] Feature 20: Tour Builder - Step Editor
+### Phase 3: Onboarding Tours (Digital Adoption Platform)
+- [x] Feature 18: Tours List Page + DAP Foundation
+- [ ] Feature 19: Tour Builder - Basic UI **UP NEXT**
+- [ ] Feature 20: Tour Builder - Step Editor (Visual Element Selector)
 - [ ] Feature 21: Tour Preview
 - [ ] Feature 22: Apply Tours in Embed Script
 
@@ -63,13 +63,14 @@
 - ✅ 2026-01-12: Feature 15 - Loading Animations Page
 - ✅ 2026-01-12: Feature 16 - Dashboard Colors Page
 - ✅ 2026-01-13: Feature 17 - Apply Visual Configs in Embed Script
+- ✅ 2026-01-13: Feature 18 - Tours List Page + DAP Foundation
 
 ### In Progress
-- [ ] Feature 18: Tours List Page
+- [ ] Feature 19: Tour Builder - Basic UI
 
 ### Up Next
-- Feature 19: Tour Builder - Basic UI
-- Feature 20: Tour Builder - Step Editor
+- Feature 20: Tour Builder - Step Editor (Visual Element Selector)
+- Feature 21: Tour Preview
 
 ---
 
@@ -495,3 +496,64 @@
 | WCAG contrast check | ❌ | ❌ | ❌ | **✅** |
 | Single embed code | N/A | ❌ (3 sections) | ✅ | **✅** |
 | Live GHL mockup | ❌ | ❌ | Partial | **✅** |
+
+### Feature 17: Apply Visual Configs in Embed Script
+**Completed:** 2026-01-13
+
+- Updated embed.js to apply Dashboard Colors from agency settings
+- Applies primary, accent, sidebar_bg, sidebar_text colors
+- Generates CSS variables for consistent theming
+- SPA-compatible with MutationObserver support
+
+### Feature 18: Tours List Page + DAP Foundation
+**Completed:** 2026-01-13
+
+**Major Foundation** - Implemented full Digital Adoption Platform (DAP) database schema and Tours management UI.
+
+**Database Schema** (`supabase/migrations/20260113_dap_system.sql`):
+- Added `ghl_url` field to customers table (for visual element selector)
+- Enhanced `tours` table with status (draft/live/archived), priority, settings, targeting, theme_id
+- Created `tour_themes` table for reusable visual themes
+- Created `tour_analytics` table for tracking views/completions/dismissals
+- Created `checklists` table (for Feature 23)
+- Created `smart_tips` table (for Feature 24)
+- Created `banners` table (for Feature 25)
+- Created `resource_centers` table (for Feature 26)
+- Created `tour_templates` table with 4 system templates
+- Created `user_tour_state` table for tracking user progress
+- Full RLS policies and indexes
+
+**Security Utilities** (`lib/security/`):
+- `sanitize.ts` - DOMPurify-based HTML sanitization (XSS prevention)
+- `selector-validator.ts` - CSS selector validation (blocks dangerous selectors)
+- `url-validator.ts` - URL pattern matching (exact, contains, starts_with, wildcard, regex)
+- `validation-schemas.ts` - Comprehensive Zod schemas for all DAP types
+
+**API Routes**:
+- `app/api/tours/route.ts` - GET (list with filters), POST (create with validation)
+- `app/api/tours/[id]/route.ts` - GET, PATCH, DELETE
+- `app/api/tours/[id]/duplicate/route.ts` - Clone tour with steps
+- `app/api/tours/[id]/publish/route.ts` - Set status to live
+- `app/api/tours/[id]/unpublish/route.ts` - Set status to draft
+- `app/api/tours/[id]/archive/route.ts` - Set status to archived
+
+**UI Components**:
+- `tour-card.tsx` - Status badges (🟢 Live, 🟡 Draft, ⚫ Archived), stats display, dropdown actions
+- `tours-client.tsx` - Search, status filter, sort (created, updated, name, views, completion rate)
+- `add-tour-dialog.tsx` - Create dialog with template selection and subaccount targeting
+- Empty state and no-results states
+
+**4 Starter Templates** (in database):
+1. Welcome Tour - 3-step introduction to platform
+2. Feature Highlight - Single-step feature callout
+3. Getting Started Checklist - Multi-step task list
+4. Announcement Banner - Temporary promotional banner
+
+**Files Created/Modified**:
+- `supabase/migrations/20260113_dap_system.sql`
+- `types/database.ts` (comprehensive DAP types)
+- `lib/security/*` (4 files + index)
+- `app/api/tours/*` (7 route files)
+- `app/(dashboard)/tours/_actions/tour-actions.ts`
+- `app/(dashboard)/tours/_components/*` (4 components)
+- `app/(dashboard)/tours/page.tsx`

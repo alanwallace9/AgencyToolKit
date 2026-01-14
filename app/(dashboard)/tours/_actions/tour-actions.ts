@@ -1,0 +1,396 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { getCurrentAgency } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
+import { sanitizeHTML } from '@/lib/security/sanitize';
+import type { Tour, TourStatus, TourStep, TourSettings, TourTargeting } from '@/types/database';
+
+// Default tour settings
+const DEFAULT_SETTINGS: TourSettings = {
+  autoplay: true,
+  remember_progress: true,
+  show_progress: true,
+  progress_style: 'dots',
+  allow_skip: false,
+  show_close: true,
+  close_on_outside_click: false,
+  frequency: { type: 'once' },
+};
+
+// Default tour targeting
+const DEFAULT_TARGETING: TourTargeting = {
+  url_targeting: { mode: 'all', patterns: [] },
+  element_condition: null,
+  user_targeting: { type: 'all' },
+  devices: ['desktop', 'tablet', 'mobile'],
+};
+
+export interface TourWithStats extends Tour {
+  stats: {
+    views: number;
+    completions: number;
+  };
+  customer?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+/**
+ * Get all tours for the current agency
+ */
+export async function getTours(options?: {
+  status?: TourStatus;
+  subaccountId?: string;
+  search?: string;
+}): Promise<TourWithStats[]> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('tours')
+    .select(`
+      *,
+      customer:customers(id, name)
+    `)
+    .eq('agency_id', agency.id);
+
+  if (options?.status) {
+    query = query.eq('status', options.status);
+  }
+
+  if (options?.subaccountId) {
+    query = query.eq('subaccount_id', options.subaccountId);
+  }
+
+  if (options?.search) {
+    query = query.ilike('name', `%${options.search}%`);
+  }
+
+  query = query.order('created_at', { ascending: false });
+
+  const { data: tours, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // Get analytics for all tours
+  const tourIds = tours?.map((t) => t.id) || [];
+
+  if (tourIds.length > 0) {
+    const { data: analytics } = await supabase
+      .from('tour_analytics')
+      .select('tour_id, event_type')
+      .in('tour_id', tourIds);
+
+    const statsMap = new Map<string, { views: number; completions: number }>();
+
+    analytics?.forEach((event) => {
+      if (!event.tour_id) return;
+      const current = statsMap.get(event.tour_id) || { views: 0, completions: 0 };
+      if (event.event_type === 'view') current.views++;
+      if (event.event_type === 'complete') current.completions++;
+      statsMap.set(event.tour_id, current);
+    });
+
+    return (tours || []).map((tour) => ({
+      ...tour,
+      stats: statsMap.get(tour.id) || { views: 0, completions: 0 },
+    })) as TourWithStats[];
+  }
+
+  return (tours || []).map((tour) => ({
+    ...tour,
+    stats: { views: 0, completions: 0 },
+  })) as TourWithStats[];
+}
+
+/**
+ * Get a single tour by ID
+ */
+export async function getTour(id: string): Promise<TourWithStats | null> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = await createClient();
+
+  const { data: tour, error } = await supabase
+    .from('tours')
+    .select(`
+      *,
+      customer:customers(id, name, ghl_location_id, ghl_url)
+    `)
+    .eq('id', id)
+    .eq('agency_id', agency.id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw new Error(error.message);
+  }
+
+  // Get analytics
+  const { data: analytics } = await supabase
+    .from('tour_analytics')
+    .select('event_type')
+    .eq('tour_id', id);
+
+  const stats = {
+    views: analytics?.filter((e) => e.event_type === 'view').length || 0,
+    completions: analytics?.filter((e) => e.event_type === 'complete').length || 0,
+  };
+
+  return { ...tour, stats } as TourWithStats;
+}
+
+/**
+ * Create a new tour
+ */
+export async function createTour(data: {
+  name: string;
+  description?: string;
+  subaccount_id?: string;
+  template_id?: string;
+}): Promise<Tour> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  if (agency.plan !== 'pro') {
+    throw new Error('Tours feature requires Pro plan');
+  }
+
+  const supabase = await createClient();
+
+  // If using a template, fetch template data
+  let templateSteps: TourStep[] = [];
+  let templateSettings = DEFAULT_SETTINGS;
+
+  if (data.template_id) {
+    const { data: template } = await supabase
+      .from('tour_templates')
+      .select('steps, settings')
+      .eq('id', data.template_id)
+      .single();
+
+    if (template) {
+      templateSteps = template.steps as TourStep[];
+      templateSettings = { ...DEFAULT_SETTINGS, ...(template.settings as Partial<TourSettings>) };
+    }
+  }
+
+  const { data: tour, error } = await supabase
+    .from('tours')
+    .insert({
+      agency_id: agency.id,
+      subaccount_id: data.subaccount_id || null,
+      name: data.name,
+      description: data.description || null,
+      status: 'draft',
+      priority: 10,
+      steps: templateSteps,
+      settings: templateSettings,
+      targeting: DEFAULT_TARGETING,
+      created_by: agency.clerk_user_id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+  return tour as Tour;
+}
+
+/**
+ * Update a tour
+ */
+export async function updateTour(
+  id: string,
+  data: Partial<{
+    name: string;
+    description: string | null;
+    status: TourStatus;
+    priority: number;
+    steps: TourStep[];
+    settings: TourSettings;
+    targeting: TourTargeting;
+    subaccount_id: string | null;
+    theme_id: string | null;
+  }>
+): Promise<Tour> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = await createClient();
+
+  // Sanitize steps content if provided
+  const updateData = { ...data };
+  if (updateData.steps) {
+    updateData.steps = updateData.steps.map((step) => ({
+      ...step,
+      content: sanitizeHTML(step.content),
+      title: step.title ? sanitizeHTML(step.title) : step.title,
+    }));
+  }
+
+  // Set published_at when going live
+  if (updateData.status === 'live') {
+    (updateData as Record<string, unknown>).published_at = new Date().toISOString();
+  }
+
+  const { data: tour, error } = await supabase
+    .from('tours')
+    .update(updateData)
+    .eq('id', id)
+    .eq('agency_id', agency.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+  revalidatePath(`/tours/${id}`);
+  return tour as Tour;
+}
+
+/**
+ * Delete a tour
+ */
+export async function deleteTour(id: string): Promise<void> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('tours')
+    .delete()
+    .eq('id', id)
+    .eq('agency_id', agency.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+}
+
+/**
+ * Duplicate a tour
+ */
+export async function duplicateTour(id: string): Promise<Tour> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = await createClient();
+
+  // Fetch original tour
+  const { data: original, error: fetchError } = await supabase
+    .from('tours')
+    .select('*')
+    .eq('id', id)
+    .eq('agency_id', agency.id)
+    .single();
+
+  if (fetchError || !original) {
+    throw new Error('Tour not found');
+  }
+
+  // Create duplicate
+  const { data: duplicate, error: createError } = await supabase
+    .from('tours')
+    .insert({
+      agency_id: original.agency_id,
+      subaccount_id: original.subaccount_id,
+      name: `${original.name} (Copy)`,
+      description: original.description,
+      status: 'draft',
+      priority: original.priority,
+      steps: original.steps,
+      settings: original.settings,
+      targeting: original.targeting,
+      theme_id: original.theme_id,
+      created_by: agency.clerk_user_id,
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    throw new Error(createError.message);
+  }
+
+  revalidatePath('/tours');
+  return duplicate as Tour;
+}
+
+/**
+ * Publish a tour
+ */
+export async function publishTour(id: string): Promise<Tour> {
+  return updateTour(id, { status: 'live' });
+}
+
+/**
+ * Unpublish a tour
+ */
+export async function unpublishTour(id: string): Promise<Tour> {
+  return updateTour(id, { status: 'draft' });
+}
+
+/**
+ * Archive a tour
+ */
+export async function archiveTour(id: string): Promise<Tour> {
+  return updateTour(id, { status: 'archived' });
+}
+
+/**
+ * Get tour templates
+ */
+export async function getTourTemplates(): Promise<Array<{
+  id: string;
+  name: string;
+  description: string | null;
+  category: 'system' | 'custom';
+  preview_image_url: string | null;
+}>> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = await createClient();
+
+  const { data: templates, error } = await supabase
+    .from('tour_templates')
+    .select('id, name, description, category, preview_image_url')
+    .or(`category.eq.system,agency_id.eq.${agency.id}`)
+    .order('category', { ascending: true })
+    .order('name', { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return templates || [];
+}

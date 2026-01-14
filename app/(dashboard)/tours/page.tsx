@@ -1,20 +1,23 @@
-import { PageHeader } from "@/components/shared/page-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Map, Plus, Lock } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { getCurrentAgency } from "@/lib/auth"
+import { PageHeader } from '@/components/shared/page-header';
+import { Card, CardContent } from '@/components/ui/card';
+import { Lock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { getCurrentAgency } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
+import { ToursClient } from './_components/tours-client';
+import { getTours } from './_actions/tour-actions';
+import type { Customer } from '@/types/database';
 
 export default async function ToursPage() {
-  const agency = await getCurrentAgency()
-  const isPro = agency?.plan === "pro"
+  const agency = await getCurrentAgency();
+  const isPro = agency?.plan === 'pro';
 
   if (!isPro) {
     return (
       <>
         <PageHeader
-          title="Onboarding Tours"
-          description="Create guided tours for your customers"
+          title="Guided Tours"
+          description="Create interactive tours to help your users navigate the platform"
         />
 
         <Card>
@@ -22,44 +25,44 @@ export default async function ToursPage() {
             <div className="rounded-full bg-muted p-4 mb-4">
               <Lock className="h-8 w-8 text-muted-foreground" />
             </div>
-            <Badge variant="secondary" className="mb-2">Pro Feature</Badge>
-            <h3 className="font-medium">Upgrade to Pro</h3>
+            <Badge variant="secondary" className="mb-2">
+              Pro Feature
+            </Badge>
+            <h3 className="font-medium text-lg">Upgrade to Pro</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Onboarding tours help your customers learn GHL faster. Upgrade to Pro to create custom tours.
+              Guided tours help your users discover features and complete tasks
+              faster. Upgrade to Pro to create unlimited tours.
             </p>
           </CardContent>
         </Card>
       </>
-    )
+    );
   }
+
+  // Fetch tours and customers in parallel
+  const supabase = await createClient();
+
+  const [tours, { data: customers }] = await Promise.all([
+    getTours(),
+    supabase
+      .from('customers')
+      .select('id, name, ghl_location_id, ghl_url')
+      .eq('agency_id', agency.id)
+      .eq('is_active', true)
+      .order('name'),
+  ]);
 
   return (
     <>
       <PageHeader
-        title="Onboarding Tours"
-        description="Create guided tours for your customers"
-        action={
-          <Button disabled>
-            <Plus className="h-4 w-4 mr-2" />
-            New Tour
-          </Button>
-        }
+        title="Guided Tours"
+        description="Create interactive tours to help your users navigate the platform"
       />
 
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <Map className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-medium">No tours yet</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Create interactive guided tours to help your customers navigate GHL.
-          </p>
-          <p className="text-xs text-muted-foreground mt-4">
-            Coming in Feature 18
-          </p>
-        </CardContent>
-      </Card>
+      <ToursClient
+        tours={tours}
+        customers={(customers as Customer[]) || []}
+      />
     </>
-  )
+  );
 }
