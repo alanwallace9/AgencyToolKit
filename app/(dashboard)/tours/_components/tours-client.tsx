@@ -150,52 +150,23 @@ export function ToursClient({ tours, templates, customers }: ToursClientProps) {
     return FileText;
   };
 
+  // Sort templates in preferred order
+  const sortedTemplates = useMemo(() => {
+    const order = ['welcome', 'announcement', 'feature', 'checklist'];
+    return [...templates].sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aIndex = order.findIndex(keyword => aName.includes(keyword));
+      const bIndex = order.findIndex(keyword => bName.includes(keyword));
+      // Items not in order list go to end
+      const aOrder = aIndex === -1 ? order.length : aIndex;
+      const bOrder = bIndex === -1 ? order.length : bIndex;
+      return aOrder - bOrder;
+    });
+  }, [templates]);
+
   return (
     <div className="space-y-6">
-      {/* Templates Section */}
-      {templates.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Templates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {templates.map((template) => {
-                const Icon = getTemplateIcon(template.name);
-                const isCreating = creatingFromTemplate === template.id;
-                return (
-                  <button
-                    key={template.id}
-                    onClick={() => handleUseTemplate(template)}
-                    disabled={isCreating}
-                    className="flex flex-col items-start p-4 rounded-lg border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all text-left group disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <span className="font-medium text-sm">{template.name}</span>
-                    </div>
-                    {template.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                        {template.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1 text-xs text-primary mt-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isCreating ? 'Creating...' : 'Use template'}
-                      <ArrowRight className="h-3 w-3" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Search and filters row */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -252,6 +223,50 @@ export function ToursClient({ tours, templates, customers }: ToursClientProps) {
           <AddTourDialog customers={customers} />
         </div>
       </div>
+
+      {/* Templates Section */}
+      {templates.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Templates
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {sortedTemplates.map((template) => {
+                const Icon = getTemplateIcon(template.name);
+                const isCreating = creatingFromTemplate === template.id;
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => handleUseTemplate(template)}
+                    disabled={isCreating}
+                    className="flex flex-col items-start p-4 rounded-lg border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all text-left group disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="font-medium text-sm">{template.name}</span>
+                    </div>
+                    {template.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                        {template.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1 text-xs text-primary mt-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isCreating ? 'Creating...' : 'Use template'}
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Extended filters */}
       {showFilters && (
@@ -348,6 +363,20 @@ function EmptyState({
     return FileText;
   };
 
+  // Sort templates in preferred order
+  const sortedTemplates = useMemo(() => {
+    const order = ['welcome', 'announcement', 'feature', 'checklist'];
+    return [...templates].sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aIndex = order.findIndex(keyword => aName.includes(keyword));
+      const bIndex = order.findIndex(keyword => bName.includes(keyword));
+      const aOrder = aIndex === -1 ? order.length : aIndex;
+      const bOrder = bIndex === -1 ? order.length : bIndex;
+      return aOrder - bOrder;
+    });
+  }, [templates]);
+
   return (
     <div className="space-y-6">
       {/* Templates in empty state */}
@@ -361,7 +390,7 @@ function EmptyState({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {templates.map((template) => {
+              {sortedTemplates.map((template) => {
                 const Icon = getTemplateIcon(template.name);
                 const isCreating = creatingFromTemplate === template.id;
                 return (

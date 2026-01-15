@@ -85,6 +85,14 @@ export function TourEditor({ tour: initialTour, themes, customers }: TourEditorP
   // Auto-save debounce
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Track last saved state to detect actual changes (fixes null vs [] comparison bug)
+  const lastSavedRef = useRef({
+    name: tour.name,
+    steps: JSON.stringify(steps),
+    settings: JSON.stringify(settings),
+    targeting: JSON.stringify(targeting),
+  });
+
   const selectedStep = steps.find((s) => s.id === selectedStepId) || null;
 
   // Push to history (for undo/redo)
@@ -133,6 +141,13 @@ export function TourEditor({ tour: initialTour, themes, customers }: TourEditorP
         settings,
         targeting,
       });
+      // Update last saved state after successful save
+      lastSavedRef.current = {
+        name: tourName,
+        steps: JSON.stringify(steps),
+        settings: JSON.stringify(settings),
+        targeting: JSON.stringify(targeting),
+      };
       setSaveStatus('saved');
     } catch (error) {
       setSaveStatus('error');
@@ -157,17 +172,22 @@ export function TourEditor({ tour: initialTour, themes, customers }: TourEditorP
     };
   }, [saveStatus, autoSave]);
 
-  // Mark as unsaved when data changes
+  // Mark as unsaved when data changes (compare against last saved state, not initial props)
   useEffect(() => {
-    if (
-      tourName !== tour.name ||
-      JSON.stringify(steps) !== JSON.stringify(initialTour.steps) ||
-      JSON.stringify(settings) !== JSON.stringify(initialTour.settings) ||
-      JSON.stringify(targeting) !== JSON.stringify(initialTour.targeting)
-    ) {
+    const currentSteps = JSON.stringify(steps);
+    const currentSettings = JSON.stringify(settings);
+    const currentTargeting = JSON.stringify(targeting);
+
+    const hasChanges =
+      tourName !== lastSavedRef.current.name ||
+      currentSteps !== lastSavedRef.current.steps ||
+      currentSettings !== lastSavedRef.current.settings ||
+      currentTargeting !== lastSavedRef.current.targeting;
+
+    if (hasChanges && saveStatus === 'saved') {
       setSaveStatus('unsaved');
     }
-  }, [tourName, steps, settings, targeting, tour.name, initialTour]);
+  }, [tourName, steps, settings, targeting, saveStatus]);
 
   // Keyboard shortcuts
   useEffect(() => {
