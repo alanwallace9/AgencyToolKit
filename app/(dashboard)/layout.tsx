@@ -31,7 +31,9 @@ export default async function DashboardLayout({
             <Badge variant={agency.plan === "pro" ? "default" : "secondary"}>
               {agency.plan === "pro" ? "Pro" : "Toolkit"}
             </Badge>
-            <UserButton afterSignOutUrl="/" />
+            <div suppressHydrationWarning>
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </div>
         </div>
       </header>

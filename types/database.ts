@@ -238,7 +238,7 @@ export interface MenuPreset {
 export type TourStatus = 'draft' | 'live' | 'archived';
 
 // Step types
-export type TourStepType = 'modal' | 'pointer' | 'slideout' | 'hotspot' | 'banner';
+export type TourStepType = 'modal' | 'tooltip' | 'slideout' | 'hotspot' | 'banner';
 
 // Button actions
 export type StepButtonAction = 'next' | 'prev' | 'close' | 'url' | 'tour' | 'custom';
@@ -250,31 +250,40 @@ export type StepButtonStyle = 'primary' | 'secondary' | 'ghost';
 export type ProgressStyle = 'dots' | 'numbers' | 'bar' | 'none';
 
 // Position options
-export type StepPosition = 'top' | 'right' | 'bottom' | 'left' | 'center' | 'auto';
+export type StepPosition =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'center'
+  | 'auto'
+  | 'bottom-right'
+  | 'bottom-left'
+  | 'top-right'
+  | 'top-left';
 
 // Device types
 export type DeviceType = 'desktop' | 'tablet' | 'mobile';
 
 // Frequency types
-export type TourFrequency =
-  | { type: 'once' }
-  | { type: 'once_per_session' }
-  | { type: 'every_time' }
-  | { type: 'interval'; days: number };
+export type TourFrequency = {
+  type: 'once' | 'session' | 'always' | 'interval';
+  interval_days?: number;
+};
 
 // URL pattern types
 export type UrlPatternType = 'exact' | 'contains' | 'starts_with' | 'ends_with' | 'wildcard' | 'regex';
 
 export interface UrlPattern {
-  id: string;
+  id?: string;
   type: UrlPatternType;
   value: string;
   description?: string;
 }
 
 export interface UrlTargeting {
-  mode: 'all' | 'whitelist' | 'blacklist';
-  patterns: UrlPattern[];
+  mode: 'all' | 'specific' | 'exclude';
+  patterns?: UrlPattern[];
 }
 
 export interface UserTargeting {
@@ -292,22 +301,27 @@ export interface UserTargeting {
 }
 
 export interface TourTargeting {
-  url_targeting: UrlTargeting;
-  element_condition?: string | null;
-  user_targeting: UserTargeting;
-  devices: DeviceType[];
+  url_targeting?: UrlTargeting;
+  element_condition?: {
+    selector: string;
+    must_exist?: boolean;
+  } | null;
+  user_targeting?: UserTargeting;
+  devices?: DeviceType[];
 }
 
 export interface TourSettings {
-  autoplay: boolean;
+  autoplay?: boolean;
   trigger_element?: string;
-  remember_progress: boolean;
-  show_progress: boolean;
-  progress_style: ProgressStyle;
-  allow_skip: boolean;
-  show_close: boolean;
-  close_on_outside_click: boolean;
-  frequency: TourFrequency;
+  delay_seconds?: number;
+  remember_progress?: boolean;
+  show_progress?: boolean;
+  progress_style?: ProgressStyle;
+  allow_skip?: boolean;
+  show_close?: boolean;
+  close_on_outside_click?: boolean;
+  frequency?: TourFrequency;
+  priority?: number;
 }
 
 export interface ElementTarget {
@@ -329,13 +343,12 @@ export interface StepMedia {
 }
 
 export interface StepButton {
-  id: string;
-  label: string;
-  action: StepButtonAction;
+  text?: string;
+  action?: string;
+  visible?: boolean;
   url?: string;
   tour_id?: string;
-  style: StepButtonStyle;
-  position: 'left' | 'right';
+  style?: StepButtonStyle;
 }
 
 export type ProgressTrigger =
@@ -354,12 +367,20 @@ export interface TourStep {
   media?: StepMedia;
   element?: ElementTarget;
   position?: StepPosition;
-  highlight: boolean;
-  backdrop: boolean;
-  buttons: StepButton[];
-  progress_trigger: ProgressTrigger;
+  highlight?: boolean;
+  backdrop?: boolean;
+  buttons?: {
+    primary?: StepButton;
+    secondary?: StepButton;
+  };
+  progress_trigger?: ProgressTrigger;
   auto_skip?: boolean;
   delay_ms?: number;
+  settings?: {
+    show_overlay?: boolean;
+    highlight_element?: boolean;
+    allow_interaction?: boolean;
+  };
 }
 
 export interface Tour {

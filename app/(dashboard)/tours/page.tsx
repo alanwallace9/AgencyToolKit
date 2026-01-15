@@ -3,9 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { ToursClient } from './_components/tours-client';
-import { getTours } from './_actions/tour-actions';
+import { getTours, getTourTemplates } from './_actions/tour-actions';
 import type { Customer } from '@/types/database';
 
 export default async function ToursPage() {
@@ -39,11 +39,12 @@ export default async function ToursPage() {
     );
   }
 
-  // Fetch tours and customers in parallel
-  const supabase = await createClient();
+  // Fetch tours, templates, and customers in parallel
+  const supabase = createAdminClient();
 
-  const [tours, { data: customers }] = await Promise.all([
+  const [tours, templates, { data: customers }] = await Promise.all([
     getTours(),
+    getTourTemplates(),
     supabase
       .from('customers')
       .select('id, name, ghl_location_id, ghl_url')
@@ -61,6 +62,7 @@ export default async function ToursPage() {
 
       <ToursClient
         tours={tours}
+        templates={templates}
         customers={(customers as Customer[]) || []}
       />
     </>

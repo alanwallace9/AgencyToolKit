@@ -263,7 +263,7 @@ export function TourCard({ tour }: TourCardProps) {
               </>
             )}
             <span>·</span>
-            <span>
+            <span suppressHydrationWarning>
               Updated {formatDistanceToNow(new Date(tour.updated_at), { addSuffix: true })}
             </span>
           </div>

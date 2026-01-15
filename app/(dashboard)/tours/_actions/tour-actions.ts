@@ -3,8 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentAgency } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sanitizeHTML } from '@/lib/security/sanitize';
 import type { Tour, TourStatus, TourStep, TourSettings, TourTargeting } from '@/types/database';
+
+// Note: We use admin client for mutations (INSERT/UPDATE/DELETE) because:
+// - Clerk handles authentication (not Supabase Auth)
+// - RLS policies expect auth.jwt() which isn't available with Clerk
+// - We manually verify permissions via getCurrentAgency() before any mutation
+// - This is safe because all mutations check agency ownership first
 
 // Default tour settings
 const DEFAULT_SETTINGS: TourSettings = {
@@ -50,7 +57,8 @@ export async function getTours(options?: {
     throw new Error('Unauthorized');
   }
 
-  const supabase = await createClient();
+  // Use admin client (RLS bypassed - we verify agency ownership in WHERE clause)
+  const supabase = createAdminClient();
 
   let query = supabase
     .from('tours')
@@ -120,7 +128,8 @@ export async function getTour(id: string): Promise<TourWithStats | null> {
     throw new Error('Unauthorized');
   }
 
-  const supabase = await createClient();
+  // Use admin client (RLS bypassed - we verify agency ownership in WHERE clause)
+  const supabase = createAdminClient();
 
   const { data: tour, error } = await supabase
     .from('tours')
@@ -170,6 +179,7 @@ export async function createTour(data: {
   }
 
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   // If using a template, fetch template data
   let templateSteps: TourStep[] = [];
@@ -188,7 +198,8 @@ export async function createTour(data: {
     }
   }
 
-  const { data: tour, error } = await supabase
+  // Use admin client for INSERT (bypasses RLS - we verify permissions via getCurrentAgency above)
+  const { data: tour, error } = await adminClient
     .from('tours')
     .insert({
       agency_id: agency.id,
@@ -201,6 +212,10 @@ export async function createTour(data: {
       settings: templateSettings,
       targeting: DEFAULT_TARGETING,
       created_by: agency.clerk_user_id,
+      // Legacy fields (required for backwards compatibility)
+      page: '/',
+      trigger: 'first_visit',
+      is_active: false,
     })
     .select()
     .single();
@@ -235,7 +250,7 @@ export async function updateTour(
     throw new Error('Unauthorized');
   }
 
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   // Sanitize steps content if provided
   const updateData = { ...data };
@@ -252,7 +267,8 @@ export async function updateTour(
     (updateData as Record<string, unknown>).published_at = new Date().toISOString();
   }
 
-  const { data: tour, error } = await supabase
+  // Use admin client for UPDATE (bypasses RLS - we verify agency ownership in the WHERE clause)
+  const { data: tour, error } = await adminClient
     .from('tours')
     .update(updateData)
     .eq('id', id)
@@ -278,9 +294,10 @@ export async function deleteTour(id: string): Promise<void> {
     throw new Error('Unauthorized');
   }
 
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
-  const { error } = await supabase
+  // Use admin client for DELETE (bypasses RLS - we verify agency ownership in the WHERE clause)
+  const { error } = await adminClient
     .from('tours')
     .delete()
     .eq('id', id)
@@ -303,8 +320,9 @@ export async function duplicateTour(id: string): Promise<Tour> {
   }
 
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
-  // Fetch original tour
+  // Fetch original tour (read is fine with regular client)
   const { data: original, error: fetchError } = await supabase
     .from('tours')
     .select('*')
@@ -316,8 +334,8 @@ export async function duplicateTour(id: string): Promise<Tour> {
     throw new Error('Tour not found');
   }
 
-  // Create duplicate
-  const { data: duplicate, error: createError } = await supabase
+  // Use admin client for INSERT (bypasses RLS)
+  const { data: duplicate, error: createError } = await adminClient
     .from('tours')
     .insert({
       agency_id: original.agency_id,
@@ -331,6 +349,10 @@ export async function duplicateTour(id: string): Promise<Tour> {
       targeting: original.targeting,
       theme_id: original.theme_id,
       created_by: agency.clerk_user_id,
+      // Legacy fields
+      page: original.page || '/',
+      trigger: original.trigger || 'first_visit',
+      is_active: false,
     })
     .select()
     .single();
@@ -372,18 +394,18 @@ export async function getTourTemplates(): Promise<Array<{
   name: string;
   description: string | null;
   category: 'system' | 'custom';
-  preview_image_url: string | null;
 }>> {
   const agency = await getCurrentAgency();
   if (!agency) {
     throw new Error('Unauthorized');
   }
 
-  const supabase = await createClient();
+  // Use admin client for consistency
+  const supabase = createAdminClient();
 
   const { data: templates, error } = await supabase
     .from('tour_templates')
-    .select('id, name, description, category, preview_image_url')
+    .select('id, name, description, category')
     .or(`category.eq.system,agency_id.eq.${agency.id}`)
     .order('category', { ascending: true })
     .order('name', { ascending: true });

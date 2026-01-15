@@ -65,21 +65,27 @@ export function AddTourDialog({ customers }: AddTourDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted', { name, startOption, selectedTemplate });
 
     if (!name.trim()) {
       toast.error('Tour name is required');
       return;
     }
 
+    // Don't pass empty template_id
+    const templateId = startOption === 'template' && selectedTemplate ? selectedTemplate : undefined;
+
     setIsLoading(true);
     try {
+      console.log('Creating tour...', { name: name.trim(), templateId });
       const tour = await createTour({
         name: name.trim(),
         description: description.trim() || undefined,
         subaccount_id: subaccountId === 'all' ? undefined : subaccountId,
-        template_id: startOption === 'template' ? selectedTemplate : undefined,
+        template_id: templateId,
       });
 
+      console.log('Tour created', tour);
       toast.success('Tour created', {
         description: 'Opening tour builder...',
       });
@@ -87,6 +93,7 @@ export function AddTourDialog({ customers }: AddTourDialogProps) {
       setOpen(false);
       router.push(`/tours/${tour.id}`);
     } catch (error) {
+      console.error('Failed to create tour', error);
       toast.error('Failed to create tour', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -227,9 +234,9 @@ export function AddTourDialog({ customers }: AddTourDialogProps) {
                       </SelectItem>
                     ))}
                     {templates.length === 0 && !loadingTemplates && (
-                      <SelectItem value="" disabled>
+                      <div className="py-6 text-center text-sm text-muted-foreground">
                         No templates available
-                      </SelectItem>
+                      </div>
                     )}
                   </SelectContent>
                 </Select>
