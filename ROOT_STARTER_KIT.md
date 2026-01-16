@@ -509,6 +509,46 @@ const isPublicRoute = createRouteMatcher([
 
 ---
 
+### 2026-01-16: isomorphic-dompurify Fails on Vercel Serverless
+
+**Problem**: /tours page returns 500 error on Vercel production, works on localhost
+
+**Error**:
+```
+Error [ERR_REQUIRE_ESM]: require() of ES Module .../node_modules/@exodus/bytes/encoding-lite.js
+from .../node_modules/html-encoding-sniffer/lib/html-encoding-sniffer.js not supported.
+```
+
+**Root Cause**: `isomorphic-dompurify` uses `jsdom` on the server. jsdom's dependency chain (html-encoding-sniffer → @exodus/bytes) has ESM/CommonJS compatibility issues when bundled for Vercel's serverless runtime. Works locally because full Node.js handles module interop differently than Vercel's bundler.
+
+**Solution**: Replace `isomorphic-dompurify` with `sanitize-html`:
+
+```bash
+pnpm remove isomorphic-dompurify dompurify @types/dompurify
+pnpm add sanitize-html @types/sanitize-html
+```
+
+Update imports:
+```typescript
+// Before
+import DOMPurify from 'isomorphic-dompurify';
+const clean = DOMPurify.sanitize(dirty, config);
+
+// After
+import sanitizeHtml from 'sanitize-html';
+const clean = sanitizeHtml(dirty, config);
+```
+
+**Why This Happens**: Same Next.js code, different runtime environments:
+- Localhost: Full Node.js process with native module resolution
+- Vercel: Bundled serverless function where ESM/CJS interop fails
+
+**Prevention**: For Vercel serverless deployments, prefer pure JavaScript libraries over those requiring DOM implementations:
+- HTML sanitization: Use `sanitize-html` (not `isomorphic-dompurify`)
+- Avoid libraries that depend on `jsdom` for server-side code
+
+---
+
 ## How to Use This File
 
 ### Starting a New Project
