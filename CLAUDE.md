@@ -108,6 +108,19 @@ Feature gating is implemented via `agency.plan` field in database.
 - Image API (`/api/og/[templateId]`) uses @vercel/og edge runtime for dynamic image generation
 - All settings stored as JSONB for flexibility
 
+## ROOT_STARTER_KIT.md Maintenance
+
+When solving major problems or discovering important patterns that would be useful for future projects:
+
+1. **Document it** in `/ROOT_STARTER_KIT.md` under the appropriate section
+2. **Include**: Date, problem description, root cause, solution, prevention tips
+3. **Mark content type**:
+   - `[CLAUDE.md]` - Instructions to copy into future CLAUDE.md files
+   - `[CODE]` - Code snippets/patterns to reuse
+   - `[REFERENCE]` - Just for reading, don't copy anywhere
+
+This file is a portable template for starting new projects with lessons learned.
+
 ## Development Rules
 
 ### No Assumptions
