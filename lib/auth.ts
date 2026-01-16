@@ -1,12 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function getCurrentAgency() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  // Use admin client to bypass RLS - we've already verified auth via Clerk
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const { data: agency } = await supabase
     .from("agencies")
     .select("*")

@@ -110,16 +110,16 @@ Feature gating is implemented via `agency.plan` field in database.
 
 ## ROOT_STARTER_KIT.md Maintenance
 
-When solving major problems or discovering important patterns that would be useful for future projects:
+Only add to `/ROOT_STARTER_KIT.md` when:
+1. **User states a major problem has been solved** - After testing confirms it works
+2. **User explicitly requests it** - e.g., "This is great, please add it to the file for all projects"
 
-1. **Document it** in `/ROOT_STARTER_KIT.md` under the appropriate section
-2. **Include**: Date, problem description, root cause, solution, prevention tips
-3. **Mark content type**:
-   - `[CLAUDE.md]` - Instructions to copy into future CLAUDE.md files
-   - `[CODE]` - Code snippets/patterns to reuse
-   - `[REFERENCE]` - Just for reading, don't copy anywhere
+Content must be:
+- **Project-agnostic** - Useful for future projects, not just this one
+- **Proven** - Actually tested and working, not theoretical fixes
+- **Approved** - User has reviewed and confirmed it should be added
 
-This file is a portable template for starting new projects with lessons learned.
+**Never add unproven solutions or project-specific content to ROOT_STARTER_KIT.md.**
 
 ## Development Rules
 

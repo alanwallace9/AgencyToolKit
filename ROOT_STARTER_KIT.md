@@ -73,7 +73,7 @@ Before starting ANY feature, present an Executive Plan for user approval.
 ```markdown
 ### Commit Workflow (WAIT FOR USER APPROVAL)
 
-After feature completion:
+After feature completion: and approved testing
 
 1. **ASK USER**: "Feature complete - ready to commit?" - **WAIT FOR APPROVAL**
 2. **CHECK ALL MODIFIED FILES**: Run `git status` and review ALL uncommitted changes
@@ -105,7 +105,7 @@ After feature completion:
 
 ```markdown
 ### ROOT_STARTER_KIT.md Maintenance
-When solving major problems or discovering important patterns:
+After user state major problems has been solved or discovering important patterns:
 1. Document the issue and solution in ROOT_STARTER_KIT.md
 2. Place it in the appropriate section (Auth, Database, Deployment, etc.)
 3. Include the date and context
