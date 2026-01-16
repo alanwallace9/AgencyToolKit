@@ -3,88 +3,129 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Premium font - SF Pro Display-inspired system stack */
+@font-face {
+  font-family: 'SF Pro Display';
+  src: local('-apple-system'), local('BlinkMacSystemFont'), local('Segoe UI');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  /* Premium neutral palette - refined grays with subtle blue undertone */
+  --background: 210 20% 99%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --radius: 0.5rem;
+  --popover-foreground: 222 47% 11%;
 
-  /* Brand colors */
-  --brand-primary: 220 90% 56%;
-  --brand-secondary: 142 76% 36%;
+  /* Primary - sophisticated slate blue */
+  --primary: 222 47% 11%;
+  --primary-foreground: 210 40% 98%;
 
-  /* Status colors */
-  --status-success: 142 76% 36%;
+  /* Secondary - refined light gray */
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 11%;
+
+  /* Muted - subtle background tones */
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
+
+  /* Accent - premium blue accent */
+  --accent: 217 91% 60%;
+  --accent-foreground: 0 0% 100%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders - subtle and refined */
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 217 91% 60%;
+  --radius: 0.625rem;
+
+  /* Brand colors - modern blue spectrum */
+  --brand-primary: 217 91% 60%;
+  --brand-secondary: 162 84% 39%;
+  --brand-gradient-start: 217 91% 60%;
+  --brand-gradient-end: 199 89% 48%;
+
+  /* Status colors - refined */
+  --status-success: 162 84% 39%;
   --status-warning: 38 92% 50%;
-  --status-error: 0 84% 60%;
+  --status-error: 0 72% 51%;
 
-  /* Plan badges */
-  --plan-free: 220 14% 46%;
-  --plan-toolkit: 220 90% 56%;
-  --plan-pro: 265 83% 57%;
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  /* Plan badges - premium gradients */
+  --plan-free: 215 16% 47%;
+  --plan-toolkit: 217 91% 60%;
+  --plan-pro: 271 81% 56%;
+
+  /* Sidebar - refined */
+  --sidebar: hsl(210 40% 98%);
+  --sidebar-foreground: hsl(222 47% 11%);
+  --sidebar-primary: hsl(217 91% 60%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(210 40% 96%);
+  --sidebar-accent-foreground: hsl(222 47% 11%);
+  --sidebar-border: hsl(214 32% 91%);
+  --sidebar-ring: hsl(217 91% 60%);
+
+  /* Premium shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
 }
 
 .dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --background: 224 71% 4%;
+  --foreground: 210 40% 98%;
+  --card: 224 71% 4%;
+  --card-foreground: 210 40% 98%;
+  --popover: 224 71% 4%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 215 28% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 215 28% 17%;
+  --muted-foreground: 217 10% 64%;
+  --accent: 217 91% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 215 28% 17%;
+  --input: 215 28% 17%;
+  --ring: 217 91% 60%;
+  --sidebar: hsl(224 71% 4%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(217 91% 60%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --sidebar-accent: hsl(215 28% 17%);
+  --sidebar-accent-foreground: hsl(210 40% 98%);
+  --sidebar-border: hsl(215 28% 17%);
+  --sidebar-ring: hsl(217 91% 60%);
 }
 
 * {
   border-color: hsl(var(--border));
 }
 
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  letter-spacing: -0.011em;
 }
 
 @theme inline {
@@ -127,5 +168,95 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Premium heading styles */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.035em;
+  }
+}
+
+@layer components {
+  /* Premium card styles */
+  .card-premium {
+    @apply bg-card rounded-xl border shadow-sm;
+    background: linear-gradient(to bottom, hsl(var(--card)), hsl(var(--card) / 0.97));
+  }
+
+  /* Premium header with blur */
+  .header-blur {
+    @apply backdrop-blur-xl bg-background/80;
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  /* Premium badge styles */
+  .badge-pro {
+    background: linear-gradient(135deg, hsl(var(--plan-pro)) 0%, hsl(var(--plan-pro) / 0.8) 100%);
+    @apply text-white font-medium;
+  }
+
+  .badge-toolkit {
+    background: linear-gradient(135deg, hsl(var(--plan-toolkit)) 0%, hsl(var(--plan-toolkit) / 0.8) 100%);
+    @apply text-white font-medium;
+  }
+
+  /* Premium button hover effect */
+  .btn-premium {
+    @apply transition-all duration-200;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  .btn-premium:hover {
+    box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* Subtle gradient backgrounds */
+  .gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.3) 100%);
+  }
+
+  /* Premium input focus */
+  .input-premium {
+    @apply transition-all duration-200;
+  }
+
+  .input-premium:focus {
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.1);
+  }
+
+  /* Premium stat card */
+  .stat-card {
+    @apply relative overflow-hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 opacity-5;
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, transparent 50%);
+  }
+
+  /* Refined scrollbar */
+  .scrollbar-refined::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-refined::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-refined::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  .scrollbar-refined::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
   }
 }
