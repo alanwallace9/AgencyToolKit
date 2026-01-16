@@ -356,6 +356,157 @@ export default clerkMiddleware(...)
 - Next.js 15 and earlier: `middleware.ts`
 - Next.js 16+: `proxy.ts` with `export default`
 
+### 2026-01-16: Clerk Production Setup - Complete Guide
+
+**Problem**: Login loop on Vercel production - client-side Clerk sees session, server-side `auth()` returns null
+
+**Symptoms**:
+- Console shows: "The <SignIn/> component cannot render when a user is already signed in"
+- This message repeats rapidly as the page loops
+- Debug endpoint shows: `{ userId: null, sessionId: null }`
+- Works perfectly on localhost
+
+**Root Cause**: Clerk Development instances (`pk_test_`, `sk_test_` keys) have cookie/session handling that doesn't work reliably on production domains.
+
+---
+
+## Complete Clerk Production Setup (Step-by-Step)
+
+### Prerequisites
+- A custom domain (Clerk Production does NOT allow `.vercel.app` domains)
+- You can use a subdomain of an existing domain (e.g., `toolkit.yourdomain.com`)
+
+### Step 1: Create Clerk Production Instance
+
+1. Go to Clerk Dashboard → Instance → Create Production Instance
+2. Enter your custom domain (e.g., `toolkit.yourdomain.com`)
+3. Get your new `pk_live_` and `sk_live_` API keys
+
+### Step 2: Add DNS Records (5-6 records required)
+
+In your DNS provider (Cloudflare, etc.), add ALL of these CNAME records:
+
+| Name | Target | Purpose |
+|------|--------|---------|
+| `toolkit` | `cname.vercel-dns.com` (or Vercel's target) | Your app |
+| `clerk.toolkit` | `frontend-api.clerk.services` | Clerk JS/API |
+| `accounts.toolkit` | `accounts.clerk.services` | Account portal |
+| `clkmail.toolkit` | `mail.{instance-id}.clerk.services` | Transactional emails |
+| `clk._domainkey.toolkit` | `dkim1.{instance-id}.clerk.services` | Email DKIM |
+| `clk2._domainkey.toolkit` | `dkim2.{instance-id}.clerk.services` | Email DKIM |
+
+**Important**: Set proxy status to "DNS only" (gray cloud in Cloudflare) for Clerk records.
+
+The exact targets are shown in Clerk Dashboard → Domains → DNS Configuration.
+
+### Step 3: Verify DNS in Clerk
+
+1. Go to Clerk Dashboard → Domains
+2. Click "Verify configuration"
+3. Wait until all records show green (5-15 minutes usually)
+
+### Step 4: Configure Clerk Paths
+
+In Clerk Dashboard → Paths, set Component Paths to **"application domain"** (not Account Portal):
+
+| Setting | Select | Value |
+|---------|--------|-------|
+| `<SignIn />` | Sign-in page on **application domain** | `/sign-in` |
+| `<SignUp />` | Sign-up page on **application domain** | `/sign-up` |
+| Signing Out | Path on **application domain** | `/sign-in` |
+
+### Step 5: Update Vercel Environment Variables
+
+Replace the development keys with production keys:
+
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_SECRET_KEY=sk_live_...
+```
+
+### Step 6: Create New User Account
+
+**CRITICAL**: Clerk Production is a separate user database. Your Development account doesn't exist in Production.
+
+1. Go to `https://yourdomain.com/sign-up`
+2. Create a new account
+3. Note the new Clerk user ID (format: `user_xxxxx`)
+
+### Step 7: Link Supabase Agency Record
+
+Update your Supabase agency record with the new Clerk user ID:
+
+```sql
+UPDATE agencies
+SET clerk_user_id = 'user_NEW_PRODUCTION_ID',
+    updated_at = now()
+WHERE clerk_user_id = 'user_OLD_DEVELOPMENT_ID';
+```
+
+### Step 8: Test
+
+Visit `https://yourdomain.com/dashboard` - you should be logged in without loops!
+
+---
+
+## Debugging Tips
+
+### Add a Debug Endpoint
+
+Create `/api/debug-auth/route.ts` to see what Clerk returns:
+
+```typescript
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const { userId, sessionId } = await auth();
+
+  let agency = null;
+  if (userId) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("agencies")
+      .select("id, clerk_user_id, email, name, plan")
+      .eq("clerk_user_id", userId)
+      .single();
+    agency = data;
+  }
+
+  return NextResponse.json({
+    clerk: { userId, sessionId, hasSession: !!sessionId },
+    supabase: { agency },
+    diagnosis: !userId ? "NO_CLERK_SESSION"
+      : !agency ? "NO_AGENCY_RECORD"
+      : "OK",
+  });
+}
+```
+
+Add to public routes in `proxy.ts`:
+```typescript
+const isPublicRoute = createRouteMatcher([
+  // ... other routes
+  '/api/debug-auth(.*)',  // Temporary debug endpoint
+]);
+```
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `ERR_NAME_NOT_RESOLVED` for `clerk.*` | Missing DNS record | Add CNAME for `clerk.yourdomain` |
+| 422 on sign-in | User doesn't exist in Production | Sign up instead |
+| Login loop with production keys | Missing agency record in Supabase | Update `clerk_user_id` in agencies table |
+| "development keys" warning | Wrong env vars | Update to `pk_live_`/`sk_live_` |
+
+---
+
+**Time Investment**: Initial setup takes 1-2 hours including DNS propagation. Worth doing correctly from the start.
+
+**Prevention**: Budget for a custom domain from day 1 if you plan to deploy beyond localhost.
+
 ---
 
 ## How to Use This File
