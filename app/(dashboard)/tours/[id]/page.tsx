@@ -49,6 +49,8 @@ export default async function TourPage({ params }: TourPageProps) {
       tour={tourResult.data as Tour}
       themes={(themesResult.data as TourTheme[]) || []}
       customers={(customersResult.data as Customer[]) || []}
+      ghlDomain={agency.ghl_domain}
+      builderAutoClose={agency.builder_auto_close ?? true}
     />
   );
 }

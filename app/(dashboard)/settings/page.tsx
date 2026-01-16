@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { getCurrentAgency } from '@/lib/auth';
 import { Settings } from 'lucide-react';
 import { EmbedCodeDisplay } from './_components/embed-code-display';
+import { GhlIntegrationSettings } from './_components/ghl-integration-settings';
 
 export default async function SettingsPage() {
   const agency = await getCurrentAgency();
@@ -61,6 +62,12 @@ export default async function SettingsPage() {
 
         {/* Embed Code */}
         <EmbedCodeDisplay token={agency.token} baseUrl={baseUrl} />
+
+        {/* GHL Integration Settings */}
+        <GhlIntegrationSettings
+          ghlDomain={agency.ghl_domain}
+          builderAutoClose={agency.builder_auto_close ?? true}
+        />
 
         {/* Additional Settings Placeholder */}
         <Card>

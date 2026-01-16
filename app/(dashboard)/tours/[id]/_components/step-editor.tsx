@@ -25,13 +25,12 @@ import {
   PanelRightOpen,
   CircleDot,
   Megaphone,
-  Target,
-  Lock,
   Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from './rich-text-editor';
-import type { TourStep, Customer } from '@/types/database';
+import { ElementSelectorField } from './element-selector-field';
+import type { TourStep, Customer, ElementTarget } from '@/types/database';
 
 interface StepEditorProps {
   step: TourStep;
@@ -39,6 +38,8 @@ interface StepEditorProps {
   totalSteps: number;
   onUpdateStep: (updates: Partial<TourStep>) => void;
   customers: Customer[];
+  ghlDomain: string | null;
+  builderAutoClose: boolean;
 }
 
 const stepTypes = [
@@ -88,6 +89,8 @@ export function StepEditor({
   totalSteps,
   onUpdateStep,
   customers,
+  ghlDomain,
+  builderAutoClose,
 }: StepEditorProps) {
   const [titleLength, setTitleLength] = useState(step.title?.length || 0);
 
@@ -179,50 +182,12 @@ export function StepEditor({
 
       {/* Element selector (for tooltip/hotspot) */}
       {needsElement && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Label>Target Element</Label>
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>
-                    The CSS selector for the element this step should point to.
-                    Visual element selection coming in Feature 20!
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={step.element?.selector || ''}
-              onChange={(e) =>
-                onUpdateStep({
-                  element: { ...step.element, selector: e.target.value },
-                })
-              }
-              placeholder="e.g., #dashboard-button, .nav-link"
-              className="font-mono text-sm"
-            />
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" disabled className="shrink-0">
-                    <Target className="h-4 w-4 mr-2" />
-                    Select
-                    <Lock className="h-3 w-3 ml-2 text-muted-foreground" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Visual element selector coming in Feature 20!</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
+        <ElementSelectorField
+          value={step.element}
+          onChange={(element) => onUpdateStep({ element })}
+          ghlDomain={ghlDomain}
+          autoClose={builderAutoClose}
+        />
       )}
 
       {/* Position */}

@@ -1,0 +1,220 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { SelectedElementData, ElementTarget } from '@/types/database';
+
+interface UseElementSelectorOptions {
+  ghlDomain: string | null;
+  autoClose?: boolean;
+  onSelect?: (element: ElementTarget) => void;
+}
+
+interface UseElementSelectorReturn {
+  isSelecting: boolean;
+  selectedElement: ElementTarget | null;
+  openSelector: () => void;
+  cancelSelection: () => void;
+  clearSelection: () => void;
+  error: string | null;
+}
+
+const BROADCAST_CHANNEL_NAME = 'at_element_selection';
+const STORAGE_KEY = 'at_selected_element';
+
+export function useElementSelector({
+  ghlDomain,
+  autoClose = true,
+  onSelect,
+}: UseElementSelectorOptions): UseElementSelectorReturn {
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<ElementTarget | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const sessionIdRef = useRef<string | null>(null);
+  const windowRef = useRef<Window | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Generate a unique session ID
+  const generateSessionId = useCallback(() => {
+    return `at_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  }, []);
+
+  // Process selected element data from builder mode
+  const processSelection = useCallback((data: SelectedElementData) => {
+    if (data.cancelled) {
+      setIsSelecting(false);
+      setError(null);
+      return;
+    }
+
+    const elementTarget: ElementTarget = {
+      selector: data.selector,
+      displayName: data.displayName,
+      isFragile: data.isFragile,
+      pageUrl: data.pageUrl,
+      metadata: {
+        tagName: data.tagName,
+        text: data.displayName,
+        attributes: data.attributes,
+      },
+    };
+
+    setSelectedElement(elementTarget);
+    setIsSelecting(false);
+    setError(null);
+
+    // Notify parent via callback
+    onSelect?.(elementTarget);
+
+    // Close the window if auto-close is enabled
+    if (autoClose && windowRef.current && !windowRef.current.closed) {
+      windowRef.current.close();
+    }
+  }, [autoClose, onSelect]);
+
+  // Open the GHL page in builder mode
+  const openSelector = useCallback(() => {
+    if (!ghlDomain) {
+      setError('Please configure your GHL domain in Settings first');
+      return;
+    }
+
+    setError(null);
+    setIsSelecting(true);
+
+    // Generate new session ID
+    const sessionId = generateSessionId();
+    sessionIdRef.current = sessionId;
+
+    // Clear any previous selection from storage
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      // localStorage might not be available
+    }
+
+    // Build the URL with builder mode params
+    try {
+      const url = new URL(ghlDomain);
+      url.searchParams.set('at_builder_mode', 'true');
+      url.searchParams.set('at_session', sessionId);
+      url.searchParams.set('at_auto_close', autoClose ? 'true' : 'false');
+
+      // Open in new tab
+      windowRef.current = window.open(url.toString(), '_blank');
+
+      if (!windowRef.current) {
+        setError('Failed to open new tab. Please allow popups for this site.');
+        setIsSelecting(false);
+      }
+    } catch (e) {
+      setError('Invalid GHL domain URL');
+      setIsSelecting(false);
+    }
+  }, [ghlDomain, generateSessionId, autoClose]);
+
+  // Cancel the selection
+  const cancelSelection = useCallback(() => {
+    setIsSelecting(false);
+    setError(null);
+    sessionIdRef.current = null;
+
+    // Close the window if open
+    if (windowRef.current && !windowRef.current.closed) {
+      windowRef.current.close();
+    }
+  }, []);
+
+  // Clear the selected element
+  const clearSelection = useCallback(() => {
+    setSelectedElement(null);
+    setError(null);
+  }, []);
+
+  // Set up BroadcastChannel and localStorage polling when selecting
+  useEffect(() => {
+    if (!isSelecting || !sessionIdRef.current) {
+      return;
+    }
+
+    const sessionId = sessionIdRef.current;
+
+    // Set up BroadcastChannel listener
+    try {
+      channelRef.current = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+      channelRef.current.onmessage = (event: MessageEvent<SelectedElementData>) => {
+        if (event.data.sessionId === sessionId) {
+          processSelection(event.data);
+        }
+      };
+    } catch (e) {
+      // BroadcastChannel might not be supported
+      console.warn('BroadcastChannel not supported, falling back to localStorage');
+    }
+
+    // Poll localStorage as fallback
+    pollIntervalRef.current = setInterval(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const data: SelectedElementData = JSON.parse(stored);
+          if (data.sessionId === sessionId) {
+            localStorage.removeItem(STORAGE_KEY);
+            processSelection(data);
+          }
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+    }, 500);
+
+    // Check if window was closed without selection
+    const checkWindowClosed = setInterval(() => {
+      if (windowRef.current && windowRef.current.closed) {
+        // Window was closed, but we might not have received selection yet
+        // Give it a moment to process
+        setTimeout(() => {
+          if (isSelecting) {
+            setIsSelecting(false);
+          }
+        }, 1000);
+        clearInterval(checkWindowClosed);
+      }
+    }, 1000);
+
+    // Cleanup
+    return () => {
+      if (channelRef.current) {
+        channelRef.current.close();
+        channelRef.current = null;
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      clearInterval(checkWindowClosed);
+    };
+  }, [isSelecting, processSelection]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        channelRef.current.close();
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    isSelecting,
+    selectedElement,
+    openSelector,
+    cancelSelection,
+    clearSelection,
+    error,
+  };
+}

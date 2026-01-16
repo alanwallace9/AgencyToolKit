@@ -10,6 +10,8 @@ export interface Agency {
   settings: AgencySettings;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  ghl_domain: string | null;
+  builder_auto_close: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -326,12 +328,35 @@ export interface TourSettings {
 
 export interface ElementTarget {
   selector: string;
+  displayName?: string;
+  isFragile?: boolean;
+  pageUrl?: string;
   metadata?: {
     tagName: string;
     text?: string;
     attributes?: Record<string, string>;
     parentSelector?: string;
   };
+}
+
+// Data returned from builder mode element selection
+export interface SelectedElementData {
+  selector: string;
+  displayName: string;
+  tagName: string;
+  pageUrl: string;
+  pageTitle: string;
+  isFragile: boolean;
+  attributes: Record<string, string>;
+  rect: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  };
+  sessionId: string;
+  timestamp: number;
+  cancelled?: boolean;
 }
 
 export interface StepMedia {

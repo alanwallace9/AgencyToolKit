@@ -33,6 +33,8 @@ interface TourEditorProps {
   tour: Tour;
   themes: TourTheme[];
   customers: Customer[];
+  ghlDomain: string | null;
+  builderAutoClose: boolean;
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error';
@@ -56,7 +58,7 @@ const createDefaultStep = (order: number): TourStep => ({
   },
 });
 
-export function TourEditor({ tour: initialTour, themes, customers }: TourEditorProps) {
+export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, builderAutoClose }: TourEditorProps) {
   const router = useRouter();
   const [tour, setTour] = useState(initialTour);
   const [steps, setSteps] = useState<TourStep[]>(
@@ -495,6 +497,8 @@ export function TourEditor({ tour: initialTour, themes, customers }: TourEditorP
                     totalSteps={steps.length}
                     onUpdateStep={(updates) => handleUpdateStep(selectedStep.id, updates)}
                     customers={customers}
+                    ghlDomain={ghlDomain}
+                    builderAutoClose={builderAutoClose}
                   />
                 ) : (
                   <EmptyStepsState onAddStep={handleAddStep} />
