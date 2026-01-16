@@ -14,7 +14,7 @@ export default async function SettingsPage() {
     redirect('/sign-in');
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.agencytoolkit.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://toolkit.getrapidreviews.com';
 
   return (
     <>

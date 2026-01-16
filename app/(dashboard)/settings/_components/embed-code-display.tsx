@@ -74,9 +74,13 @@ export function EmbedCodeDisplay({ token, baseUrl }: EmbedCodeDisplayProps) {
               <ol className="list-decimal list-inside space-y-2">
                 <li>Log into your GoHighLevel agency account</li>
                 <li>Go to <strong>Settings</strong> → <strong>Company</strong></li>
-                <li>Scroll down to <strong>Custom Code</strong> section</li>
-                <li>Paste the embed code in the <strong>Header Code</strong> field</li>
-                <li>Click <strong>Save</strong></li>
+                <li>Click the <strong>White Label</strong> tab</li>
+                <li>Scroll down to the <strong>Custom JS</strong> section</li>
+                <li>
+                  Add the embed code. If you already have scripts there, add this code
+                  below your current script.
+                </li>
+                <li>Click <strong>Save Changes</strong></li>
               </ol>
               <p className="mt-2">
                 The script will load on all sub-account pages and apply your customizations.
