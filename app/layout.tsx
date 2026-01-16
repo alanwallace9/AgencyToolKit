@@ -22,17 +22,8 @@ export default function RootLayout({
       <html lang="en">
         <body className={inter.className} suppressHydrationWarning>
           {children}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: '#ecfdf5',
-                border: '1px solid #a7f3d0',
-                color: '#065f46',
-              },
-              className: 'shadow-lg',
-            }}
-          />
+          {/* TODO: Fix toast styling - see docs/SESSION_NOTES_2026-01-16_CRITICAL.md */}
+          <Toaster position="top-right" />
           <SpeedInsights />
         </body>
       </html>

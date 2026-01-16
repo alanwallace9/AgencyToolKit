@@ -1,6 +1,45 @@
 # CRITICAL SESSION NOTES - 2026-01-16
 
-## Status: BLOCKING ISSUES IDENTIFIED
+## NEXT SESSION: MUST RESEARCH FIRST
+
+### 1. Toast Animation Direction
+Toast NOW WORKS on Loading Animations page!
+User wants: slide in from RIGHT (horizontal), not drop down from top
+
+Current: `<Toaster position="top-right" />`
+Research: How to make Sonner slide horizontally from right edge
+
+Optional styling (for later):
+- Light green background like "Currently Active" box
+- Colors: background #ecfdf5, border #a7f3d0, text #065f46
+
+### 2. Colors Page - No Save on Built-in Theme Select
+Loading page saves work. Colors page does NOT save when clicking built-in theme.
+This is a CODE issue in `colors-client.tsx` - `handleSelectBuiltInPreset` doesn't call save.
+Need to add `saveAgencyColors()` call when selecting built-in theme.
+
+### 3. React Error #306 - RESOLVED
+Was caused by Toaster styling syntax. Simplified version works.
+Can add styling back once slide animation is figured out.
+
+---
+
+## Status: FIXES DEPLOYED - BUG INTRODUCED
+
+### Commit: 4633617
+- Added Toaster to layout (top-right, green styling)
+- Fixed RLS in loading-actions.ts, color-actions.ts, menu-actions.ts, login-actions.ts
+- All now use createAdminClient() instead of createClient()
+
+### What to Test:
+1. Go to Loading Animations - click an animation - should see green toast + save to DB
+2. Go to Dashboard Colors - select a theme - should save
+3. Go to Menu - create a preset - should save
+4. Check Supabase: agencies.settings should no longer be all nulls
+
+---
+
+## ORIGINAL STATUS: BLOCKING ISSUES IDENTIFIED
 
 This session identified critical bugs that prevent the app from functioning. Document this for continuity if session ends.
 
@@ -148,3 +187,24 @@ Benefits:
 
 ## Supabase Project ID
 `hldtxlzxneifdzvoobte`
+
+---
+
+## REMAINING WORK (Next Session)
+
+### After Testing Confirms Saves Work:
+1. Remove CSS section from Menu page (redundant - embed handles it)
+2. Fix Colors page - call `saveAgencyColors()` when selecting built-in theme
+3. Consider unified Theme Builder with tabs (user's vision)
+
+### Theme Builder UI Reference:
+User shared image showing simple toggle pattern:
+- "Sidebar Theme - Toolkit V1" header
+- Orange "Activated" toggle
+- Tabs: Description | Presets | Customize
+
+### Security Verified:
+- Admin client is server-side only
+- getCurrentAgency() verifies Clerk auth before any mutation
+- All queries filter by agency_id
+- No client-side exposure of admin keys
