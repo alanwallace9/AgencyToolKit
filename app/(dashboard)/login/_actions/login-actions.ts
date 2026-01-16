@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type {
   LoginDesign,
   LoginLayoutType,
@@ -34,7 +34,7 @@ export async function getLoginDesigns(): Promise<LoginDesign[]> {
   const agency = await getCurrentAgency();
   if (!agency) return [];
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('login_designs')
     .select('*')
@@ -53,7 +53,7 @@ export async function getDefaultLoginDesign(): Promise<LoginDesign | null> {
   const agency = await getCurrentAgency();
   if (!agency) return null;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('login_designs')
     .select('*')
@@ -77,7 +77,7 @@ export async function createLoginDesign(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // If setting as default, unset other defaults first
     if (data.is_default) {
@@ -123,7 +123,7 @@ export async function updateLoginDesign(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: design, error } = await supabase
       .from('login_designs')
@@ -155,7 +155,7 @@ export async function deleteLoginDesign(designId: string): Promise<ActionResult>
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('login_designs')
@@ -182,7 +182,7 @@ export async function setDefaultLoginDesign(designId: string): Promise<ActionRes
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Unset all defaults first
     await supabase

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { LoadingConfig, ColorConfig } from '@/types/database';
 
 interface ActionResult {
@@ -34,7 +34,8 @@ export async function saveLoadingAnimation(config: LoadingConfig): Promise<Actio
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    // Use admin client for mutations (RLS bypassed - we verify auth via getCurrentAgency above)
+    const supabase = createAdminClient();
 
     // Get current settings to merge
     const currentSettings = agency.settings || {};

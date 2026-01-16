@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { GHL_MENU_ITEMS } from '@/lib/constants';
 
 interface CreatePresetData {
@@ -38,7 +38,7 @@ export async function createMenuPreset(data: CreatePresetData): Promise<ActionRe
       return { success: false, error: 'Name is required' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // If setting as default, unset other defaults first
     if (data.is_default) {
@@ -89,7 +89,7 @@ export async function createMenuPresetFromTemplate(
       return { success: false, error: 'Name is required' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // If setting as default, unset other defaults first
     if (data.is_default) {
@@ -129,7 +129,7 @@ export async function deleteMenuPreset(presetId: string): Promise<ActionResult> 
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('menu_presets')
@@ -156,7 +156,7 @@ export async function setDefaultPreset(presetId: string): Promise<ActionResult> 
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Unset all defaults first
     await supabase
@@ -198,7 +198,7 @@ export async function updatePresetConfig(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: preset, error } = await supabase
       .from('menu_presets')

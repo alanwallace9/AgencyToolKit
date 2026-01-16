@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { ColorConfig } from '@/types/database';
 
 interface ActionResult {
@@ -43,7 +43,7 @@ export async function getColorPresets(): Promise<ColorPreset[]> {
       return [];
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: presets, error } = await supabase
       .from('color_presets')
@@ -73,7 +73,7 @@ export async function getDefaultColors(): Promise<ColorConfig | null> {
       return null;
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // First check for a default preset
     const { data: defaultPreset } = await supabase
@@ -109,7 +109,7 @@ export async function createColorPreset(data: CreatePresetData): Promise<ActionR
       return { success: false, error: 'Name is required' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // If setting as default, unset other defaults first
     if (data.is_default) {
@@ -155,7 +155,7 @@ export async function updateColorPreset(
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // If setting as default, unset other defaults first
     if (data.is_default) {
@@ -200,7 +200,7 @@ export async function deleteColorPreset(presetId: string): Promise<ActionResult>
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('color_presets')
@@ -230,7 +230,7 @@ export async function setDefaultColorPreset(presetId: string): Promise<ActionRes
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Unset all defaults first
     await supabase
@@ -289,7 +289,7 @@ export async function saveAgencyColors(colors: ColorConfig): Promise<ActionResul
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const currentSettings = agency.settings || {};
 
