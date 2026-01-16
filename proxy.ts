@@ -7,6 +7,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/api/webhooks(.*)',
   '/api/config(.*)',
+  '/api/debug-auth(.*)',  // Temporary debug endpoint
   '/embed.js(.*)',
   '/api/og(.*)',
   '/preview(.*)',
