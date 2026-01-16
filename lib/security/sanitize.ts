@@ -5,10 +5,10 @@
  * This module sanitizes all user-provided HTML content before it's injected
  * into GHL subaccounts. XSS attacks here could compromise client applications.
  *
- * Uses DOMPurify with a strict whitelist configuration.
+ * Uses sanitize-html (pure JavaScript, no jsdom required) with a strict whitelist.
  */
 
-import DOMPurify from 'isomorphic-dompurify';
+import sanitizeHtml from 'sanitize-html';
 
 // Allowed HTML tags (strict whitelist)
 const ALLOWED_TAGS = [
@@ -56,157 +56,70 @@ const ALLOWED_TAGS = [
 ];
 
 // Allowed attributes per tag
-const ALLOWED_ATTR = [
-  // Global
-  'class',
-  'id',
-  'style',
-  // Links
-  'href',
-  'target',
-  'rel',
-  // Images
-  'src',
-  'alt',
-  'width',
-  'height',
-  'loading',
-  // Tables
-  'colspan',
-  'rowspan',
-];
-
-// Forbidden tags (explicitly blocked, even if nested)
-const FORBID_TAGS = [
-  'script',
-  'style',
-  'iframe',
-  'object',
-  'embed',
-  'form',
-  'input',
-  'button',
-  'select',
-  'textarea',
-  'svg',
-  'math',
-  'template',
-  'slot',
-  'applet',
-  'frame',
-  'frameset',
-  'meta',
-  'link',
-  'base',
-  'noscript',
-];
-
-// Forbidden attributes (event handlers, dangerous attributes)
-const FORBID_ATTR = [
-  // Event handlers
-  'onclick',
-  'ondblclick',
-  'onmousedown',
-  'onmouseup',
-  'onmouseover',
-  'onmousemove',
-  'onmouseout',
-  'onmouseenter',
-  'onmouseleave',
-  'onkeydown',
-  'onkeypress',
-  'onkeyup',
-  'onfocus',
-  'onblur',
-  'onchange',
-  'oninput',
-  'onsubmit',
-  'onreset',
-  'onload',
-  'onerror',
-  'onabort',
-  'oncanplay',
-  'oncanplaythrough',
-  'oncuechange',
-  'ondurationchange',
-  'onemptied',
-  'onended',
-  'onloadeddata',
-  'onloadedmetadata',
-  'onloadstart',
-  'onpause',
-  'onplay',
-  'onplaying',
-  'onprogress',
-  'onratechange',
-  'onseeked',
-  'onseeking',
-  'onstalled',
-  'onsuspend',
-  'ontimeupdate',
-  'onvolumechange',
-  'onwaiting',
-  'onanimationstart',
-  'onanimationend',
-  'onanimationiteration',
-  'ontransitionend',
-  'oncontextmenu',
-  'oncopy',
-  'oncut',
-  'onpaste',
-  'ondrag',
-  'ondragend',
-  'ondragenter',
-  'ondragleave',
-  'ondragover',
-  'ondragstart',
-  'ondrop',
-  'onscroll',
-  'onwheel',
-  'ontouchstart',
-  'ontouchmove',
-  'ontouchend',
-  'ontouchcancel',
-  'onpointerdown',
-  'onpointermove',
-  'onpointerup',
-  'onpointercancel',
-  'onpointerenter',
-  'onpointerleave',
-  'onpointerover',
-  'onpointerout',
-  'ongotpointercapture',
-  'onlostpointercapture',
-  // Dangerous attributes
-  'formaction',
-  'xlink:href',
-  'data',
-  'action',
-  'background',
-  'poster',
-  'dynsrc',
-  'lowsrc',
-];
-
-// Configure DOMPurify
-const purifyConfig = {
-  ALLOWED_TAGS,
-  ALLOWED_ATTR,
-  FORBID_TAGS,
-  FORBID_ATTR,
-  ALLOW_DATA_ATTR: false, // No data-* attributes (could be exploited)
-  ALLOW_ARIA_ATTR: true, // Allow aria-* for accessibility
-  KEEP_CONTENT: true, // Keep text content when removing tags
-  RETURN_DOM: false,
-  RETURN_DOM_FRAGMENT: false,
-  RETURN_TRUSTED_TYPE: false,
-  FORCE_BODY: false,
-  SANITIZE_DOM: true,
-  WHOLE_DOCUMENT: false,
-  // URI sanitization
-  ALLOWED_URI_REGEXP:
-    /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+const ALLOWED_ATTR: Record<string, string[]> = {
+  '*': ['class', 'id'],
+  a: ['href', 'target', 'rel'],
+  img: ['src', 'alt', 'width', 'height', 'loading'],
+  th: ['colspan', 'rowspan'],
+  td: ['colspan', 'rowspan'],
 };
+
+// Configure sanitize-html
+const sanitizeConfig: sanitizeHtml.IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: ALLOWED_ATTR,
+  allowedSchemes: ['https', 'http', 'mailto', 'tel'],
+  allowedSchemesByTag: {
+    a: ['https', 'http', 'mailto', 'tel'],
+    img: ['https', 'http'],
+  },
+  // Remove entire content of script tags, not just the tags
+  disallowedTagsMode: 'discard',
+  // Don't allow any protocol-relative URLs
+  allowProtocolRelative: false,
+  // Transform tags for additional security
+  transformTags: {
+    a: (tagName, attribs) => {
+      // Force external links to have safe attributes
+      if (attribs.href && !attribs.href.startsWith('/')) {
+        return {
+          tagName,
+          attribs: {
+            ...attribs,
+            rel: 'noopener noreferrer',
+            target: '_blank',
+          },
+        };
+      }
+      return { tagName, attribs };
+    },
+  },
+  // Additional text filtering
+  textFilter: (text) => {
+    // Remove null bytes and other dangerous characters
+    return text.replace(/\0/g, '');
+  },
+};
+
+/**
+ * Pre-processes HTML to remove dangerous patterns before sanitization
+ */
+function preprocess(dirty: string): string {
+  return dirty
+    // Remove javascript: protocol (various encodings)
+    .replace(/javascript\s*:/gi, '')
+    .replace(/j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:/gi, '')
+    // Remove vbscript: protocol
+    .replace(/vbscript\s*:/gi, '')
+    // Remove data: URLs with dangerous content
+    .replace(/data\s*:\s*text\/html/gi, '')
+    // Remove expression() CSS
+    .replace(/expression\s*\(/gi, '')
+    // Remove -moz-binding
+    .replace(/-moz-binding/gi, '')
+    // Remove behavior: CSS
+    .replace(/behavior\s*:/gi, '');
+}
 
 /**
  * Sanitizes HTML content for safe rendering
@@ -223,23 +136,8 @@ export function sanitizeHTML(dirty: string): string {
     return '';
   }
 
-  // Pre-process to remove javascript: URLs in various encodings
-  let processed = dirty
-    // Remove javascript: protocol (various encodings)
-    .replace(/javascript\s*:/gi, '')
-    .replace(/j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:/gi, '')
-    // Remove vbscript: protocol
-    .replace(/vbscript\s*:/gi, '')
-    // Remove data: URLs with dangerous content
-    .replace(/data\s*:\s*text\/html/gi, '')
-    // Remove expression() CSS
-    .replace(/expression\s*\(/gi, '')
-    // Remove -moz-binding
-    .replace(/-moz-binding/gi, '')
-    // Remove behavior: CSS
-    .replace(/behavior\s*:/gi, '');
-
-  return DOMPurify.sanitize(processed, purifyConfig);
+  const processed = preprocess(dirty);
+  return sanitizeHtml(processed, sanitizeConfig);
 }
 
 /**
@@ -257,7 +155,10 @@ export function sanitizeText(dirty: string): string {
     return '';
   }
 
-  return DOMPurify.sanitize(dirty, { ALLOWED_TAGS: [], KEEP_CONTENT: true });
+  return sanitizeHtml(dirty, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
 }
 
 // Allowed URL protocols
@@ -436,5 +337,5 @@ export function sanitizeCSS(dirty: string): string {
     .replace(/@charset/gi, '');
 }
 
-// Export DOMPurify config for testing
-export const SANITIZE_CONFIG = purifyConfig;
+// Export config for testing
+export const SANITIZE_CONFIG = sanitizeConfig;
