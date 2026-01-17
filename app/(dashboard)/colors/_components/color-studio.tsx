@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Upload, RefreshCw, AlertTriangle, Check } from 'lucide-react';
+import { Upload, RefreshCw, AlertTriangle, Check, Globe, Loader2 } from 'lucide-react';
+import { extractColorsFromUrl } from '../_actions/color-actions';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -100,6 +102,9 @@ export function ColorStudio({
 }: ColorStudioProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [isExtractingUrl, setIsExtractingUrl] = useState(false);
+  const [extractedUrlColors, setExtractedUrlColors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check contrast for sidebar text on sidebar bg
@@ -198,6 +203,56 @@ export function ColorStudio({
     }
   };
 
+  // URL extraction handler
+  const handleExtractFromUrl = async () => {
+    if (!websiteUrl.trim()) {
+      toast.error('Please enter a website URL');
+      return;
+    }
+
+    setIsExtractingUrl(true);
+    setExtractedUrlColors([]);
+
+    try {
+      const result = await extractColorsFromUrl(websiteUrl);
+
+      if (result.success && result.data) {
+        const extracted = result.data as string[];
+        setExtractedUrlColors(extracted);
+        toast.success(`Found ${extracted.length} brand colors`);
+      } else {
+        toast.error(result.error || 'Failed to extract colors');
+      }
+    } catch {
+      toast.error('Failed to extract colors from URL');
+    } finally {
+      setIsExtractingUrl(false);
+    }
+  };
+
+  // Apply extracted URL color
+  const applyUrlColor = (color: string, target: keyof typeof colors) => {
+    onColorChange(target, color);
+    toast.success(`Applied ${color} to ${target.replace('_', ' ')}`);
+  };
+
+  // Apply all extracted colors
+  const applyAllUrlColors = () => {
+    if (extractedUrlColors.length >= 4) {
+      onColorsChange({
+        primary: extractedUrlColors[0],
+        accent: extractedUrlColors[1],
+        sidebar_bg: extractedUrlColors[2],
+        sidebar_text: extractedUrlColors[3],
+      });
+      toast.success('Applied all extracted colors');
+    } else if (extractedUrlColors.length >= 2) {
+      onColorChange('primary', extractedUrlColors[0]);
+      onColorChange('accent', extractedUrlColors[1]);
+      toast.success('Applied primary and accent colors');
+    }
+  };
+
   return (
     <div className="glass-panel rounded-xl p-4 space-y-6">
       <div>
@@ -260,6 +315,83 @@ export function ColorStudio({
           {/* Contrast Warning */}
           <ContrastBadge contrast={sidebarContrast} />
         </div>
+      </div>
+
+      {/* Website URL Import */}
+      <div className="border-t pt-4">
+        <Label className="text-xs font-medium mb-2 block">
+          <Globe className="h-3 w-3 inline mr-1" />
+          Import from Website
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="example.com"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            className="h-9 text-sm"
+            onKeyDown={(e) => e.key === 'Enter' && handleExtractFromUrl()}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0"
+            onClick={handleExtractFromUrl}
+            disabled={isExtractingUrl}
+          >
+            {isExtractingUrl ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Extract'
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Enter a website URL to extract brand colors
+        </p>
+
+        {/* Extracted URL Colors */}
+        {extractedUrlColors.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium">Extracted Colors</Label>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={applyAllUrlColors}
+              >
+                Apply all
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {extractedUrlColors.map((color, i) => (
+                <TooltipProvider key={i}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative group">
+                        <button
+                          onClick={() => applyUrlColor(color, i === 0 ? 'primary' : i === 1 ? 'accent' : i === 2 ? 'sidebar_bg' : 'sidebar_text')}
+                          className="w-10 h-10 rounded-lg border-2 border-border hover:border-primary transition-all hover:scale-105"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                          {i === 0 ? 'Primary' : i === 1 ? 'Accent' : i === 2 ? 'Sidebar BG' : 'Text'}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{color}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Click to apply as {i === 0 ? 'Primary' : i === 1 ? 'Accent' : i === 2 ? 'Sidebar BG' : 'Sidebar Text'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Logo Drop Zone */}

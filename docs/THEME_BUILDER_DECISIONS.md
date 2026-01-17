@@ -508,16 +508,85 @@ Each tab has this at the bottom:
 | `app/layout.tsx` | Updated (use custom Toaster) |
 | `types/database.ts` | Updated (added *_active fields to AgencySettings) |
 
+### Files Created/Modified (Phase 2 Session 3)
+
+| File | Status |
+|------|--------|
+| `loading/_components/loading-client.tsx` | Updated (3-column layout, Try it Live) |
+| `loading/_components/animation-card.tsx` | Updated (added compact mode) |
+| `menu/_components/menu-client.tsx` | Updated (3-column layout, search filter, reset button) |
+| `login/_components/properties-panel.tsx` | Updated (context-aware centering dropdowns) |
+| `login/_components/login-designer.tsx` | Updated (undo/redo integration) |
+| `login/_hooks/use-history.ts` | Created (undo/redo hook) |
+| `colors/_components/color-studio.tsx` | Updated (URL brand import) |
+| `colors/_actions/color-actions.ts` | Updated (extractColorsFromUrl action) |
+| `components/ui/scroll-area.tsx` | Created (installed from shadcn) |
+
 ---
 
-## Next Steps (Priority Order)
+## Phase 2 Testing Feedback (2026-01-16 Session 3)
 
-1. **Fix 3-Column Layouts** - Restructure Loading, Menu, Colors tabs to match approved wireframe
-2. **Commit current progress** (don't push yet)
-3. **Implement Top 5 Premium UX:**
-   - Search filter for Menu tab
-   - "Try it Live" button for Loading tab
-   - Context-aware centering for Login tab
-   - Undo/Redo stack for Login tab
-   - One-click brand import (URL) for Colors tab
-4. **GHL-Accurate Previews** - Menu sidebar and Colors dashboard
+### Loading Tab
+
+| Issue | Status | Details |
+|-------|--------|---------|
+| Left column too narrow | TO FIX | Checkmark badge gets cut off on animation cards. Widen left panel. |
+| Favorite/star animations | TO IMPLEMENT | User should be able to star/favorite animations. Persists across sessions. |
+| Try it Live - skeleton | ENHANCE | Mock GHL dashboard should use skeleton layout instead of solid blocks |
+| Try it Live - duration | ENHANCE | Show the mock dashboard for a few more seconds before auto-closing |
+| Try it Live - brand colors | ENHANCE | Use user's active brand colors (if set) for the mock GHL dashboard |
+
+### Menu Tab
+
+| Issue | Status | Details |
+|-------|--------|---------|
+| Preview not GHL-accurate | TO FIX | Preview panel needs to look more like actual GHL sidebar (icons, hover states, colors, logo area) |
+| Search filter - no DB hits | VERIFY | Ensure search is client-side only, not hitting database. If DB involved, add 2-3 char minimum threshold before filtering. |
+
+### Colors Tab
+
+| Issue | Status | Details |
+|-------|--------|---------|
+| URL extraction works | ✓ DONE | Successfully extracts colors from website URLs |
+| Color assignment UX | TO FIX | User needs ability to assign ANY extracted color to ANY target (primary, accent, sidebar_bg, sidebar_text). Current auto-assignment looks backwards. Add click-to-assign or drag-to-assign. |
+
+### Login Tab
+
+| Issue | Status | Details |
+|-------|--------|---------|
+| Undo/Redo | ✓ DONE | Works great with keyboard shortcuts |
+| Left/right centering | ✓ DONE | Works great for split layouts |
+| Y "center on page" bug | TO FIX | Centers towards bottom instead of true center. Check calculation in `centeredY`. |
+| Preview button | TO FIX | Preview opens but shows main layout preset instead of current design state. Should show actual canvas content. |
+
+### Decisions Log Update
+
+| Date | Decision |
+|------|----------|
+| 2026-01-16 | Phase 2 3-column layouts implemented |
+| 2026-01-16 | Menu search filter added (client-side) |
+| 2026-01-16 | Try it Live simulation added for Loading tab |
+| 2026-01-16 | Context-aware centering added for Login tab |
+| 2026-01-16 | Undo/Redo stack added for Login tab (useHistory hook) |
+| 2026-01-16 | URL brand import added for Colors tab |
+| 2026-01-16 | Testing revealed issues with Y centering, preview button, color assignment UX |
+
+---
+
+## Next Steps (Priority Order - Updated)
+
+1. **Loading Tab Fixes**
+   - Widen left panel to prevent checkmark cutoff
+   - Add favorite/star animations feature
+   - Enhance Try it Live with skeleton layout, longer duration, brand colors
+
+2. **Menu Tab**
+   - Make preview panel more GHL-accurate (reference actual GHL screenshots)
+   - Verify search is client-side only
+
+3. **Colors Tab**
+   - Improve extracted color assignment UX - let user choose which color goes where
+
+4. **Login Tab**
+   - Fix Y "center on page" calculation bug
+   - Fix Preview button to show actual design state (not preset)

@@ -17,6 +17,7 @@ interface AnimationCardProps {
   size: number;
   onSelect: () => void;
   onHover: () => void;
+  compact?: boolean;
 }
 
 const categoryColors: Record<AnimationCategory, string> = {
@@ -35,6 +36,7 @@ export function AnimationCard({
   size,
   onSelect,
   onHover,
+  compact = false,
 }: AnimationCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
@@ -76,6 +78,39 @@ export function AnimationCard({
     navigator.clipboard.writeText(fullCss);
     toast.success('CSS copied to clipboard');
   };
+
+  // Compact mode for 3-column layout left panel
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          'relative rounded-lg border-2 transition-all cursor-pointer group',
+          isSelected
+            ? 'border-green-500 ring-2 ring-green-500/20'
+            : 'border-border hover:border-primary/50'
+        )}
+        onClick={onSelect}
+        onMouseEnter={onHover}
+      >
+        {isSelected && (
+          <div className="absolute -top-1.5 -right-1.5 z-10 bg-green-500 text-white rounded-full p-0.5">
+            <Check className="h-2.5 w-2.5" />
+          </div>
+        )}
+
+        <div
+          ref={containerRef}
+          className={`at-card-${animation.id} h-16 rounded-t-md flex items-center justify-center`}
+          style={{ backgroundColor: previewBgColor }}
+          dangerouslySetInnerHTML={{ __html: animation.html }}
+        />
+
+        <div className="p-1.5 border-t bg-card">
+          <h3 className="font-medium text-[10px] truncate text-center">{animation.label}</h3>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

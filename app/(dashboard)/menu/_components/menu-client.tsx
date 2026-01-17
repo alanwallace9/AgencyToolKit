@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Plus, Trash2, Minus, Type, ChevronDown } from 'lucide-react';
+import { Save, Plus, Trash2, Minus, Type, ChevronDown, RotateCcw, Star, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MenuPreset } from '@/types/database';
 import { BUILT_IN_PRESETS, GHL_MENU_ITEMS, GHL_HIDE_OPTIONS, DIVIDER_TYPES } from '@/lib/constants';
@@ -9,6 +9,8 @@ import type { MenuItemType } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +51,7 @@ export function MenuClient({ presets }: MenuClientProps) {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [dividerCounter, setDividerCounter] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Initialize menu items
   const getInitialItems = (preset?: MenuPreset | null): MenuItemConfig[] => {
@@ -293,176 +296,255 @@ export function MenuClient({ presets }: MenuClientProps) {
   const renamedCount = menuItemsOnly.filter((i) => i.rename).length;
   const dividerCount = items.filter((i) => i.type === 'divider_plain' || i.type === 'divider_labeled').length;
 
+  // Reset to GHL defaults
+  const handleResetToDefaults = () => {
+    const defaultItems: MenuItemConfig[] = GHL_MENU_ITEMS.map((item) => ({
+      id: item.id,
+      label: item.label,
+      visible: true,
+      rename: '',
+      type: 'menu_item' as const,
+    }));
+    setItems(defaultItems);
+    setHiddenBanners([]);
+    setActivePresetId(null);
+    toast.success('Reset to GHL defaults');
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Presets Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Presets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Built-in Templates */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {Object.entries(BUILT_IN_PRESETS).map(([key, preset]) => (
-              <Button
-                key={key}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-start h-auto py-2 px-3"
-                onClick={() => loadBuiltInTemplate(key)}
-              >
-                <span className="font-medium">{preset.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {preset.visible_items.length} items
-                </span>
-              </Button>
-            ))}
-          </div>
+    <div className="space-y-4">
+      {/* 3-Column Layout */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Left Panel - Presets (~25%) */}
+        <div className="col-span-12 lg:col-span-3">
+          <Card className="h-[600px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center justify-between">
+                Presets
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={handleResetToDefaults}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              <ScrollArea className="h-[520px] pr-2">
+                <div className="space-y-4">
+                  {/* Built-in Templates */}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2 px-2">Templates</p>
+                    <div className="space-y-1">
+                      {Object.entries(BUILT_IN_PRESETS).map(([key, preset]) => (
+                        <button
+                          key={key}
+                          className="w-full text-left p-2 rounded-md hover:bg-accent transition-colors"
+                          onClick={() => loadBuiltInTemplate(key)}
+                        >
+                          <p className="text-sm font-medium">{preset.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {preset.visible_items.length} items visible
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-          {/* Custom Presets */}
-          {presets.length > 0 && (
-            <>
-              <div className="text-xs text-muted-foreground mb-2">Your Presets</div>
-              <div className="flex flex-wrap gap-2">
-                {presets.map((preset) => (
-                  <Button
-                    key={preset.id}
-                    variant={activePresetId === preset.id ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex items-center gap-2 h-auto py-2 px-3 group"
-                    onClick={() => loadPreset(preset)}
-                  >
-                    <span className="font-medium">{preset.name}</span>
-                    {preset.is_default && (
-                      <Badge variant="secondary" className="text-xs">
-                        Default
-                      </Badge>
-                    )}
-                    <button
-                      className="opacity-0 group-hover:opacity-100 hover:text-destructive ml-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPresetToDelete(preset);
-                      }}
+                  {/* Custom Presets */}
+                  {presets.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2 px-2">Your Presets</p>
+                      <div className="space-y-1">
+                        {presets.map((preset) => (
+                          <button
+                            key={preset.id}
+                            className={`w-full text-left p-2 rounded-md transition-colors group relative ${
+                              activePresetId === preset.id
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-accent'
+                            }`}
+                            onClick={() => loadPreset(preset)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium flex-1">{preset.name}</p>
+                              {preset.is_default && (
+                                <Star className="h-3 w-3 fill-current" />
+                              )}
+                            </div>
+                            <button
+                              className={`absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity ${
+                                activePresetId === preset.id
+                                  ? 'text-primary-foreground hover:text-red-200'
+                                  : 'text-muted-foreground hover:text-destructive'
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPresetToDelete(preset);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="space-y-2 pt-2 border-t">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowAddDialog(true)}
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </Button>
-                ))}
-              </div>
-            </>
-          )}
+                      <Plus className="h-4 w-4 mr-1" />
+                      Save as Preset
+                    </Button>
+                    {activePresetId && !presets.find((p) => p.id === activePresetId)?.is_default && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => handleSetDefault(activePresetId)}
+                      >
+                        <Star className="h-4 w-4 mr-1" />
+                        Set as Default
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 mt-4 pt-4 border-t">
-            <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              Save as New Preset
-            </Button>
-            {activePresetId && !presets.find((p) => p.id === activePresetId)?.is_default && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleSetDefault(activePresetId)}
-              >
-                Set as Default
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Center Panel - Preview (~30%, narrower for menu) */}
+        <div className="col-span-12 lg:col-span-3">
+          <Card className="h-[600px] sticky top-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 h-[calc(100%-48px)]">
+              <ScrollArea className="h-full">
+                <MenuPreview items={items.filter((i) => i.visible)} />
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Menu Items Editor */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+        {/* Right Panel - Editor (~45%, wider for menu per spec) */}
+        <div className="col-span-12 lg:col-span-6">
+          <Card className="h-[600px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center justify-between">
                 <span>Menu Items</span>
-                <span className="text-sm font-normal text-muted-foreground">
+                <span className="text-xs font-normal text-muted-foreground">
                   {visibleCount} visible, {renamedCount} renamed
                   {dividerCount > 0 && `, ${dividerCount} divider${dividerCount > 1 ? 's' : ''}`}
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <MenuSortableList
-                items={items}
-                onToggleVisibility={handleToggleVisibility}
-                onRename={handleRename}
-                onReorder={handleReorder}
-                onUpdateDividerText={handleUpdateDividerText}
-                onDeleteDivider={handleDeleteDivider}
-              />
+            <CardContent className="p-2 h-[calc(100%-48px)]">
+              <ScrollArea className="h-full pr-2">
+                <div className="space-y-4">
+                  {/* Search Filter */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search menu items..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-8 h-9"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
 
-              {/* Add Divider Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full border-dashed">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Divider
-                    <ChevronDown className="h-4 w-4 ml-2" />
+                  <MenuSortableList
+                    items={searchQuery
+                      ? items.filter(item =>
+                          item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.rename?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.dividerText?.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                      : items
+                    }
+                    onToggleVisibility={handleToggleVisibility}
+                    onRename={handleRename}
+                    onReorder={handleReorder}
+                    onUpdateDividerText={handleUpdateDividerText}
+                    onDeleteDivider={handleDeleteDivider}
+                  />
+
+                  {/* Add Divider Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full border-dashed">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Divider
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-56">
+                      <DropdownMenuItem onClick={() => handleAddDivider('divider_plain')}>
+                        <Minus className="h-4 w-4 mr-2" />
+                        <div>
+                          <div className="font-medium">Plain Divider</div>
+                          <div className="text-xs text-muted-foreground">A simple horizontal line</div>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAddDivider('divider_labeled')}>
+                        <Type className="h-4 w-4 mr-2" />
+                        <div>
+                          <div className="font-medium">Labeled Divider</div>
+                          <div className="text-xs text-muted-foreground">Line with custom text label</div>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Banner Options */}
+                  <div className="pt-4 border-t">
+                    <p className="text-sm font-medium mb-2">Banner Options</p>
+                    <BannerOptions
+                      options={GHL_HIDE_OPTIONS}
+                      selected={hiddenBanners}
+                      onToggle={handleToggleBanner}
+                    />
+                  </div>
+
+                  {/* Custom Menu Links */}
+                  <div className="pt-4 border-t">
+                    <CustomLinksSection />
+                  </div>
+
+                  {/* Save Button */}
+                  <Button onClick={handleSave} disabled={isSaving} className="w-full">
+                    <Save className="h-4 w-4 mr-2" />
+                    {isSaving ? 'Saving...' : activePresetId ? 'Save Changes' : 'Save as New Preset'}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-56">
-                  <DropdownMenuItem onClick={() => handleAddDivider('divider_plain')}>
-                    <Minus className="h-4 w-4 mr-2" />
-                    <div>
-                      <div className="font-medium">Plain Divider</div>
-                      <div className="text-xs text-muted-foreground">A simple horizontal line</div>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddDivider('divider_labeled')}>
-                    <Type className="h-4 w-4 mr-2" />
-                    <div>
-                      <div className="font-medium">Labeled Divider</div>
-                      <div className="text-xs text-muted-foreground">Line with custom text label</div>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Banner Options</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <BannerOptions
-                options={GHL_HIDE_OPTIONS}
-                selected={hiddenBanners}
-                onToggle={handleToggleBanner}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Custom Menu Links Section */}
-          <CustomLinksSection />
-
-          {/* Save Button */}
-          <Button onClick={handleSave} disabled={isSaving} className="w-full">
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : activePresetId ? 'Save Changes' : 'Save as New Preset'}
-          </Button>
-
-          {/* CSS Preview Panel */}
-          <CSSPreviewPanel
-            config={{
-              items,
-              hiddenBanners,
-            }}
-          />
-        </div>
-
-        {/* Preview Panel */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MenuPreview items={items.filter((i) => i.visible)} />
+                  {/* CSS Preview Panel (collapsed by default) */}
+                  <CSSPreviewPanel
+                    config={{
+                      items,
+                      hiddenBanners,
+                    }}
+                  />
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>

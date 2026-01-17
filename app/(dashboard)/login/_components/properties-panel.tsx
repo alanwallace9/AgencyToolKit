@@ -13,7 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Trash2, Layers, Move, Palette, AlignCenterHorizontal, AlignCenterVertical } from 'lucide-react';
+import { Trash2, Layers, Move, Palette, AlignCenterHorizontal, AlignCenterVertical, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { FileUpload } from '@/components/shared/file-upload';
 import type {
   CanvasElement,
@@ -72,8 +78,20 @@ export function PropertiesPanel({
   // Calculate centered positions
   const elementWidthPercent = (element.width / canvasWidth) * 100;
   const elementHeightPercent = (element.height / canvasHeight) * 100;
+
+  // Full canvas centering
   const centeredX = Math.round(((100 - elementWidthPercent) / 2) * 10) / 10;
   const centeredY = Math.round(((100 - elementHeightPercent) / 2) * 10) / 10;
+
+  // Context-aware centering for split layouts
+  // Center on left half (0-50% of canvas)
+  const centeredLeftX = Math.round(((50 - elementWidthPercent) / 2) * 10) / 10;
+  // Center on right half (50-100% of canvas)
+  const centeredRightX = Math.round((50 + (50 - elementWidthPercent) / 2) * 10) / 10;
+  // Center on top half
+  const centeredTopY = Math.round(((50 - elementHeightPercent) / 2) * 10) / 10;
+  // Center on bottom half
+  const centeredBottomY = Math.round((50 + (50 - elementHeightPercent) / 2) * 10) / 10;
 
   return (
     <Card>
@@ -113,15 +131,30 @@ export function PropertiesPanel({
                   min={0}
                   max={100}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 shrink-0"
-                  onClick={() => onUpdate({ x: centeredX })}
-                  title="Center horizontally"
-                >
-                  <AlignCenterHorizontal className="h-3.5 w-3.5" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-1.5 shrink-0"
+                      title="Center horizontally"
+                    >
+                      <AlignCenterHorizontal className="h-3.5 w-3.5" />
+                      <ChevronDown className="h-3 w-3 ml-0.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onUpdate({ x: centeredX })}>
+                      Center on page
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onUpdate({ x: centeredLeftX })}>
+                      Center on left side
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onUpdate({ x: centeredRightX })}>
+                      Center on right side
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             <div>
@@ -135,15 +168,30 @@ export function PropertiesPanel({
                   min={0}
                   max={100}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 shrink-0"
-                  onClick={() => onUpdate({ y: centeredY })}
-                  title="Center vertically"
-                >
-                  <AlignCenterVertical className="h-3.5 w-3.5" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-1.5 shrink-0"
+                      title="Center vertically"
+                    >
+                      <AlignCenterVertical className="h-3.5 w-3.5" />
+                      <ChevronDown className="h-3 w-3 ml-0.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onUpdate({ y: centeredY })}>
+                      Center on page
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onUpdate({ y: centeredTopY })}>
+                      Center on top half
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onUpdate({ y: centeredBottomY })}>
+                      Center on bottom half
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>

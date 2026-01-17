@@ -11,7 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Eye } from 'lucide-react';
+import { Save, Eye, Undo2, Redo2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useHistory } from '../_hooks/use-history';
 import { toast } from 'sonner';
 import { ElementPanel } from './element-panel';
 import { DesignCanvas } from './canvas';
@@ -41,7 +43,16 @@ interface LoginDesignerProps {
 export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
   // Canvas state
   const [canvas, setCanvas] = useState(currentDesign?.canvas || DEFAULT_CANVAS);
-  const [elements, setElements] = useState<CanvasElement[]>(
+
+  // Elements with undo/redo history
+  const {
+    state: elements,
+    set: setElements,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useHistory<CanvasElement[]>(
     currentDesign?.elements || [DEFAULT_LOGIN_FORM_ELEMENT]
   );
   const [formStyle, setFormStyle] = useState<LoginDesignFormStyle>(
@@ -81,15 +92,28 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
     }
   }, [elements]);
 
-  // Keyboard handler for delete
+  // Keyboard handler for delete and undo/redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementId) {
-        // Don't delete if focused on an input
-        if ((e.target as HTMLElement).tagName === 'INPUT' ||
-            (e.target as HTMLElement).tagName === 'TEXTAREA') {
-          return;
-        }
+      const isInput = (e.target as HTMLElement).tagName === 'INPUT' ||
+                      (e.target as HTMLElement).tagName === 'TEXTAREA';
+
+      // Undo: Cmd+Z / Ctrl+Z
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) undo();
+        return;
+      }
+
+      // Redo: Cmd+Shift+Z / Ctrl+Shift+Z or Ctrl+Y
+      if ((e.metaKey || e.ctrlKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
+        e.preventDefault();
+        if (canRedo) redo();
+        return;
+      }
+
+      // Delete selected element
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementId && !isInput) {
         const element = elements.find((el) => el.id === selectedElementId);
         if (element?.type === 'login-form') {
           toast.error('Cannot delete the login form');
@@ -103,7 +127,7 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElementId, elements]);
+  }, [selectedElementId, elements, canUndo, canRedo, undo, redo, setElements]);
 
   // Handle drag end - convert pixel delta to percentage
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -266,13 +290,55 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
     <div className="flex flex-col gap-4">
       {/* Header Actions */}
       <div className="flex items-center justify-between">
-        <input
-          type="text"
-          value={designName}
-          onChange={(e) => setDesignName(e.target.value)}
-          className="text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary rounded px-2 py-1"
-          placeholder="Design name..."
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={designName}
+            onChange={(e) => setDesignName(e.target.value)}
+            className="text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary rounded px-2 py-1"
+            placeholder="Design name..."
+          />
+
+          {/* Undo/Redo buttons */}
+          <TooltipProvider delayDuration={0}>
+            <div className="flex items-center gap-1 ml-4">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={undo}
+                    disabled={!canUndo}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Undo (⌘Z)</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={redo}
+                    disabled={!canRedo}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Redo2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Redo (⌘⇧Z)</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        </div>
+
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => window.open('/preview/login', '_blank')}>
             <Eye className="h-4 w-4 mr-2" />

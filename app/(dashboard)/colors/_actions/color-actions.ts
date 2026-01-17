@@ -280,6 +280,105 @@ export async function setDefaultColorPreset(presetId: string): Promise<ActionRes
 }
 
 /**
+ * Extract brand colors from a website URL
+ */
+export async function extractColorsFromUrl(url: string): Promise<ActionResult> {
+  try {
+    // Validate URL
+    let parsedUrl: URL;
+    try {
+      // Add https if missing
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      parsedUrl = new URL(url);
+    } catch {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    // Fetch the page
+    const response = await fetch(parsedUrl.toString(), {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ColorExtractor/1.0)',
+      },
+      next: { revalidate: 0 },
+    });
+
+    if (!response.ok) {
+      return { success: false, error: `Failed to fetch URL: ${response.status}` };
+    }
+
+    const html = await response.text();
+
+    // Extract colors from the HTML/CSS
+    const colors: string[] = [];
+
+    // Match hex colors (6 and 3 digit)
+    const hexMatches = html.match(/#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})(?![0-9A-Fa-f])/g) || [];
+
+    // Match rgb/rgba colors
+    const rgbMatches = html.match(/rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)/gi) || [];
+    const rgbaMatches = html.match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)/gi) || [];
+
+    // Convert rgb to hex
+    const rgbToHex = (rgb: string): string | null => {
+      const match = rgb.match(/\d+/g);
+      if (!match || match.length < 3) return null;
+      const [r, g, b] = match.map(Number);
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    };
+
+    // Normalize 3-digit hex to 6-digit
+    const normalizeHex = (hex: string): string => {
+      if (hex.length === 4) {
+        return `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
+      }
+      return hex.toLowerCase();
+    };
+
+    // Collect all hex colors
+    hexMatches.forEach(hex => {
+      const normalized = normalizeHex(hex);
+      if (!colors.includes(normalized)) {
+        colors.push(normalized);
+      }
+    });
+
+    // Convert and add RGB colors
+    [...rgbMatches, ...rgbaMatches].forEach(rgb => {
+      const hex = rgbToHex(rgb);
+      if (hex && !colors.includes(hex.toLowerCase())) {
+        colors.push(hex.toLowerCase());
+      }
+    });
+
+    // Filter out common non-brand colors (black, white, transparent, grays)
+    const isInterestingColor = (hex: string): boolean => {
+      const c = hex.toLowerCase();
+      // Skip pure black, white, and common transparent values
+      if (c === '#000000' || c === '#ffffff' || c === '#000' || c === '#fff') return false;
+      // Skip common grays
+      if (/^#([0-9a-f])\1\1\1\1\1$/.test(c)) return false;
+      return true;
+    };
+
+    const filteredColors = colors.filter(isInterestingColor);
+
+    // Sort by frequency (we already have unique colors, so just take first 6)
+    const topColors = filteredColors.slice(0, 6);
+
+    if (topColors.length === 0) {
+      return { success: false, error: 'No brand colors found on this page' };
+    }
+
+    return { success: true, data: topColors };
+  } catch (error) {
+    console.error('Error extracting colors from URL:', error);
+    return { success: false, error: 'Failed to extract colors from URL' };
+  }
+}
+
+/**
  * Save colors directly to agency settings (for quick edits without presets)
  */
 export async function saveAgencyColors(colors: ColorConfig): Promise<ActionResult> {
