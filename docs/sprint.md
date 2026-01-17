@@ -92,9 +92,16 @@
 - ✅ 2026-01-13: Feature 17 - Apply Visual Configs in Embed Script
 - ✅ 2026-01-13: Feature 18 - Tours List Page + DAP Foundation
 - ✅ 2026-01-14: Feature 19 - Tour Builder - Basic UI (Tabs, Steps, Rich Text, Settings, Targeting, Theme)
+- ✅ 2026-01-16: Theme Builder Phase 1 - Tab navigation shell with manila folder tabs
+- ✅ 2026-01-16: Fixed Pro gate on Login page (removed - all plans can access)
+- ✅ 2026-01-16: Created dev agency record for localhost testing
 
 ### In Progress
-- [ ] Feature 20: Visual Element Selector (GHL Builder Mode)
+- [ ] **Theme Builder Consolidation** (Phase 2) - Migrating 4 Customize pages into unified Theme Builder
+  - See `docs/THEME_BUILDER_DECISIONS.md` for complete decision log
+
+### Paused
+- [ ] Feature 20: Visual Element Selector (GHL Builder Mode) - Resume after Theme Builder
 
 ### Up Next
 - Feature 21: Tour Preview (Live Preview in Iframe)
@@ -228,6 +235,7 @@
 - Updated `settings/page.tsx` to use the new component
 - Added improved agency details grid (name, email, plan, token)
 - Added shadcn accordion component
+
 ### Feature 9: Config API Endpoint
 **Completed:** 2026-01-11
 
