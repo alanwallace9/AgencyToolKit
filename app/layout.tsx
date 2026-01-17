@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,8 +22,7 @@ export default function RootLayout({
       <html lang="en">
         <body className={inter.className} suppressHydrationWarning>
           {children}
-          {/* TODO: Fix toast styling - see docs/SESSION_NOTES_2026-01-16_CRITICAL.md */}
-          <Toaster position="top-right" />
+          <Toaster />
           <SpeedInsights />
         </body>
       </html>

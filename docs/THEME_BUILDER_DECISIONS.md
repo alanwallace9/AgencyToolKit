@@ -395,3 +395,129 @@ Each tab has this at the bottom:
 | 2026-01-16 | Subaccount targeting deferred to Phase 3 |
 | 2026-01-16 | Keep old URLs as redirects to /theme-builder?tab=X |
 | 2026-01-16 | Menu preview should mimic real GHL aesthetics |
+| 2026-01-16 | Phase 2 infrastructure complete: useAutoSave, useThemeStatus, ThemeHeader, ActivationToggle |
+| 2026-01-16 | Toast styling: 75% transparent glass effect, slide from right, close button, mint green |
+| 2026-01-16 | All 4 tabs migrated (content copied, original pages kept intact) |
+| 2026-01-16 | Premium UX review completed with refined feedback |
+
+---
+
+## Phase 2 Review - Refined Feedback (2026-01-16 Session 2)
+
+### Layout Corrections Needed
+
+**CRITICAL**: Current tab layouts don't follow the approved 3-column wireframe:
+- Menu tab is 2-column with presets across top (should be 3-column)
+- Loading tab needs restructuring to 3-panel
+- Must match the wireframe in Section 3 above
+
+### Login Tab - Premium UX Enhancements
+
+| Feature | Priority | Details |
+|---------|----------|---------|
+| **Undo/Redo Stack** | HIGH | Cmd+Z/Ctrl+Z with visual undo button. Safety net for experimentation. |
+| **Element Snap Guides** | HIGH | Show alignment guides when dragging (like Figma/Canva). |
+| **Context-Aware Centering** | HIGH | For split views: option to "Center on full page" OR "Center on left/right side only". When form is on one side of split, centering should respect that boundary. Applies to ALL elements (form, images, text, GIFs). |
+| **Quick Action Toolbar** | MEDIUM | Floating mini-toolbar when element selected: Duplicate, Delete, Center, Bring Forward/Back. |
+| **Design Version History** | LOW | Save snapshots users can revert to. "Version 1: Clean minimal" → "Version 2: Added testimonial". |
+
+**Context-Aware Centering Detail:**
+- Current: Center buttons in Properties panel center on FULL canvas
+- Problem: In split view (form left, image right), centering slams form to middle of whole page
+- Solution: Add "Center on side" button next to existing center buttons
+- Detect if layout is split and offer both options
+- Applies to: Login form, images, text blocks, GIFs, testimonials, shapes, buttons
+
+### Loading Tab - Premium UX Enhancements
+
+| Feature | Priority | Details |
+|---------|----------|---------|
+| **"Try it Live" Button** | HIGH | 3-second demo showing animation appearing/disappearing exactly like GHL page load. |
+| **Favorite Animations** | MEDIUM | Star/favorite animations with a "Favorited" badge. Searchable. Persists across sessions. |
+| **Animation Comparison Mode** | MEDIUM | Select 2-3 animations, see them side-by-side (like Best Buy product compare). |
+| **Custom Animation Upload** | HIGH | Pro users upload their own GIF animations. HUGE differentiator. |
+| **Logo Animation Presets** | MEDIUM | Upload logo → apply preset animations (bounce, pop, pulse, fade-in). |
+| **Category Badge Polish** | LOW | Subtle hover animations, selected ring effect on badges. |
+
+### Menu Tab - Premium UX Enhancements
+
+| Feature | Priority | Details |
+|---------|----------|---------|
+| **Search/Filter** | HIGH | Search box to quickly find items in 20+ menu list. Already approved. |
+| **Reset to GHL Defaults** | HIGH | One-click button to restore original GHL menu configuration. |
+| **GHL-Accurate Preview** | MEDIUM | Preview should exactly mimic GHL sidebar styling (colors, hover states, icons). Reference screenshot provided. |
+| **Inline Rename** | EXISTS | Already have "Rename to..." field next to each item - no change needed. |
+
+**NOT implementing:**
+- "Hide all / Show all" bulk actions (doesn't make UX sense)
+- Interactive drag preview in sidebar (performance concern unless local-only)
+
+### Colors Tab - Premium UX Enhancements
+
+| Feature | Priority | Details |
+|---------|----------|---------|
+| **Real GHL Preview** | HIGH | Use actual GHL interface screenshots that dynamically recolor. Offer 3 views: Pipeline, Dashboard, Reviews. |
+| **Live Agency Preview** | HIGH | Pull GHL white-label URL from Settings → show THEIR actual dashboard with colors applied. Click through live preview. Major wow factor. |
+| **One-Click Brand Import (URL)** | HIGH | Paste website URL → extract brand colors automatically. Can paste multiple URLs to build palette. |
+| **One-Click Brand Import (Logo)** | EXISTS | Already have logo color extraction - keep it. |
+| **Accessibility Warning Position** | MEDIUM | Move contrast warnings higher/above the fold. Currently exists but too low. |
+| **Export/Share Theme** | FUTURE | Copy theme link to share. Expires after 3 days. Ties into referral/signup strategy. Needs more thought on implementation. |
+
+**NOT implementing:**
+- Theme presets with thumbnails (hover preview already handles this)
+
+### Toast Notifications - IMPLEMENTED
+
+| Setting | Value |
+|---------|-------|
+| Position | Top-right, below avatar |
+| Animation | Slide in from RIGHT (horizontal), not top-down |
+| Background | 75% transparent with backdrop blur (glass effect) |
+| Border | Darker green: rgba(22, 101, 52, 0.4) |
+| Border radius | 8px (more square, card-like) |
+| Close button | YES - user can dismiss manually |
+| Colors (success) | Mint green: bg rgba(240,253,244,0.75), text #14532d |
+
+### Keyboard Shortcuts - TO IMPLEMENT
+
+| Shortcut | Action |
+|----------|--------|
+| Cmd/Ctrl + S | Save |
+| Cmd/Ctrl + Z | Undo |
+| Cmd/Ctrl + Shift + Z | Redo |
+| 1, 2, 3, 4 | Switch to tab 1/2/3/4 |
+| Delete/Backspace | Delete selected element (Login tab) |
+| Escape | Deselect element |
+
+### Files Created/Modified (Phase 2 Session 2)
+
+| File | Status |
+|------|--------|
+| `theme-builder/_hooks/use-auto-save.ts` | Created |
+| `theme-builder/_context/theme-status-context.tsx` | Created |
+| `theme-builder/_components/theme-header.tsx` | Created |
+| `theme-builder/_components/activation-toggle.tsx` | Created |
+| `theme-builder/_actions/theme-actions.ts` | Created |
+| `theme-builder/_components/tabs/login-tab-content.tsx` | Created |
+| `theme-builder/_components/tabs/loading-tab-content.tsx` | Created |
+| `theme-builder/_components/tabs/menu-tab-content.tsx` | Created |
+| `theme-builder/_components/tabs/colors-tab-content.tsx` | Created |
+| `theme-builder/_components/theme-builder-content.tsx` | Updated |
+| `theme-builder/page.tsx` | Updated |
+| `components/ui/sonner.tsx` | Updated (glass toast styling) |
+| `app/layout.tsx` | Updated (use custom Toaster) |
+| `types/database.ts` | Updated (added *_active fields to AgencySettings) |
+
+---
+
+## Next Steps (Priority Order)
+
+1. **Fix 3-Column Layouts** - Restructure Loading, Menu, Colors tabs to match approved wireframe
+2. **Commit current progress** (don't push yet)
+3. **Implement Top 5 Premium UX:**
+   - Search filter for Menu tab
+   - "Try it Live" button for Loading tab
+   - Context-aware centering for Login tab
+   - Undo/Redo stack for Login tab
+   - One-click brand import (URL) for Colors tab
+4. **GHL-Accurate Previews** - Menu sidebar and Colors dashboard

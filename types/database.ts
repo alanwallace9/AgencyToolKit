@@ -22,6 +22,11 @@ export interface AgencySettings {
   loading: LoadingConfig | null;
   colors: ColorConfig | null;
   whitelisted_locations: string[];
+  // Theme Builder activation states (all default to false)
+  login_active?: boolean;
+  loading_active?: boolean;
+  menu_active?: boolean;
+  colors_active?: boolean;
 }
 
 export interface MenuConfig {

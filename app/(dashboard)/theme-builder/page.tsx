@@ -1,25 +1,25 @@
 import { Suspense } from "react"
-import { PageHeader } from "@/components/shared/page-header"
 import { ThemeBuilderContent } from "./_components/theme-builder-content"
+import { getThemeSettings } from "./_actions/theme-actions"
 
-export default function ThemeBuilderPage() {
+export default async function ThemeBuilderPage() {
+  const settings = await getThemeSettings()
+
   return (
-    <div>
-      <PageHeader
-        title="Theme Builder"
-        description="Customize your GHL white-label experience"
-      />
-
-      <Suspense fallback={<ThemeBuilderSkeleton />}>
-        <ThemeBuilderContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<ThemeBuilderSkeleton />}>
+      <ThemeBuilderContent initialSettings={settings} />
+    </Suspense>
   )
 }
 
 function ThemeBuilderSkeleton() {
   return (
     <div className="animate-pulse">
+      {/* Header skeleton */}
+      <div className="mb-6">
+        <div className="h-8 w-48 bg-muted/50 rounded mb-2" />
+        <div className="h-4 w-72 bg-muted/50 rounded" />
+      </div>
       {/* Tab skeleton */}
       <div className="flex items-end gap-1 mb-0">
         {[1, 2, 3, 4].map((i) => (
