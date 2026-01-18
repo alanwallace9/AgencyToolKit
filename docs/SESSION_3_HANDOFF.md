@@ -1,8 +1,30 @@
 # Session 3 Handoff Document
 
 **Created:** 2026-01-18
+**Last Updated:** 2026-01-18 (End of Session 3)
 **Purpose:** Complete context for implementing Session 3 bug fixes
-**Status:** Ready for implementation
+**Status:** Partially complete - continue in Session 4
+
+---
+
+## Session 3 Summary
+
+### Completed This Session
+| Task | Commit | Notes |
+|------|--------|-------|
+| Tour Element Feedback | `14208db` | Fixed cross-origin with postMessage |
+| Auto-close timing | `e4306e8` | 3 second delay |
+| Popup message | `e4306e8` | "Element Captured!" + "Taking you back..." |
+| Preview display | `e4306e8` | Shows displayName instead of selector |
+
+### Still Remaining
+| Priority | Task | Status | Notes |
+|----------|------|--------|-------|
+| 1d | Builder mode inconsistency | **Not Started** | ~85% of the time fails to load builder mode |
+| 2 | Theme Delete Bug | **Not Started** | deleteColorPreset() doesn't clear active colors |
+| 3 | Menu Selectors | **Not Started** | sb_conversations and sb_reputation not working |
+| 4 | CSS Export Card | **Not Started** | New card on Settings page |
+| - | Debug logging cleanup | **Pending** | Remove after all fixes confirmed |
 
 ---
 
@@ -11,13 +33,13 @@
 | Priority | Task | Decision Made | Status |
 |----------|------|---------------|--------|
 | 1 | Tour Element Feedback | Fixed with postMessage | ✅ Complete |
-| 1a | Auto-close timing | 3 second delay | In Progress |
-| 1b | Popup message update | "Captured! Taking you back..." | In Progress |
-| 1c | Preview display fix | Show displayName not selector | In Progress |
-| 1d | Builder mode inconsistency | Investigate URL params | Pending |
-| 2 | Theme Delete Bug | Option A (toggle inactive) | Not Started |
-| 3 | Menu Selectors | Check GHL_SELECTORS.md first | Not Started |
-| 4 | CSS Export Card | Option C (everything) | Not Started |
+| 1a | Auto-close timing | 3 second delay | ✅ Complete |
+| 1b | Popup message update | "Captured! Taking you back..." | ✅ Complete |
+| 1c | Preview display fix | Show displayName not selector | ✅ Complete |
+| 1d | Builder mode inconsistency | Investigate URL params | ❌ Not Started |
+| 2 | Theme Delete Bug | Option A (toggle inactive) | ❌ Not Started |
+| 3 | Menu Selectors | Check GHL_SELECTORS.md first | ❌ Not Started |
+| 4 | CSS Export Card | Option C (everything) | ❌ Not Started |
 
 ---
 
@@ -419,17 +441,22 @@ types/database.ts                                         # Type definitions
 ## Next Session Prompt
 
 ```
-Continue Agency Toolkit Session 3 - Bug Fixes
+Continue Agency Toolkit Session 4 - Bug Fixes
 
 Read this file first: docs/SESSION_3_HANDOFF.md
 
-This document has all decisions made, files to reference, and implementation details.
+Session 3 completed:
+- Tour Element Feedback (postMessage fix for cross-origin)
+- Auto-close timing (3 seconds)
+- Popup message ("Element Captured!" + "Taking you back...")
+- Preview display (shows displayName instead of selector)
 
-Summary of tasks:
-1. Tour Element Feedback - Debug data flow, fix UI not showing selected element
-2. Theme Delete Bug - Fix deleteColorPreset() to clear active colors, toggle inactive
-3. Menu Selectors - Verify sb_conversations and sb_reputation work
+Remaining tasks for Session 4:
+1. Builder Mode Inconsistency - ~85% of the time, clicking "Select Element" opens GHL without builder mode (no highlights, URL params stripped). Needs investigation.
+2. Theme Delete Bug - deleteColorPreset() doesn't clear agencies.settings.colors when deleting active theme
+3. Menu Selectors - sb_conversations and sb_reputation not working for rename
 4. CSS Export Card - New card on Settings page with generated CSS
+5. Debug logging cleanup - Remove console.logs after all fixes confirmed
 
-All decisions are documented in the handoff file. Start with Priority 1.
+Start with Priority 1d (Builder Mode Inconsistency) - this is blocking the element selector from being reliable.
 ```
