@@ -135,6 +135,7 @@ export async function createColorPreset(data: CreatePresetData): Promise<ActionR
     }
 
     revalidatePath('/colors');
+    revalidatePath('/theme-builder');
     return { success: true, data: preset };
   } catch (error) {
     console.error('Error creating color preset:', error);
@@ -183,6 +184,7 @@ export async function updateColorPreset(
     }
 
     revalidatePath('/colors');
+    revalidatePath('/theme-builder');
     return { success: true, data: preset };
   } catch (error) {
     console.error('Error updating color preset:', error);
@@ -213,6 +215,7 @@ export async function deleteColorPreset(presetId: string): Promise<ActionResult>
     }
 
     revalidatePath('/colors');
+    revalidatePath('/theme-builder');
     return { success: true };
   } catch (error) {
     console.error('Error deleting color preset:', error);
@@ -272,6 +275,7 @@ export async function setDefaultColorPreset(presetId: string): Promise<ActionRes
 
     revalidatePath('/colors');
     revalidatePath('/settings');
+    revalidatePath('/theme-builder');
     return { success: true };
   } catch (error) {
     console.error('Error setting default color preset:', error);
@@ -380,6 +384,7 @@ export async function extractColorsFromUrl(url: string): Promise<ActionResult> {
 
 /**
  * Save colors directly to agency settings (for quick edits without presets)
+ * Also clears any default preset so these colors take precedence on next load
  */
 export async function saveAgencyColors(colors: ColorConfig): Promise<ActionResult> {
   try {
@@ -389,6 +394,13 @@ export async function saveAgencyColors(colors: ColorConfig): Promise<ActionResul
     }
 
     const supabase = createAdminClient();
+
+    // Clear any default preset so agency.settings.colors takes precedence
+    await supabase
+      .from('color_presets')
+      .update({ is_default: false })
+      .eq('agency_id', agency.id)
+      .eq('is_default', true);
 
     const currentSettings = agency.settings || {};
 
@@ -410,6 +422,7 @@ export async function saveAgencyColors(colors: ColorConfig): Promise<ActionResul
 
     revalidatePath('/colors');
     revalidatePath('/settings');
+    revalidatePath('/theme-builder');
     return { success: true };
   } catch (error) {
     console.error('Error saving agency colors:', error);

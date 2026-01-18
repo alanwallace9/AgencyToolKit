@@ -1,10 +1,10 @@
 'use client';
 
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CustomColorPicker } from '@/components/shared/custom-color-picker';
 import type { ColorConfig } from '@/types/database';
 
 interface ColorSettingsProps {
@@ -146,24 +146,22 @@ export function ColorSettings({
 
         {/* Animation Color */}
         <div className="space-y-2">
-          <Label className="text-xs">Animation Color</Label>
-          <div className="flex gap-2">
-            <Input
-              type="color"
-              value={useBrandColor && brandColors ? brandColors.primary : animationColor}
-              onChange={(e) => onAnimationColorChange(e.target.value)}
-              disabled={useBrandColor && !!brandColors}
-              className="h-8 w-12 p-1"
-            />
-            <Input
-              value={useBrandColor && brandColors ? brandColors.primary : animationColor}
-              onChange={(e) => onAnimationColorChange(e.target.value)}
-              disabled={useBrandColor && !!brandColors}
-              className="h-8 flex-1 font-mono text-xs"
-            />
-          </div>
+          <CustomColorPicker
+            label="Animation Color"
+            value={useBrandColor && brandColors ? brandColors.primary : animationColor}
+            onChange={onAnimationColorChange}
+            disabled={useBrandColor && !!brandColors}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={brandColors ? {
+              primary: brandColors.primary,
+              accent: brandColors.accent,
+              sidebar_bg: brandColors.sidebar_bg,
+              sidebar_text: brandColors.sidebar_text,
+            } : undefined}
+          />
 
-          {/* Swatches */}
+          {/* Quick Swatches */}
           {!useBrandColor && (
             <div className="flex gap-1 flex-wrap">
               {colorSwatches.map((swatch) => (
@@ -181,23 +179,21 @@ export function ColorSettings({
 
         {/* Background Color */}
         <div className="space-y-2">
-          <Label className="text-xs">Preview Background</Label>
-          <div className="flex gap-2">
-            <Input
-              type="color"
-              value={backgroundColor === 'transparent' ? '#ffffff' : backgroundColor}
-              onChange={(e) => onBackgroundColorChange(e.target.value)}
-              className="h-8 w-12 p-1"
-            />
-            <Input
-              value={backgroundColor}
-              onChange={(e) => onBackgroundColorChange(e.target.value)}
-              className="h-8 flex-1 font-mono text-xs"
-              placeholder="transparent or #hex"
-            />
-          </div>
+          <CustomColorPicker
+            label="Preview Background"
+            value={backgroundColor === 'transparent' ? '#ffffff' : backgroundColor}
+            onChange={onBackgroundColorChange}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={brandColors ? {
+              primary: brandColors.primary,
+              accent: brandColors.accent,
+              sidebar_bg: brandColors.sidebar_bg,
+              sidebar_text: brandColors.sidebar_text,
+            } : undefined}
+          />
 
-          {/* BG Swatches */}
+          {/* Quick Swatches */}
           <div className="flex gap-1 flex-wrap">
             {bgSwatches.map((swatch) => (
               <button

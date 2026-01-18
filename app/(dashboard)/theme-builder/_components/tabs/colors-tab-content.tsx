@@ -1,46 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ColorsClient } from '@/app/(dashboard)/colors/_components/colors-client';
 import { GlassStyles } from '@/app/(dashboard)/colors/_components/glass-styles';
-import { createClient } from '@/lib/supabase/client';
+import { getColorPresets, getDefaultColors } from '@/app/(dashboard)/colors/_actions/color-actions';
+import { useThemeStatus } from '../../_context/theme-status-context';
 import type { ColorConfig } from '@/types/database';
+import type { ColorPreset } from '@/app/(dashboard)/colors/_actions/color-actions';
 import { Loader2 } from 'lucide-react';
-
-interface ColorPreset {
-  id: string;
-  agency_id: string;
-  name: string;
-  is_default: boolean;
-  colors: ColorConfig;
-  created_at: string;
-  updated_at: string;
-}
 
 export function ColorsTabContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [presets, setPresets] = useState<ColorPreset[]>([]);
   const [colors, setColors] = useState<ColorConfig | null>(null);
+  const { markSaved } = useThemeStatus();
 
   useEffect(() => {
     async function loadData() {
       try {
-        const supabase = createClient();
+        // Use server actions to fetch data (handles RLS properly)
+        const [fetchedPresets, fetchedColors] = await Promise.all([
+          getColorPresets(),
+          getDefaultColors(),
+        ]);
 
-        // Fetch custom presets
-        const { data: presetsData } = await supabase
-          .from('color_presets')
-          .select('*')
-          .order('created_at', { ascending: true });
-
-        const fetchedPresets = (presetsData as ColorPreset[]) || [];
         setPresets(fetchedPresets);
-
-        // Get current colors from default preset
-        const defaultPreset = fetchedPresets.find((p) => p.is_default);
-        if (defaultPreset) {
-          setColors(defaultPreset.colors);
-        }
+        setColors(fetchedColors);
       } catch (error) {
         console.error('Failed to load color data:', error);
       } finally {
@@ -50,6 +35,11 @@ export function ColorsTabContent() {
 
     loadData();
   }, []);
+
+  // Callback to update the theme status context when colors are saved
+  const handleSaveComplete = useCallback(() => {
+    markSaved();
+  }, [markSaved]);
 
   if (isLoading) {
     return (
@@ -64,7 +54,11 @@ export function ColorsTabContent() {
 
   return (
     <div className="colors-tab-wrapper">
-      <ColorsClient initialPresets={presets} initialColors={colors} />
+      <ColorsClient
+        initialPresets={presets}
+        initialColors={colors}
+        onSaveComplete={handleSaveComplete}
+      />
       <GlassStyles />
     </div>
   );

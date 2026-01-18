@@ -259,4 +259,25 @@ body {
   .scrollbar-refined::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/30;
   }
+
+}
+
+/* react-colorful - refined handles that fill slider height */
+/* Must be outside @layer to override library's inline styles */
+/* All handles same size (18px) - no scale effect on focus */
+.react-colorful .react-colorful__pointer,
+.react-colorful__pointer,
+.react-colorful .react-colorful__saturation-pointer,
+.react-colorful__saturation-pointer,
+.react-colorful .react-colorful__hue-pointer,
+.react-colorful__hue-pointer,
+.react-colorful .react-colorful__alpha-pointer,
+.react-colorful__alpha-pointer {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Remove the focus scale effect - keep handles same size when clicked */
+.react-colorful__interactive:focus .react-colorful__pointer {
+  transform: translate(-50%, -50%) !important;
 }

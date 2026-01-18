@@ -99,15 +99,15 @@ export function AddPresetDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save as New Preset</DialogTitle>
+            <DialogTitle>Save as Template</DialogTitle>
             <DialogDescription>
-              Save your current configuration as a new preset.
+              Save your current menu configuration as a reusable template.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">
-                Preset Name <span className="text-destructive">*</span>
+                Template Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
@@ -130,7 +130,7 @@ export function AddPresetDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading || !name.trim()}>
-                {isLoading ? 'Saving...' : 'Save Preset'}
+                {isLoading ? 'Saving...' : 'Save Template'}
               </Button>
             </div>
           </form>

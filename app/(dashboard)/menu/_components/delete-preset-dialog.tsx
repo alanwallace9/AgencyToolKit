@@ -47,7 +47,7 @@ export function DeletePresetDialog({ preset, onClose }: DeletePresetDialogProps)
     <AlertDialog open={!!preset} onOpenChange={(open) => !open && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Preset</AlertDialogTitle>
+          <AlertDialogTitle>Delete Template</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete <strong>{preset?.name}</strong>? This
             action cannot be undone.

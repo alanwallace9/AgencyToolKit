@@ -5,18 +5,23 @@ import type { LoginFormElementProps, LoginDesignFormStyle } from '@/types/databa
 interface Props {
   props: LoginFormElementProps;
   formStyle: LoginDesignFormStyle;
-  width?: number; // Element width for font scaling
+  width?: number; // Element width in canvas units for font scaling
+  containerScale?: number; // Scale factor for WYSIWYG (actualContainerWidth / canvasWidth)
 }
 
 // Base width for scale calculation (from DEFAULT_LOGIN_FORM_ELEMENT)
 const BASE_WIDTH = 400;
 
-export function LoginFormElement({ props, formStyle, width = BASE_WIDTH }: Props) {
+export function LoginFormElement({ props, formStyle, width = BASE_WIDTH, containerScale = 1 }: Props) {
   const isCompact = props.variant === 'compact';
   const labelColor = formStyle.label_color || 'rgba(255, 255, 255, 0.6)';
 
-  // Calculate scale factor based on width (min 0.5, max 1.5)
-  const scale = Math.max(0.5, Math.min(1.5, width / BASE_WIDTH));
+  // Calculate scale factor based on width and container scale
+  // The containerScale ensures WYSIWYG: form looks identical at any zoom level
+  // Formula: (width / BASE_WIDTH) gives the logical scale based on element size
+  //          containerScale adjusts for the actual rendered container size
+  const logicalScale = Math.max(0.5, Math.min(1.5, width / BASE_WIDTH));
+  const scale = logicalScale * containerScale;
 
   // Scaled font sizes
   const fontXs = `${Math.round(12 * scale)}px`;
@@ -84,7 +89,7 @@ export function LoginFormElement({ props, formStyle, width = BASE_WIDTH }: Props
 
       {/* Form fields */}
       <div
-        className="flex-1 flex flex-col"
+        className="flex flex-col"
         style={{ gap: isCompact ? `${Math.round(8 * scale)}px` : `${Math.round(12 * scale)}px` }}
       >
         {/* Email */}
@@ -145,12 +150,14 @@ export function LoginFormElement({ props, formStyle, width = BASE_WIDTH }: Props
 
         {/* Submit button */}
         <button
-          className="rounded-md font-medium mt-auto"
+          className="rounded-md font-medium"
           style={{
             height: buttonHeight,
+            minHeight: buttonHeight,
             fontSize: fontSm,
             backgroundColor: formStyle.button_bg,
             color: formStyle.button_text,
+            marginTop: `${Math.round(8 * scale)}px`,
           }}
         >
           Sign In

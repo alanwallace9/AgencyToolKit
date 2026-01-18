@@ -27,12 +27,19 @@ export interface AgencySettings {
   loading_active?: boolean;
   menu_active?: boolean;
   colors_active?: boolean;
+  // Saved colors from color picker (max 20)
+  saved_colors?: string[];
 }
 
 export interface MenuConfig {
   hidden_items: string[];
   renamed_items: Record<string, string>;
   hidden_banners: string[];
+  item_order?: string[];
+  dividers?: MenuPresetDivider[];
+  preview_theme?: string | null;
+  // Track which template was last loaded (for display purposes)
+  last_template?: string | null;
 }
 
 export interface LoginConfig {
@@ -197,7 +204,36 @@ export interface ColorConfig {
   accent: string;
   sidebar_bg: string;
   sidebar_text: string;
+  // Extended elements (optional, generates additional CSS)
+  extended?: ExtendedElementsConfig;
 }
+
+// Extended elements configuration for additional GHL styling beyond the 4 native colors
+export interface ExtendedElementsConfig {
+  top_nav_bg?: ExtendedColorOption;
+  top_nav_text?: ExtendedColorOption;
+  main_area_bg?: ExtendedColorOption;
+  card_bg?: ExtendedColorOption;
+  button_primary_bg?: ExtendedColorOption;
+  button_primary_text?: ExtendedColorOption;
+  input_bg?: ExtendedColorOption;
+  input_border?: ExtendedColorOption;
+  link_color?: ExtendedColorOption;
+}
+
+// Each extended color can be a fixed color or a percentage variation of a base color
+export interface ExtendedColorOption {
+  enabled: boolean;
+  type: 'fixed' | 'variation';
+  // For fixed colors
+  color?: string;
+  // For variations (tint/shade of base color)
+  baseColor?: 'primary' | 'accent' | 'sidebar_bg' | 'sidebar_text';
+  percentage?: 10 | 25 | 50 | 75 | 100;
+}
+
+// Available extended element keys for type safety
+export type ExtendedElementKey = keyof ExtendedElementsConfig;
 
 export interface Customer {
   id: string;
@@ -232,6 +268,7 @@ export interface MenuPreset {
     item_order: string[];
     hidden_banners: string[];
     dividers?: MenuPresetDivider[];
+    preview_theme?: string | null;
   };
   created_at: string;
   updated_at: string;

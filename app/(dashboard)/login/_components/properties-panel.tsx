@@ -13,15 +13,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Trash2, Layers, Move, Palette, AlignCenterHorizontal, AlignCenterVertical, ChevronDown } from 'lucide-react';
+import {
+  Trash2,
+  Layers,
+  Move,
+  Palette,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  ChevronDown,
+  ChevronsUp,
+  ChevronUp,
+  ChevronDownIcon,
+  ChevronsDown,
+  RotateCcw,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { FileUpload } from '@/components/shared/file-upload';
+import { CustomColorPicker } from '@/components/shared/custom-color-picker';
 import type {
+  ColorConfig,
   CanvasElement,
   ImageElementProps,
   TextElementProps,
@@ -30,7 +51,47 @@ import type {
   ShapeElementProps,
   ButtonElementProps,
   LoginDesignFormStyle,
+  LoginLayoutType,
 } from '@/types/database';
+
+// Default element sizes and positions (Rule of 4 - divisible by 16)
+const ELEMENT_DEFAULTS: Record<string, { width: number; height: number; x: number; y: number }> = {
+  'login-form': { width: 400, height: 400, x: 37.5, y: 25 },
+  'image': { width: 320, height: 192, x: 10, y: 10 },
+  'text': { width: 400, height: 80, x: 10, y: 10 },
+  'gif': { width: 320, height: 192, x: 10, y: 10 },
+  'testimonial': { width: 480, height: 192, x: 10, y: 10 },
+  'shape': { width: 160, height: 160, x: 10, y: 10 },
+  'button': { width: 192, height: 64, x: 10, y: 10 },
+};
+
+// Login form positions based on preset layout
+const getLoginFormPosition = (layout: LoginLayoutType | null): { x: number; y: number } => {
+  switch (layout) {
+    case 'split-left':
+      // Image on left, form on right
+      return { x: 62, y: 18 };
+    case 'split-right':
+      // Form on left, image on right
+      return { x: 12, y: 18 };
+    case 'centered':
+    case 'gradient-overlay':
+    default:
+      // Centered layouts
+      return { x: 37.5, y: 25 };
+  }
+};
+
+// Default element props by type
+const ELEMENT_PROP_DEFAULTS: Record<string, any> = {
+  'image': { url: '', opacity: 100, borderRadius: 8, objectFit: 'cover' },
+  'text': { text: 'Welcome back!', fontSize: 32, fontFamily: 'Inter', fontWeight: 600, color: '#ffffff', textAlign: 'center' },
+  'gif': { url: '', opacity: 100, borderRadius: 8 },
+  'testimonial': { quote: '"This platform changed our business!"', author: 'Jane Smith, CEO', variant: 'card', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff' },
+  'shape': { shapeType: 'rectangle', color: '#3b82f6', opacity: 50, borderWidth: 0 },
+  'button': { text: 'Learn More', url: '#', bgColor: '#3b82f6', textColor: '#ffffff', borderRadius: 8 },
+  'login-form': { variant: 'default' },
+};
 
 interface PropertiesPanelProps {
   element: CanvasElement | null;
@@ -40,6 +101,17 @@ interface PropertiesPanelProps {
   canvasHeight?: number;
   formStyle?: LoginDesignFormStyle;
   onFormStyleChange?: (formStyle: LoginDesignFormStyle) => void;
+  // Layer controls
+  onBringToFront?: () => void;
+  onBringForward?: () => void;
+  onSendBackward?: () => void;
+  onSendToBack?: () => void;
+  isTopLayer?: boolean;
+  isBottomLayer?: boolean;
+  // Active preset for calculating reset positions
+  activePreset?: LoginLayoutType | null;
+  // Brand colors for color picker
+  brandColors?: ColorConfig | null;
 }
 
 export function PropertiesPanel({
@@ -50,7 +122,22 @@ export function PropertiesPanel({
   canvasHeight = 900,
   formStyle,
   onFormStyleChange,
+  onBringToFront,
+  onBringForward,
+  onSendBackward,
+  onSendToBack,
+  isTopLayer = false,
+  isBottomLayer = false,
+  activePreset = null,
+  brandColors,
 }: PropertiesPanelProps) {
+  // Brand colors for the picker
+  const pickerBrandColors = brandColors ? {
+    primary: brandColors.primary,
+    accent: brandColors.accent,
+    sidebar_bg: brandColors.sidebar_bg,
+    sidebar_text: brandColors.sidebar_text,
+  } : undefined;
   if (!element) {
     return (
       <Card>
@@ -100,26 +187,106 @@ export function PropertiesPanel({
           <CardTitle className="text-sm font-medium capitalize">
             {element.type.replace('-', ' ')}
           </CardTitle>
-          {element.type !== 'login-form' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {/* Reset Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    const defaults = ELEMENT_DEFAULTS[element.type];
+                    if (defaults) {
+                      onUpdate({ width: defaults.width, height: defaults.height });
+                    }
+                  }}
+                >
+                  Reset Size
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const defaults = ELEMENT_DEFAULTS[element.type];
+                    if (defaults) {
+                      // For login-form, use preset-aware position
+                      if (element.type === 'login-form') {
+                        const presetPosition = getLoginFormPosition(activePreset);
+                        onUpdate({ x: presetPosition.x, y: presetPosition.y });
+                      } else {
+                        onUpdate({ x: defaults.x, y: defaults.y });
+                      }
+                    }
+                  }}
+                >
+                  Reset Position
+                </DropdownMenuItem>
+                {element.type !== 'login-form' && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const defaults = ELEMENT_PROP_DEFAULTS[element.type];
+                      if (defaults) {
+                        onUpdate({ props: { ...element.props, ...defaults } as any });
+                      }
+                    }}
+                  >
+                    Reset Properties
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => {
+                    const sizeDefaults = ELEMENT_DEFAULTS[element.type];
+                    const propDefaults = ELEMENT_PROP_DEFAULTS[element.type];
+                    if (sizeDefaults && propDefaults) {
+                      // For login-form, use preset-aware position
+                      if (element.type === 'login-form') {
+                        const presetPosition = getLoginFormPosition(activePreset);
+                        onUpdate({
+                          width: sizeDefaults.width,
+                          height: sizeDefaults.height,
+                          x: presetPosition.x,
+                          y: presetPosition.y,
+                          props: propDefaults,
+                        });
+                      } else {
+                        onUpdate({
+                          width: sizeDefaults.width,
+                          height: sizeDefaults.height,
+                          x: sizeDefaults.x,
+                          y: sizeDefaults.y,
+                          props: propDefaults,
+                        });
+                      }
+                    }
+                  }}
+                >
+                  Reset All
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Delete Button */}
+            {element.type !== 'login-form' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         {/* Position */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <Move className="h-3 w-3" />
             POSITION
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">X (%)</Label>
               <div className="flex gap-1">
@@ -127,7 +294,7 @@ export function PropertiesPanel({
                   type="number"
                   value={Math.round(element.x)}
                   onChange={(e) => onUpdate({ x: Number(e.target.value) })}
-                  className="h-8"
+                  className="h-8 flex-1 min-w-0"
                   min={0}
                   max={100}
                 />
@@ -164,7 +331,7 @@ export function PropertiesPanel({
                   type="number"
                   value={Math.round(element.y)}
                   onChange={(e) => onUpdate({ y: Number(e.target.value) })}
-                  className="h-8"
+                  className="h-8 flex-1 min-w-0"
                   min={0}
                   max={100}
                 />
@@ -203,7 +370,7 @@ export function PropertiesPanel({
             <Layers className="h-3 w-3" />
             SIZE
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Width (px)</Label>
               <Input
@@ -227,6 +394,87 @@ export function PropertiesPanel({
           </div>
         </div>
 
+        {/* Layer Controls */}
+        {onBringToFront && onBringForward && onSendBackward && onSendToBack && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Layers className="h-3 w-3" />
+              LAYER
+            </div>
+            <TooltipProvider delayDuration={0}>
+              <div className="grid grid-cols-4 gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={onBringToFront}
+                      disabled={isTopLayer}
+                    >
+                      <ChevronsUp className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Bring to Front</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={onBringForward}
+                      disabled={isTopLayer}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Bring Forward</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={onSendBackward}
+                      disabled={isBottomLayer}
+                    >
+                      <ChevronDownIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Send Backward</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={onSendToBack}
+                      disabled={isBottomLayer}
+                    >
+                      <ChevronsDown className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Send to Back</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <div className="text-xs text-muted-foreground">
+              Reorder element layers on the canvas
+            </div>
+          </div>
+        )}
+
         {/* Type-specific properties */}
         <div className="border-t pt-4">
           {element.type === 'image' && (
@@ -239,6 +487,7 @@ export function PropertiesPanel({
             <TextProperties
               props={element.props as TextElementProps}
               onChange={updateProps}
+              brandColors={pickerBrandColors}
             />
           )}
           {element.type === 'gif' && (
@@ -251,18 +500,21 @@ export function PropertiesPanel({
             <TestimonialProperties
               props={element.props as TestimonialElementProps}
               onChange={updateProps}
+              brandColors={pickerBrandColors}
             />
           )}
           {element.type === 'shape' && (
             <ShapeProperties
               props={element.props as ShapeElementProps}
               onChange={updateProps}
+              brandColors={pickerBrandColors}
             />
           )}
           {element.type === 'button' && (
             <ButtonProperties
               props={element.props as ButtonElementProps}
               onChange={updateProps}
+              brandColors={pickerBrandColors}
             />
           )}
           {element.type === 'login-form' && formStyle && onFormStyleChange && (
@@ -297,7 +549,7 @@ function ImageProperties({
   onChange: (updates: Partial<ImageElementProps>) => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-xs">Image</Label>
         <FileUpload
@@ -344,16 +596,26 @@ function ImageProperties({
   );
 }
 
+// Brand colors type for sub-components
+type PickerBrandColors = {
+  primary: string;
+  accent: string;
+  sidebar_bg: string;
+  sidebar_text: string;
+};
+
 // Text Properties
 function TextProperties({
   props,
   onChange,
+  brandColors,
 }: {
   props: TextElementProps;
   onChange: (updates: Partial<TextElementProps>) => void;
+  brandColors?: PickerBrandColors;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-xs">Text</Label>
         <Textarea
@@ -363,7 +625,7 @@ function TextProperties({
           className="resize-none"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-xs">Font Size</Label>
           <Input
@@ -392,22 +654,14 @@ function TextProperties({
           </Select>
         </div>
       </div>
-      <div>
-        <Label className="text-xs">Color</Label>
-        <div className="flex gap-2">
-          <Input
-            type="color"
-            value={props.color}
-            onChange={(e) => onChange({ color: e.target.value })}
-            className="h-8 w-12 p-1"
-          />
-          <Input
-            value={props.color}
-            onChange={(e) => onChange({ color: e.target.value })}
-            className="h-8 flex-1"
-          />
-        </div>
-      </div>
+      <CustomColorPicker
+        label="Color"
+        value={props.color}
+        onChange={(color) => onChange({ color })}
+        showGradient={true}
+        showTheme={!!brandColors}
+        brandColors={brandColors}
+      />
       <div>
         <Label className="text-xs">Alignment</Label>
         <Select value={props.textAlign} onValueChange={(v) => onChange({ textAlign: v as any })}>
@@ -434,7 +688,7 @@ function GifProperties({
   onChange: (updates: Partial<GifElementProps>) => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-xs">GIF</Label>
         <FileUpload
@@ -472,12 +726,14 @@ function GifProperties({
 function TestimonialProperties({
   props,
   onChange,
+  brandColors,
 }: {
   props: TestimonialElementProps;
   onChange: (updates: Partial<TestimonialElementProps>) => void;
+  brandColors?: PickerBrandColors;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-xs">Quote</Label>
         <Textarea
@@ -509,24 +765,22 @@ function TestimonialProperties({
         </Select>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Background</Label>
-          <Input
-            type="color"
-            value={props.bgColor.startsWith('rgba') ? '#ffffff' : props.bgColor}
-            onChange={(e) => onChange({ bgColor: e.target.value })}
-            className="h-8"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Text</Label>
-          <Input
-            type="color"
-            value={props.textColor}
-            onChange={(e) => onChange({ textColor: e.target.value })}
-            className="h-8"
-          />
-        </div>
+        <CustomColorPicker
+          label="Background"
+          value={props.bgColor}
+          onChange={(color) => onChange({ bgColor: color })}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={brandColors}
+        />
+        <CustomColorPicker
+          label="Text"
+          value={props.textColor}
+          onChange={(color) => onChange({ textColor: color })}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={brandColors}
+        />
       </div>
     </div>
   );
@@ -536,12 +790,14 @@ function TestimonialProperties({
 function ShapeProperties({
   props,
   onChange,
+  brandColors,
 }: {
   props: ShapeElementProps;
   onChange: (updates: Partial<ShapeElementProps>) => void;
+  brandColors?: PickerBrandColors;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-xs">Shape Type</Label>
         <Select value={props.shapeType} onValueChange={(v) => onChange({ shapeType: v as any })}>
@@ -555,22 +811,14 @@ function ShapeProperties({
           </SelectContent>
         </Select>
       </div>
-      <div>
-        <Label className="text-xs">Color</Label>
-        <div className="flex gap-2">
-          <Input
-            type="color"
-            value={props.color}
-            onChange={(e) => onChange({ color: e.target.value })}
-            className="h-8 w-12 p-1"
-          />
-          <Input
-            value={props.color}
-            onChange={(e) => onChange({ color: e.target.value })}
-            className="h-8 flex-1"
-          />
-        </div>
-      </div>
+      <CustomColorPicker
+        label="Color"
+        value={props.color}
+        onChange={(color) => onChange({ color })}
+        showGradient={true}
+        showTheme={!!brandColors}
+        brandColors={brandColors}
+      />
       <div>
         <Label className="text-xs">Opacity ({props.opacity}%)</Label>
         <Slider
@@ -618,12 +866,14 @@ function ShapeProperties({
 function ButtonProperties({
   props,
   onChange,
+  brandColors,
 }: {
   props: ButtonElementProps;
   onChange: (updates: Partial<ButtonElementProps>) => void;
+  brandColors?: PickerBrandColors;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-xs">Button Text</Label>
         <Input
@@ -642,24 +892,22 @@ function ButtonProperties({
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Background</Label>
-          <Input
-            type="color"
-            value={props.bgColor}
-            onChange={(e) => onChange({ bgColor: e.target.value })}
-            className="h-8"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Text</Label>
-          <Input
-            type="color"
-            value={props.textColor}
-            onChange={(e) => onChange({ textColor: e.target.value })}
-            className="h-8"
-          />
-        </div>
+        <CustomColorPicker
+          label="Background"
+          value={props.bgColor}
+          onChange={(color) => onChange({ bgColor: color })}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={brandColors}
+        />
+        <CustomColorPicker
+          label="Text"
+          value={props.textColor}
+          onChange={(color) => onChange({ textColor: color })}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={brandColors}
+        />
       </div>
       <div>
         <Label className="text-xs">Border Radius (px)</Label>

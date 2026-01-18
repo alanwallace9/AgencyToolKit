@@ -15,13 +15,36 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { ColorConfig } from '@/types/database';
+import type { ColorConfig, ExtendedColorOption } from '@/types/database';
 
 interface PreviewPanelProps {
   colors: ColorConfig;
 }
 
 type PreviewTab = 'pipeline' | 'dashboard' | 'reviews';
+
+// Helper to resolve extended color to actual hex value
+function resolveExtendedColor(
+  option: ExtendedColorOption | undefined,
+  colors: ColorConfig
+): string | undefined {
+  if (!option || !option.enabled) return undefined;
+  if (option.type === 'fixed' && option.color) return option.color;
+  if (option.type === 'variation' && option.baseColor && option.percentage) {
+    const baseColor = colors[option.baseColor];
+    if (option.percentage === 100) return baseColor;
+    // Mix with white to create lighter tint
+    const r = parseInt(baseColor.slice(1, 3), 16);
+    const g = parseInt(baseColor.slice(3, 5), 16);
+    const b = parseInt(baseColor.slice(5, 7), 16);
+    const whiteFactor = (100 - option.percentage) / 100;
+    const newR = Math.round(r + (255 - r) * whiteFactor);
+    const newG = Math.round(g + (255 - g) * whiteFactor);
+    const newB = Math.round(b + (255 - b) * whiteFactor);
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  }
+  return undefined;
+}
 
 export function PreviewPanel({ colors }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState<PreviewTab>('pipeline');
@@ -61,7 +84,12 @@ export function PreviewPanel({ colors }: PreviewPanelProps) {
         <Sidebar colors={colors} activeTab={activeTab} />
 
         {/* Main Content */}
-        <div className="flex-1 bg-gray-50 overflow-hidden">
+        <div
+          className="flex-1 overflow-hidden"
+          style={{
+            backgroundColor: resolveExtendedColor(colors.extended?.main_area_bg, colors) || '#f9fafb',
+          }}
+        >
           {/* Header */}
           <Header colors={colors} activeTab={activeTab} />
 
@@ -162,17 +190,31 @@ function Header({ colors, activeTab }: { colors: ColorConfig; activeTab: Preview
     reviews: ['Overview', 'Requests', 'Reviews', 'Widgets'],
   };
 
+  // Get extended colors
+  const topNavBg = resolveExtendedColor(colors.extended?.top_nav_bg, colors);
+  const topNavText = resolveExtendedColor(colors.extended?.top_nav_text, colors);
+  const buttonBg = resolveExtendedColor(colors.extended?.button_primary_bg, colors);
+  const buttonText = resolveExtendedColor(colors.extended?.button_primary_text, colors);
+
   return (
-    <div className="h-12 border-b bg-white flex items-center justify-between px-4">
+    <div
+      className="h-12 border-b flex items-center justify-between px-4"
+      style={{ backgroundColor: topNavBg || '#ffffff' }}
+    >
       <div className="flex items-center gap-4">
-        <span className="font-semibold text-sm">{titles[activeTab]}</span>
+        <span
+          className="font-semibold text-sm"
+          style={{ color: topNavText || undefined }}
+        >
+          {titles[activeTab]}
+        </span>
         <div className="flex items-center gap-1">
           {tabs[activeTab].map((tab, i) => (
             <span
               key={tab}
               className="px-2 py-1 text-xs rounded"
               style={{
-                color: i === 0 ? colors.primary : '#666',
+                color: i === 0 ? colors.primary : (topNavText || '#666'),
                 borderBottom: i === 0 ? `2px solid ${colors.primary}` : 'none',
               }}
             >
@@ -183,12 +225,18 @@ function Header({ colors, activeTab }: { colors: ColorConfig; activeTab: Preview
       </div>
       <div className="flex items-center gap-2">
         <button
-          className="px-3 py-1.5 rounded text-xs text-white"
-          style={{ backgroundColor: colors.primary }}
+          className="px-3 py-1.5 rounded text-xs"
+          style={{
+            backgroundColor: buttonBg || colors.primary,
+            color: buttonText || '#ffffff',
+          }}
         >
           + Add New
         </button>
-        <div className="flex items-center gap-1 text-gray-500">
+        <div
+          className="flex items-center gap-1"
+          style={{ color: topNavText || '#6b7280' }}
+        >
           <Bell className="h-4 w-4" />
           <HelpCircle className="h-4 w-4" />
         </div>
@@ -207,6 +255,8 @@ function PipelineView({ colors }: { colors: ColorConfig }) {
     { name: 'Free Trial', count: 2, value: '$800' },
     { name: 'Customer', count: 8, value: '$12,400' },
   ];
+
+  const cardBg = resolveExtendedColor(colors.extended?.card_bg, colors);
 
   return (
     <div className="space-y-4">
@@ -241,7 +291,10 @@ function PipelineView({ colors }: { colors: ColorConfig }) {
       <div className="flex gap-3">
         {stages.map((stage) => (
           <div key={stage.name} className="flex-1">
-            <div className="bg-white rounded-lg border p-3">
+            <div
+              className="rounded-lg border p-3"
+              style={{ backgroundColor: cardBg || '#ffffff' }}
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium">{stage.name}</span>
                 <span className="text-xs text-gray-500">{stage.count}</span>
@@ -272,12 +325,18 @@ function DashboardView({ colors }: { colors: ColorConfig }) {
     { label: 'Non-Reviewers', value: '7' },
   ];
 
+  const cardBg = resolveExtendedColor(colors.extended?.card_bg, colors);
+
   return (
     <div className="space-y-4">
       {/* Stats Grid */}
       <div className="grid grid-cols-4 gap-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-lg border p-4">
+          <div
+            key={stat.label}
+            className="rounded-lg border p-4"
+            style={{ backgroundColor: cardBg || '#ffffff' }}
+          >
             <div className="text-xs text-gray-500 mb-1">{stat.label}</div>
             <div className="text-2xl font-bold" style={{ color: colors.primary }}>
               {stat.value}
@@ -287,7 +346,10 @@ function DashboardView({ colors }: { colors: ColorConfig }) {
       </div>
 
       {/* Chart Area */}
-      <div className="bg-white rounded-lg border p-4">
+      <div
+        className="rounded-lg border p-4"
+        style={{ backgroundColor: cardBg || '#ffffff' }}
+      >
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm font-medium">Funnel</span>
           <select className="text-xs border rounded px-2 py-1">
@@ -322,11 +384,16 @@ function DashboardView({ colors }: { colors: ColorConfig }) {
 // Reviews View
 // ============================================
 function ReviewsView({ colors }: { colors: ColorConfig }) {
+  const cardBg = resolveExtendedColor(colors.extended?.card_bg, colors);
+
   return (
     <div className="space-y-4">
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-lg border p-4">
+        <div
+          className="rounded-lg border p-4"
+          style={{ backgroundColor: cardBg || '#ffffff' }}
+        >
           <div className="text-xs text-gray-500 mb-2">Invites Goal</div>
           <div className="flex items-center gap-3">
             {/* Progress Ring */}
@@ -358,7 +425,10 @@ function ReviewsView({ colors }: { colors: ColorConfig }) {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border p-4">
+        <div
+          className="rounded-lg border p-4"
+          style={{ backgroundColor: cardBg || '#ffffff' }}
+        >
           <div className="text-xs text-gray-500 mb-2">Reviews Received</div>
           <div className="text-3xl font-bold" style={{ color: colors.primary }}>8</div>
           <div className="flex items-center gap-1 text-xs mt-1">
@@ -367,7 +437,10 @@ function ReviewsView({ colors }: { colors: ColorConfig }) {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border p-4">
+        <div
+          className="rounded-lg border p-4"
+          style={{ backgroundColor: cardBg || '#ffffff' }}
+        >
           <div className="text-xs text-gray-500 mb-2">Sentiment</div>
           <div className="flex items-center gap-4">
             <div className="text-center">
@@ -383,7 +456,10 @@ function ReviewsView({ colors }: { colors: ColorConfig }) {
       </div>
 
       {/* Rating Breakdown */}
-      <div className="bg-white rounded-lg border p-4">
+      <div
+        className="rounded-lg border p-4"
+        style={{ backgroundColor: cardBg || '#ffffff' }}
+      >
         <div className="text-sm font-medium mb-3">Average Rating</div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">

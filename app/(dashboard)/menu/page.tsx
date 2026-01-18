@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { MenuClient } from './_components/menu-client';
 
@@ -10,20 +9,17 @@ export default async function MenuPage() {
     redirect('/sign-in');
   }
 
-  const supabase = await createClient();
-  const { data: presets } = await supabase
-    .from('menu_presets')
-    .select('*')
-    .eq('agency_id', agency.id)
-    .order('created_at', { ascending: false });
+  // Get menu config from agency settings (autosave approach)
+  const menuConfig = agency.settings?.menu || null;
+  const colors = agency.settings?.colors || null;
 
   return (
     <>
       <PageHeader
         title="Menu Customizer"
-        description="Create presets to show/hide menu items in GHL"
+        description="Customize which menu items appear in GHL"
       />
-      <MenuClient presets={presets ?? []} />
+      <MenuClient initialConfig={menuConfig} colors={colors} />
     </>
   );
 }

@@ -2,8 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Settings } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useResizablePanels } from '@/hooks/use-resizable-panels';
+import { ResizeHandle } from '@/components/shared/resize-handle';
 import { COLOR_PRESETS } from '@/lib/constants';
 import type { ColorConfig } from '@/types/database';
 import type { ColorPreset } from '../_actions/color-actions';
@@ -17,11 +20,12 @@ import {
 import { ThemeGallery } from './theme-gallery';
 import { ColorStudio } from './color-studio';
 import { PreviewPanel } from './preview-panel';
-import Link from 'next/link';
 
 interface ColorsClientProps {
   initialPresets: ColorPreset[];
   initialColors: ColorConfig | null;
+  /** Optional callback when save completes (for integrating with parent save status) */
+  onSaveComplete?: () => void;
 }
 
 // Default colors if none saved
@@ -32,7 +36,22 @@ const DEFAULT_COLORS: ColorConfig = {
   sidebar_text: '#f9fafb',
 };
 
-export function ColorsClient({ initialPresets, initialColors }: ColorsClientProps) {
+export function ColorsClient({ initialPresets, initialColors, onSaveComplete }: ColorsClientProps) {
+  // Resizable panels
+  const {
+    leftWidth,
+    rightWidth,
+    leftCollapsed,
+    rightCollapsed,
+    startDrag,
+    toggleLeftCollapse,
+    toggleRightCollapse,
+  } = useResizablePanels({
+    storageKey: 'colors-designer-panels',
+    leftPanel: { minWidth: 260, maxWidth: 420, defaultWidth: 420 },
+    rightPanel: { minWidth: 260, maxWidth: 400, defaultWidth: 300 },
+  });
+
   // Current working colors (what's shown in preview)
   const [colors, setColors] = useState<ColorConfig>(initialColors || DEFAULT_COLORS);
 
@@ -80,6 +99,7 @@ export function ColorsClient({ initialPresets, initialColors }: ColorsClientProp
                 )
               );
               toast.success('Theme saved');
+              onSaveComplete?.();
             } else {
               toast.error(result.error || 'Failed to save');
             }
@@ -88,6 +108,7 @@ export function ColorsClient({ initialPresets, initialColors }: ColorsClientProp
             const result = await saveAgencyColors(newColors);
             if (result.success) {
               toast.success('Colors saved');
+              onSaveComplete?.();
             } else {
               toast.error(result.error || 'Failed to save');
             }
@@ -98,7 +119,7 @@ export function ColorsClient({ initialPresets, initialColors }: ColorsClientProp
         }
       }, 500); // 500ms debounce
     },
-    [selectedPresetId]
+    [selectedPresetId, onSaveComplete]
   );
 
   // Cleanup timeout on unmount
@@ -237,85 +258,107 @@ export function ColorsClient({ initialPresets, initialColors }: ColorsClientProp
 
   return (
     <div className="space-y-6">
-      {/* Status Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {isSaving && (
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              Saving...
-            </span>
-          )}
-          {!isSaving && !hasUnsavedChanges && (
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              All changes saved
-            </span>
-          )}
-          {!isSaving && hasUnsavedChanges && (
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
-              Unsaved changes
-            </span>
-          )}
-        </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/settings">
-            <Settings className="h-4 w-4 mr-2" />
-            View Embed Code
-          </Link>
-        </Button>
-      </div>
-
-      {/* Main 3-Panel Layout */}
-      <div className="grid grid-cols-12 gap-6">
+      {/* Main 3-Panel Layout with Resizable Panels */}
+      <div className="flex gap-0">
         {/* Left Panel - Theme Gallery */}
-        <div className="col-span-3">
-          <ThemeGallery
-            customPresets={customPresets}
-            selectedPresetId={selectedPresetId}
-            onSelectBuiltIn={handleSelectBuiltInPreset}
-            onSelectCustom={handleSelectCustomPreset}
-            onCreatePreset={handleCreatePreset}
-            onDeletePreset={handleDeletePreset}
-            onSetDefault={handleSetDefault}
-            onHoverPreset={handleHoverPreset}
-          />
+        <div
+          className="flex-shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+          style={{ width: leftCollapsed ? 0 : leftWidth }}
+        >
+          <div className="pr-2" style={{ width: leftWidth }}>
+            <ThemeGallery
+              customPresets={customPresets}
+              selectedPresetId={selectedPresetId}
+              onSelectBuiltIn={handleSelectBuiltInPreset}
+              onSelectCustom={handleSelectCustomPreset}
+              onCreatePreset={handleCreatePreset}
+              onDeletePreset={handleDeletePreset}
+              onSetDefault={handleSetDefault}
+              onHoverPreset={handleHoverPreset}
+            />
+          </div>
         </div>
+
+        {/* Left Resize Handle */}
+        {!leftCollapsed && (
+          <ResizeHandle
+            onDragStart={(clientX) => startDrag('left', clientX)}
+            className="mx-1"
+          />
+        )}
+
+        {/* Left Collapse Button */}
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-5 flex-shrink-0 hover:bg-muted/50"
+                onClick={toggleLeftCollapse}
+              >
+                {leftCollapsed ? (
+                  <PanelLeftOpen className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {leftCollapsed ? 'Expand left panel' : 'Collapse left panel'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         {/* Center Panel - Preview */}
-        <div className="col-span-6">
+        <div className="flex-1 min-w-[400px] mx-2">
           <PreviewPanel colors={displayColors} />
         </div>
 
-        {/* Right Panel - Color Studio */}
-        <div className="col-span-3">
-          <ColorStudio
-            colors={colors}
-            onColorChange={handleColorChange}
-            onColorsChange={handleColorsChange}
-            onExtractedColors={handleExtractedColors}
-          />
-        </div>
-      </div>
+        {/* Right Collapse Button */}
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-5 flex-shrink-0 hover:bg-muted/50"
+                onClick={toggleRightCollapse}
+              >
+                {rightCollapsed ? (
+                  <PanelRightOpen className="h-4 w-4" />
+                ) : (
+                  <PanelRightClose className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              {rightCollapsed ? 'Expand right panel' : 'Collapse right panel'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-      {/* Bottom Info Panel */}
-      <div className="rounded-xl border bg-card/50 backdrop-blur p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-primary/10 p-2">
-            <Settings className="h-4 w-4 text-primary" />
+        {/* Right Resize Handle */}
+        {!rightCollapsed && (
+          <ResizeHandle
+            onDragStart={(clientX) => startDrag('right', clientX)}
+            className="mx-1"
+          />
+        )}
+
+        {/* Right Panel - Color Studio */}
+        <div
+          className="flex-shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+          style={{ width: rightCollapsed ? 0 : rightWidth }}
+        >
+          <div className="pl-2" style={{ width: rightWidth }}>
+            <ColorStudio
+              colors={colors}
+              onColorChange={handleColorChange}
+              onColorsChange={handleColorsChange}
+              onExtractedColors={handleExtractedColors}
+            />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">Your theme is included in your embed code</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Changes are saved automatically and will be applied the next time your GHL
-              dashboard loads. No need to copy any CSS - it's all handled by your embed
-              script.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/settings">Go to Settings</Link>
-          </Button>
         </div>
       </div>
     </div>

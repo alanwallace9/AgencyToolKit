@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,16 @@ import type { LoadingAnimation, AnimationCategory } from '@/lib/loading-animatio
 interface AnimationCardProps {
   animation: LoadingAnimation;
   isSelected: boolean;
+  isFavorite?: boolean;
   previewColor: string;
   previewBgColor: string;
   speed: number;
   size: number;
   onSelect: () => void;
   onHover: () => void;
+  onToggleFavorite?: () => void;
   compact?: boolean;
+  compareMode?: boolean;
 }
 
 const categoryColors: Record<AnimationCategory, string> = {
@@ -30,13 +33,16 @@ const categoryColors: Record<AnimationCategory, string> = {
 export function AnimationCard({
   animation,
   isSelected,
+  isFavorite = false,
   previewColor,
   previewBgColor,
   speed,
   size,
   onSelect,
   onHover,
+  onToggleFavorite,
   compact = false,
+  compareMode = false,
 }: AnimationCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
@@ -79,34 +85,63 @@ export function AnimationCard({
     toast.success('CSS copied to clipboard');
   };
 
-  // Compact mode for 3-column layout left panel
+  // Compact mode for 3-column layout left panel - overall square card with visible checkmark
   if (compact) {
+    // Use blue for compare mode, green for normal selection
+    const selectedBorderClass = compareMode
+      ? 'border-blue-500 ring-2 ring-blue-500/20'
+      : 'border-green-500 ring-2 ring-green-500/20';
+    const selectedBadgeClass = compareMode ? 'bg-blue-500' : 'bg-green-500';
+
     return (
-      <div
-        className={cn(
-          'relative rounded-lg border-2 transition-all cursor-pointer group',
-          isSelected
-            ? 'border-green-500 ring-2 ring-green-500/20'
-            : 'border-border hover:border-primary/50'
-        )}
-        onClick={onSelect}
-        onMouseEnter={onHover}
-      >
-        {isSelected && (
-          <div className="absolute -top-1.5 -right-1.5 z-10 bg-green-500 text-white rounded-full p-0.5">
-            <Check className="h-2.5 w-2.5" />
-          </div>
-        )}
-
+      <div className="p-2"> {/* Outer padding to allow checkmark overflow and spacing */}
         <div
-          ref={containerRef}
-          className={`at-card-${animation.id} h-16 rounded-t-md flex items-center justify-center`}
-          style={{ backgroundColor: previewBgColor }}
-          dangerouslySetInnerHTML={{ __html: animation.html }}
-        />
+          className={cn(
+            'relative rounded-lg border-2 transition-all cursor-pointer group',
+            isSelected
+              ? selectedBorderClass
+              : 'border-border hover:border-primary/50'
+          )}
+          onClick={onSelect}
+          onMouseEnter={onHover}
+        >
+          {/* Selected checkmark - positioned inside the padding area */}
+          {isSelected && (
+            <div className={cn('absolute -top-2 -right-2 z-10 text-white rounded-full p-0.5 shadow-sm', selectedBadgeClass)}>
+              <Check className="h-3 w-3" />
+            </div>
+          )}
 
-        <div className="p-1.5 border-t bg-card">
-          <h3 className="font-medium text-[10px] truncate text-center">{animation.label}</h3>
+          {/* Favorite star */}
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+              className={cn(
+                'absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center transition-all z-10',
+                isFavorite
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-black/40 text-white/60 opacity-0 group-hover:opacity-100 hover:bg-amber-500 hover:text-white'
+              )}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Star className={cn('h-2.5 w-2.5', isFavorite && 'fill-current')} />
+            </button>
+          )}
+
+          {/* Animation preview - shorter height for overall square card shape */}
+          <div
+            ref={containerRef}
+            className={`at-card-${animation.id} h-20 rounded-t-md flex items-center justify-center`}
+            style={{ backgroundColor: previewBgColor }}
+            dangerouslySetInnerHTML={{ __html: animation.html }}
+          />
+
+          <div className="p-1.5 border-t bg-card rounded-b-md">
+            <h3 className="font-medium text-[10px] truncate text-center">{animation.label}</h3>
+          </div>
         </div>
       </div>
     );

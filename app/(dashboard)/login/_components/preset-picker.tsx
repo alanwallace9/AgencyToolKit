@@ -45,6 +45,8 @@ interface Preset {
 }
 
 // Each preset uses a different built-in theme for variety
+// Centering formula: x = (100 - widthPercent) / 2, where widthPercent = (width / 1600) * 100
+// Rule of four: y positions and spacing should be multiples of 4
 const PRESETS: Preset[] = [
   {
     // Uses: Midnight Blue theme
@@ -60,10 +62,12 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 38,
-        y: 12,
-        width: 400,
-        height: 50,
+        // "Welcome Back" at 36px bold needs ~300px width
+        // 300px = 18.75% of 1600, centered: (100 - 18.75) / 2 = 40.625
+        x: 40.625,
+        y: 8, // Rule of four
+        width: 300,
+        height: 48, // Rule of four
         zIndex: 1,
         props: {
           text: 'Welcome Back',
@@ -109,10 +113,12 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 64,
-        y: 9,
-        width: 350,
-        height: 50,
+        // "Sign In" at 32px semibold needs ~160px width
+        // Right half center: 50 + (50 - 10) / 2 = 70% for 160px (10% of 1600)
+        x: 70,
+        y: 8, // Rule of four
+        width: 160,
+        height: 44, // Rule of four
         zIndex: 2,
         props: {
           text: 'Sign In',
@@ -158,10 +164,12 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 14,
-        y: 9,
-        width: 350,
-        height: 50,
+        // "Sign In" at 32px semibold needs ~160px width
+        // Left half center: (50 - 10) / 2 = 20% for 160px (10% of 1600)
+        x: 20,
+        y: 8, // Rule of four
+        width: 160,
+        height: 44, // Rule of four
         zIndex: 2,
         props: {
           text: 'Sign In',
@@ -193,10 +201,12 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-1',
         type: 'text',
-        x: 38,
-        y: 10,
-        width: 400,
-        height: 50,
+        // "Welcome" at 40px bold needs ~220px width
+        // 220px = 13.75% of 1600, centered: (100 - 13.75) / 2 = 43.125
+        x: 43.125,
+        y: 8, // Rule of four
+        width: 220,
+        height: 52, // Rule of four
         zIndex: 1,
         props: {
           text: 'Welcome',
@@ -210,10 +220,12 @@ const PRESETS: Preset[] = [
       {
         id: 'preset-text-2',
         type: 'text',
-        x: 33,
-        y: 16,
-        width: 500,
-        height: 30,
+        // "Sign in to continue" at 18px needs ~240px width
+        // 240px = 15% of 1600, centered: (100 - 15) / 2 = 42.5
+        x: 42.5,
+        y: 16, // Rule of four (8 + 4 spacing from above)
+        width: 240,
+        height: 28, // Rule of four
         zIndex: 2,
         props: {
           text: 'Sign in to continue',

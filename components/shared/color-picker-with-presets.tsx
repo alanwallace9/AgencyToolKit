@@ -5,6 +5,7 @@ import { ChevronDown, Palette, Star, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import {
   Popover,
   PopoverContent,
@@ -21,6 +22,9 @@ interface ColorPreset {
   colors: ColorConfig;
 }
 
+// Base color fields (excludes extended which is an object, not a string)
+type BaseColorField = 'primary' | 'accent' | 'sidebar_bg' | 'sidebar_text';
+
 interface ColorPickerWithPresetsProps {
   label: string;
   value: string;
@@ -29,13 +33,15 @@ interface ColorPickerWithPresetsProps {
   /** Custom presets from database (user-created themes) */
   customPresets?: ColorPreset[];
   /** Which color field to extract from presets */
-  colorField?: keyof ColorConfig;
+  colorField?: BaseColorField;
   /** Show harmony suggestions (only for primary color) */
   showHarmony?: boolean;
   /** Callback when a full theme is selected (all colors) */
   onApplyTheme?: (colors: ColorConfig) => void;
   /** Compact mode - smaller size */
   compact?: boolean;
+  /** Show opacity slider - allows transparency adjustment */
+  showOpacity?: boolean;
 }
 
 // Simple color name lookup
@@ -68,9 +74,9 @@ function getColorName(hex: string): string {
   return colors[normalized] || hex;
 }
 
-// Validate hex color
+// Validate hex color (6 or 8 character)
 function isValidHex(color: string): boolean {
-  return /^#[0-9A-Fa-f]{6}$/.test(color);
+  return /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(color);
 }
 
 // Normalize hex input
@@ -80,6 +86,49 @@ function normalizeHex(value: string): string {
     hex = '#' + hex;
   }
   return hex.toLowerCase();
+}
+
+// Parse color and extract base hex and opacity (0-100)
+function parseColor(color: string): { hex: string; opacity: number } {
+  if (!color) return { hex: '#000000', opacity: 100 };
+
+  // Handle rgba() format
+  const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (rgbaMatch) {
+    const r = parseInt(rgbaMatch[1]);
+    const g = parseInt(rgbaMatch[2]);
+    const b = parseInt(rgbaMatch[3]);
+    const a = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 1;
+    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    return { hex, opacity: Math.round(a * 100) };
+  }
+
+  // Handle hex with alpha (#rrggbbaa)
+  if (color.length === 9 && color.startsWith('#')) {
+    const hex = color.slice(0, 7);
+    const alpha = parseInt(color.slice(7), 16);
+    return { hex, opacity: Math.round((alpha / 255) * 100) };
+  }
+
+  // Handle regular hex (#rrggbb)
+  if (color.length === 7 && color.startsWith('#')) {
+    return { hex: color, opacity: 100 };
+  }
+
+  return { hex: color, opacity: 100 };
+}
+
+// Format color with opacity
+function formatColorWithOpacity(hex: string, opacity: number): string {
+  if (opacity >= 100) return hex;
+
+  // Convert to rgba for better CSS compatibility
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const a = Math.round(opacity) / 100;
+
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 export function ColorPickerWithPresets({
@@ -92,16 +141,34 @@ export function ColorPickerWithPresets({
   showHarmony = false,
   onApplyTheme,
   compact = false,
+  showOpacity = false,
 }: ColorPickerWithPresetsProps) {
-  const [inputValue, setInputValue] = useState(value);
+  // Parse initial value to separate hex and opacity
+  const parsedInitial = parseColor(value);
+  const [inputValue, setInputValue] = useState(parsedInitial.hex);
+  const [opacity, setOpacity] = useState(parsedInitial.opacity);
   const [isPresetOpen, setIsPresetOpen] = useState(false);
 
   // Sync input when value prop changes
   useEffect(() => {
-    if (value !== inputValue && isValidHex(value)) {
-      setInputValue(value);
+    const parsed = parseColor(value);
+    if (parsed.hex !== inputValue) {
+      setInputValue(parsed.hex);
+    }
+    if (parsed.opacity !== opacity) {
+      setOpacity(parsed.opacity);
     }
   }, [value]);
+
+  // Helper to emit color change with current opacity
+  const emitColorChange = (hex: string, newOpacity?: number) => {
+    const op = newOpacity !== undefined ? newOpacity : opacity;
+    if (showOpacity && op < 100) {
+      onChange(formatColorWithOpacity(hex, op));
+    } else {
+      onChange(hex);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -110,7 +177,7 @@ export function ColorPickerWithPresets({
     if (newValue.length >= 4) {
       const normalized = normalizeHex(newValue);
       if (isValidHex(normalized)) {
-        onChange(normalized);
+        emitColorChange(normalized);
       }
     }
   };
@@ -118,7 +185,13 @@ export function ColorPickerWithPresets({
   const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    onChange(newValue);
+    emitColorChange(newValue);
+  };
+
+  const handleOpacityChange = (values: number[]) => {
+    const newOpacity = values[0];
+    setOpacity(newOpacity);
+    emitColorChange(inputValue, newOpacity);
   };
 
   const handlePresetSelect = (preset: typeof COLOR_PRESETS[number] | ColorPreset) => {
@@ -129,6 +202,7 @@ export function ColorPickerWithPresets({
       // Apply just the specific color field
       const color = preset.colors[colorField];
       setInputValue(color);
+      setOpacity(100); // Reset opacity when selecting a preset
       onChange(color);
     }
     setIsPresetOpen(false);
@@ -145,13 +219,13 @@ export function ColorPickerWithPresets({
         <div className="relative">
           <input
             type="color"
-            value={value}
+            value={inputValue}
             onChange={handleColorPickerChange}
             className={cn(
               'rounded-lg cursor-pointer border border-border',
               compact ? 'w-8 h-8' : 'w-10 h-10'
             )}
-            style={{ padding: 0 }}
+            style={{ padding: 0, opacity: showOpacity ? opacity / 100 : 1 }}
           />
         </div>
 
@@ -222,11 +296,33 @@ export function ColorPickerWithPresets({
         </Popover>
       </div>
 
+      {/* Opacity Slider */}
+      {showOpacity && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
+              Opacity
+            </Label>
+            <span className={cn('font-mono text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
+              {opacity}%
+            </span>
+          </div>
+          <Slider
+            value={[opacity]}
+            onValueChange={handleOpacityChange}
+            min={0}
+            max={100}
+            step={1}
+            className={cn(compact ? 'h-1' : 'h-2')}
+          />
+        </div>
+      )}
+
       {/* Color Name / Description */}
       {description && (
         <p className="text-xs text-muted-foreground">{description}</p>
       )}
-      <p className="text-xs text-muted-foreground/70">{getColorName(value)}</p>
+      <p className="text-xs text-muted-foreground/70">{getColorName(inputValue)}</p>
     </div>
   );
 }
@@ -354,6 +450,142 @@ export function ThemeSelector({
             />
           ))}
         </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Component that lets user pick a specific color from a theme
+// Shows themes, then expands to show individual color swatches
+export function ThemeColorSwatchPicker({
+  label = 'From Theme',
+  customPresets = [],
+  onSelectColor,
+  compact = false,
+}: {
+  label?: string;
+  customPresets?: ColorPreset[];
+  onSelectColor: (color: string) => void;
+  compact?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<ColorConfig | null>(null);
+  const [selectedThemeName, setSelectedThemeName] = useState<string>('');
+
+  const handleThemeSelect = (colors: ColorConfig, name: string) => {
+    setSelectedTheme(colors);
+    setSelectedThemeName(name);
+  };
+
+  const handleColorSelect = (color: string) => {
+    onSelectColor(color);
+    setIsOpen(false);
+    setSelectedTheme(null);
+    setSelectedThemeName('');
+  };
+
+  const handleBack = () => {
+    setSelectedTheme(null);
+    setSelectedThemeName('');
+  };
+
+  // Color swatch with label
+  const ColorSwatch = ({ color, colorLabel }: { color: string; colorLabel: string }) => (
+    <button
+      onClick={() => handleColorSelect(color)}
+      className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent/50 transition-colors"
+    >
+      <div
+        className="w-8 h-8 rounded-md border border-border flex-shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      <div className="flex-1 text-left">
+        <p className="text-sm font-medium">{colorLabel}</p>
+        <p className="text-xs text-muted-foreground font-mono">{color}</p>
+      </div>
+    </button>
+  );
+
+  return (
+    <Popover open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) {
+        setSelectedTheme(null);
+        setSelectedThemeName('');
+      }
+    }}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size={compact ? 'sm' : 'default'}
+          className="gap-2"
+        >
+          <Palette className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
+          {label}
+          <ChevronDown className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-2" align="start">
+        {selectedTheme ? (
+          // Show color swatches for selected theme
+          <div className="space-y-2">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Back to themes
+            </button>
+            <div className="px-2 py-1 border-b">
+              <p className="text-sm font-medium">{selectedThemeName}</p>
+              <p className="text-xs text-muted-foreground">Click a color to apply</p>
+            </div>
+            <div className="space-y-1">
+              <ColorSwatch color={selectedTheme.primary} colorLabel="Primary" />
+              <ColorSwatch color={selectedTheme.accent} colorLabel="Accent" />
+              <ColorSwatch color={selectedTheme.sidebar_bg} colorLabel="Background" />
+              <ColorSwatch color={selectedTheme.sidebar_text} colorLabel="Text" />
+            </div>
+          </div>
+        ) : (
+          // Show theme list
+          <div className="space-y-2">
+            <div className="px-2 py-1">
+              <p className="text-xs text-muted-foreground">Select a theme to see its colors</p>
+            </div>
+
+            {/* Custom Presets */}
+            {customPresets.length > 0 && (
+              <>
+                <div className="px-2 py-1">
+                  <p className="text-xs font-medium text-muted-foreground">My Themes</p>
+                </div>
+                {customPresets.map((preset) => (
+                  <PresetButton
+                    key={preset.id}
+                    name={preset.name}
+                    colors={preset.colors}
+                    isDefault={preset.is_default}
+                    onClick={() => handleThemeSelect(preset.colors, preset.name)}
+                  />
+                ))}
+                <div className="border-t my-2" />
+              </>
+            )}
+
+            {/* Built-in Presets */}
+            <div className="px-2 py-1">
+              <p className="text-xs font-medium text-muted-foreground">Built-in Themes</p>
+            </div>
+            {COLOR_PRESETS.map((preset) => (
+              <PresetButton
+                key={preset.id}
+                name={preset.label}
+                colors={preset.colors}
+                onClick={() => handleThemeSelect(preset.colors, preset.label)}
+              />
+            ))}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

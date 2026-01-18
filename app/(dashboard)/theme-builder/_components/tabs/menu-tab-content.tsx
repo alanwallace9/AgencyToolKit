@@ -2,26 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { MenuClient } from '@/app/(dashboard)/menu/_components/menu-client';
-import { createClient } from '@/lib/supabase/client';
-import type { MenuPreset } from '@/types/database';
+import { getMenuSettings } from '@/app/(dashboard)/menu/_actions/menu-actions';
+import type { MenuConfig, ColorConfig } from '@/types/database';
 import { Loader2 } from 'lucide-react';
 
 export function MenuTabContent() {
   const [isLoading, setIsLoading] = useState(true);
-  const [presets, setPresets] = useState<MenuPreset[]>([]);
+  const [menuConfig, setMenuConfig] = useState<MenuConfig | null>(null);
+  const [colors, setColors] = useState<ColorConfig | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('menu_presets')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        setPresets((data as MenuPreset[]) ?? []);
-      } catch (error) {
-        console.error('Failed to load menu presets:', error);
+        const { menu, colors: fetchedColors } = await getMenuSettings();
+        setMenuConfig(menu);
+        setColors(fetchedColors);
       } finally {
         setIsLoading(false);
       }
@@ -35,7 +30,7 @@ export function MenuTabContent() {
       <div className="flex items-center justify-center h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Loading menu presets...</p>
+          <p className="text-sm text-muted-foreground">Loading menu settings...</p>
         </div>
       </div>
     );
@@ -43,7 +38,7 @@ export function MenuTabContent() {
 
   return (
     <div className="menu-tab-wrapper">
-      <MenuClient presets={presets} />
+      <MenuClient initialConfig={menuConfig} colors={colors} />
     </div>
   );
 }

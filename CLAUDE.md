@@ -121,6 +121,22 @@ Content must be:
 
 **Never add unproven solutions or project-specific content to ROOT_STARTER_KIT.md.**
 
+## Communication Rules
+
+### No Collapsed Output for Important Information
+- Do NOT use the Task tool for information the user needs to read immediately
+- When sharing summaries, findings, decisions, or next-session prompts - put them directly in the response text
+- Task tool output gets collapsed in the UI and users cannot read it before it disappears
+- Only use Task tool for background exploration where your summary matters more than the raw details
+- If you run a Task, always follow up with a visible summary of what was found
+
+### Keep Responses Readable
+- Break up long responses with headers and spacing
+- Use bullet points and tables for scannable information
+- Don't bury important conclusions at the end of walls of text
+
+---
+
 ## Development Rules
 
 ### No Assumptions

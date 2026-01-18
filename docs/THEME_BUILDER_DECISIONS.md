@@ -573,20 +573,238 @@ Each tab has this at the bottom:
 
 ---
 
+## Phase 2 Testing Fixes (2026-01-16 Session 4)
+
+### Loading Tab - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| Animation cards more square | Changed from fixed height to `aspect-square` class |
+| Checkmark badge visible | Added outer `p-1` wrapper div to allow badge overflow |
+| Favorite animations | Added star button with localStorage persistence, "Favorited" filter in categories |
+| Try it Live enhanced | Extended to 4s duration, added skeleton layout, uses user's brand colors |
+
+### Menu Tab - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| Layout restructured | Banner Options & Custom Links moved to full-width section below 3-column grid |
+| Generated CSS removed | Moved to Settings page (link provided instead) |
+| "Set custom colors" link | Fixed to go to `/theme-builder?tab=colors` |
+| Settings icon added | Bottom section of preview now shows Settings row (matches GHL) |
+| GHL-accurate preview | Added logo area, company dropdown, hover states, proper icon styling |
+
+### Colors Tab - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| ExtractedColorPicker | New component: click color to select, then choose target (Primary/Accent/Sidebar BG/Sidebar Text) |
+| GHL color options research | Confirmed: GHL only supports 4 colors. No top nav or main area background options. |
+
+### Login Tab - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| Y centering bug | Fixed by removing `height: 'auto'` override - now uses consistent heightPercent |
+| Preview modal | Created `preview-modal.tsx` component for inline preview of current design state |
+
+### Theme Builder UI - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| Active tab indicator | Added primary-colored accent bar at top of active tab |
+| Tab labels updated | "Login Page", "Loading Screen", "Sidebar Menu", "Brand Colors" |
+
+### Files Modified (Session 4)
+
+| File | Changes |
+|------|---------|
+| `loading/_components/animation-card.tsx` | Compact mode: aspect-square, outer padding wrapper |
+| `loading/_components/loading-client.tsx` | Grid gap reduced, favorites feature, enhanced TryItLiveOverlay |
+| `menu/_components/menu-client.tsx` | Restructured layout, removed CSS panel |
+| `menu/[id]/_components/menu-preview.tsx` | GHL-accurate styling, Settings icon, fixed link |
+| `colors/_components/color-studio.tsx` | Added ExtractedColorPicker component |
+| `login/_components/canvas.tsx` | Fixed Y centering (consistent height) |
+| `login/_components/preview-modal.tsx` | Created new component |
+| `login/_components/login-designer.tsx` | Added PreviewModal integration |
+| `theme-builder/_components/theme-tabs.tsx` | Active indicator, updated labels |
+
+### Decisions Log Update
+
+| Date | Decision |
+|------|----------|
+| 2026-01-16 | Animation cards use aspect-square for consistent sizing |
+| 2026-01-16 | Outer padding wrapper technique for overflow badges |
+| 2026-01-16 | Favorites stored in localStorage (persists across sessions) |
+| 2026-01-16 | Banner Options and Custom Links below 3-column grid (not in columns) |
+| 2026-01-16 | Generated CSS moved to Settings page |
+| 2026-01-16 | GHL only supports 4 colors - no additional color options planned |
+| 2026-01-16 | Active tab styling: primary accent bar at top |
+
+---
+
+## Phase 2 Testing Fixes (2026-01-17 Session 5)
+
+### Login Tab - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| WYSIWYG rendering | Canvas and preview now render identically via `containerScale` prop. Form content scales proportionally with container size. |
+| Form selection handles | Fixed alignment - restored `h-full` class, reverted default height to 400 |
+| Preview modal aspect ratio | Fixed using padding-bottom technique (same as main canvas) |
+| Preset centering | All presets now have proper centering calculations, appropriate text widths, rule of four spacing |
+
+### Theme Tabs - COMPLETED
+
+| Fix | Details |
+|-----|---------|
+| Active tab indicator | Changed from straight line to curved line that follows tab shape (rounded-t-lg corners) |
+| Indicator styling | 3px height, blue-300 color, inner element extends to create curved clip effect |
+
+### WYSIWYG Implementation Details
+
+The core issue was that form content used fixed pixel sizes based on canvas-unit width (400px), but the actual rendered container varies in size. Solution:
+
+1. **Resize Observer**: Both canvas and preview modal track their actual container width
+2. **Scale Factor**: `containerScale = actualContainerWidth / canvasWidth` (e.g., 600px / 1600px = 0.375)
+3. **Proportional Scaling**: LoginFormElement receives `containerScale` prop and multiplies all sizing by it
+4. **Result**: Form looks identical at any zoom level - true WYSIWYG
+
+### Files Modified (Session 5)
+
+| File | Changes |
+|------|---------|
+| `theme-tabs.tsx` | Curved tab indicator using nested span with overflow clip |
+| `canvas.tsx` | Added ResizeObserver, containerScale calculation, pass to LoginFormElement |
+| `preview-modal.tsx` | Added ResizeObserver, containerScale calculation, pass to PreviewElement |
+| `login-form-element.tsx` | Added containerScale prop, applies to all sizing calculations |
+| `preset-picker.tsx` | Fixed all presets: proper centering formulas, appropriate widths, rule of four |
+| `defaults.ts` | Reverted height to 400, y to 25 |
+| `database.ts` | Added ExtendedElementsConfig types for extended color targeting |
+| `color-studio.tsx` | Added Extended Elements collapsible section with full UI |
+| `color-picker-with-presets.tsx` | Fixed BaseColorField type to exclude 'extended' |
+| `use-resizable-panels.ts` | Created - hook for panel resize with localStorage |
+| `resize-handle.tsx` | Created - visual drag handle component |
+| `login-designer.tsx` | Converted to flexbox layout, added resize handles and collapse buttons |
+
+### Decisions Log Update
+
+| Date | Decision |
+|------|----------|
+| 2026-01-17 | WYSIWYG achieved via containerScale prop - form scales proportionally |
+| 2026-01-17 | Tab indicator: curved line at top (not borders wrapping around) |
+| 2026-01-17 | Preset text widths sized for content, not oversized |
+| 2026-01-17 | Rule of four: y positions and heights are multiples of 4 |
+| 2026-01-17 | Extended Elements: collapsible section for additional GHL element targeting |
+| 2026-01-17 | Panel Resize: flexbox layout with drag handles and collapse buttons |
+| 2026-01-17 | localStorage persistence for panel widths (key: login-designer-panels) |
+
+---
+
+## Phase 2 - Upcoming Features
+
+### Colors Extended Elements Feature - IMPLEMENTED
+
+**Problem**: GHL only natively supports 4 colors (primary, accent, sidebar_bg, sidebar_text). Users want to customize more elements.
+
+**Solution**: Add "Extended Elements" section to Colors tab that generates additional CSS targeting:
+- Top navigation bar background
+- Top navigation text/icons
+- Main content area background
+- Buttons (primary, secondary variants)
+- Cards/containers
+- Form inputs
+- Links/hover states
+
+**Implementation Details**:
+1. Added types to `database.ts`:
+   - `ExtendedElementsConfig` - Map of element keys to color options
+   - `ExtendedColorOption` - enabled, type (fixed/variation), color or baseColor+percentage
+   - `ExtendedElementKey` - Union of 9 element types
+
+2. Added collapsible UI in `color-studio.tsx`:
+   - Sparkles icon header with chevron toggle
+   - Grid of 9 configurable elements
+   - Each element has: Enable toggle, Type selector (Fixed Color / Variation of...)
+   - Fixed: Direct color picker
+   - Variation: Base color dropdown + percentage slider (10-100%)
+
+3. Element definitions:
+   - top_nav_bg, top_nav_text, main_area_bg, card_bg
+   - button_primary_bg, button_primary_text
+   - input_bg, input_border, link_color
+
+### Panel Resize Feature - IMPLEMENTED
+
+**Approved in Quick Wins**: User-draggable panel resize handles
+
+**Implementation Details**:
+1. Created `use-resizable-panels.ts` hook with:
+   - localStorage persistence
+   - Configurable min/max widths per panel
+   - Collapse/expand state management
+   - Drag event handling with smooth updates
+
+2. Created `resize-handle.tsx` component:
+   - Subtle grip icon appears on hover
+   - col-resize cursor during drag
+   - Primary/30 highlight on hover
+
+3. Panel configuration:
+   - Left panel: 250-450px range, 300px default
+   - Right panel: 220-400px range, 280px default
+   - Center panel: Flexbox auto-fill remaining space
+
+4. Collapse buttons:
+   - Left panel: PanelLeftClose/PanelLeftOpen icons
+   - Right panel: PanelRightClose/PanelRightOpen icons
+   - Tooltips explain the action
+   - Smooth 200ms transition on collapse/expand
+
+5. Files created:
+   - `login/_hooks/use-resizable-panels.ts`
+   - `login/_components/resize-handle.tsx`
+
+6. Files modified:
+   - `login/_components/login-designer.tsx` (flexbox layout instead of grid)
+
+---
+
 ## Next Steps (Priority Order - Updated)
 
-1. **Loading Tab Fixes**
-   - Widen left panel to prevent checkmark cutoff
-   - Add favorite/star animations feature
-   - Enhance Try it Live with skeleton layout, longer duration, brand colors
+1. ~~**Implement Colors Extended Elements**~~ - COMPLETED (Session 5)
 
-2. **Menu Tab**
-   - Make preview panel more GHL-accurate (reference actual GHL screenshots)
-   - Verify search is client-side only
+2. ~~**Implement Panel Resize Handles**~~ - COMPLETED (Session 5)
 
-3. **Colors Tab**
-   - Improve extracted color assignment UX - let user choose which color goes where
+3. **Phase 2 Final Polish** - See `THEME_BUILDER_PRIORITY_POLISH.md`
+   - Fix color saving issue (CRITICAL)
+   - Keyboard shortcuts (Cmd/Ctrl+S, number keys, arrow keys)
+   - Layer controls for Login tab (Bring to Front/Back/Forward/Backward)
+   - Quick action toolbar for elements
+   - Live agency preview using white-label URL
+   - Smooth tab transitions
 
-4. **Login Tab**
-   - Fix Y "center on page" calculation bug
-   - Fix Preview button to show actual design state (not preset)
+4. **Phase 3 Planning**
+   - Subaccount targeting (whitelist/blacklist)
+   - Theme-specific logo uploads
+   - Different themes for verticals
+
+---
+
+## Session 5 Completion Notes (2026-01-17)
+
+**Completed:**
+- Panel resize on all 4 tabs (Login, Loading, Menu, Colors)
+- Collapsible left/right panels with tooltips
+- Extended Elements wired to preview (top nav, cards, buttons show color changes)
+- Login page rule-of-four spacing improvements
+- Colors left panel default width increased
+
+**Issues Identified for Session 6:**
+- Color saving not persisting (reverts to default)
+- "Saved X ago" timestamp not updating
+- User requested layer controls (bring to front/back) for Login tab
+- User requested live agency preview using their white-label URL
+
+**New Document Created:**
+- `docs/THEME_BUILDER_PRIORITY_POLISH.md` - Detailed plan for Session 6+

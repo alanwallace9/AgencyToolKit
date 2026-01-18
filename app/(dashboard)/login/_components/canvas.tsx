@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
+import { useRef, useMemo, useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { ImageElement } from './elements/image-element';
@@ -30,6 +30,8 @@ interface DesignCanvasProps {
   onResizeElement?: (id: string, width: number, height: number, x?: number, y?: number) => void;
   formStyle: LoginDesignFormStyle;
   canvasRef: React.RefObject<HTMLDivElement | null>;
+  showGrid?: boolean;
+  gridSize?: 16 | 32;
 }
 
 export function DesignCanvas({
@@ -40,14 +42,39 @@ export function DesignCanvas({
   onResizeElement,
   formStyle,
   canvasRef,
+  showGrid = false,
+  gridSize = 16,
 }: DesignCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: 'canvas',
   });
 
+  // Track container width for WYSIWYG scaling
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerObserverRef = useRef<HTMLDivElement | null>(null);
+
+  // Resize observer to track actual container width
+  useLayoutEffect(() => {
+    if (!containerObserverRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    observer.observe(containerObserverRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Calculate scale factor for WYSIWYG rendering
+  // This ensures elements render at consistent proportions regardless of container size
+  const canvasScale = containerWidth > 0 ? containerWidth / canvas.width : 1;
+
   // Combine refs
   const combinedRef = (node: HTMLDivElement) => {
     setNodeRef(node);
+    containerObserverRef.current = node;
     if (canvasRef) {
       (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
     }
@@ -61,6 +88,10 @@ export function DesignCanvas({
     const bg = canvas.background;
     switch (bg.type) {
       case 'solid':
+        // Check if color is actually a gradient CSS string (from color picker)
+        if (bg.color?.includes('gradient')) {
+          return { background: bg.color };
+        }
         return { backgroundColor: bg.color || '#1e293b' };
       case 'gradient':
         if (bg.gradient) {
@@ -111,6 +142,20 @@ export function DesignCanvas({
             />
           )}
 
+          {/* Grid overlay - z-10 keeps it above elements but below UI popovers */}
+          {showGrid && (
+            <div
+              className="absolute inset-0 pointer-events-none z-10"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, rgba(249, 115, 22, 0.5) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(249, 115, 22, 0.5) 1px, transparent 1px)
+                `,
+                backgroundSize: `${gridSize}px ${gridSize}px`,
+              }}
+            />
+          )}
+
           {/* Elements */}
           {elements
             .sort((a, b) => a.zIndex - b.zIndex)
@@ -125,15 +170,22 @@ export function DesignCanvas({
                 canvasWidth={canvas.width}
                 canvasHeight={canvas.height}
                 containerRef={canvasRef}
+                canvasScale={canvasScale}
               />
             ))}
         </div>
       </div>
 
       {/* Canvas info */}
-      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>16:9 aspect ratio</span>
-        <span>Click to select • Drag to reposition</span>
+      <div className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between">
+          <span>16:9 aspect ratio</span>
+          <span>Click to select • Drag to reposition</span>
+        </div>
+        <div className="text-center text-[10px]">
+          <span className="font-medium">Shortcuts:</span>{' '}
+          Arrow keys to nudge (1px) • Shift+Arrow (10px) • Delete to remove • Esc to deselect
+        </div>
       </div>
     </div>
   );
@@ -148,6 +200,7 @@ interface CanvasElementWrapperProps {
   canvasWidth: number;
   canvasHeight: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  canvasScale: number; // Scale factor for WYSIWYG rendering
 }
 
 function CanvasElementWrapper({
@@ -159,6 +212,7 @@ function CanvasElementWrapper({
   canvasWidth,
   canvasHeight,
   containerRef,
+  canvasScale,
 }: CanvasElementWrapperProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
@@ -184,13 +238,16 @@ function CanvasElementWrapper({
     left: `${element.x}%`,
     top: `${element.y}%`,
     width: `${widthPercent}%`,
-    height: element.type === 'login-form' ? 'auto' : `${heightPercent}%`,
-    minHeight: element.type === 'login-form' ? `${heightPercent}%` : undefined,
+    // Use consistent height for all elements including login-form
+    // This ensures centering calculations work correctly
+    height: `${heightPercent}%`,
     zIndex: element.zIndex,
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
     cursor: isDragging ? 'grabbing' : isResizing ? 'nwse-resize' : 'grab',
+    // For login-form, allow content to overflow visually but position accurately
+    overflow: element.type === 'login-form' ? 'visible' : undefined,
   };
 
   const handleClick = (e: React.MouseEvent) => {
@@ -242,22 +299,15 @@ function CanvasElementWrapper({
       const startHeightPercent = (start.height / canvasHeight) * 100;
 
       // Apply resize based on handle - anchor opposite corner
-      // Note: For elements with height='auto' (like login-form), we only resize width
-      const isAutoHeight = element.type === 'login-form';
-
       switch (start.handle) {
         case 'se': // Anchor NW (top-left stays fixed)
           newWidth = Math.max(50, start.width + deltaX * scaleX);
-          if (!isAutoHeight) {
-            newHeight = Math.max(50, start.height + deltaY * scaleY);
-          }
+          newHeight = Math.max(50, start.height + deltaY * scaleY);
           // x, y stay the same
           break;
         case 'sw': { // Anchor NE (top-right stays fixed)
           newWidth = Math.max(50, start.width - deltaX * scaleX);
-          if (!isAutoHeight) {
-            newHeight = Math.max(50, start.height + deltaY * scaleY);
-          }
+          newHeight = Math.max(50, start.height + deltaY * scaleY);
           // Calculate new x to keep right edge fixed
           const fixedRightEdge = start.elemX + startWidthPercent;
           const newWidthPercent = (newWidth / canvasWidth) * 100;
@@ -266,14 +316,11 @@ function CanvasElementWrapper({
         }
         case 'ne': { // Anchor SW (bottom-left stays fixed)
           newWidth = Math.max(50, start.width + deltaX * scaleX);
-          if (!isAutoHeight) {
-            newHeight = Math.max(50, start.height - deltaY * scaleY);
-            // Calculate new y to keep bottom edge fixed
-            const fixedBottomEdge = start.elemY + startHeightPercent;
-            const newHeightPercent = (newHeight / canvasHeight) * 100;
-            newY = fixedBottomEdge - newHeightPercent;
-          }
-          // For auto-height elements, x and y stay the same, only width changes
+          newHeight = Math.max(50, start.height - deltaY * scaleY);
+          // Calculate new y to keep bottom edge fixed
+          const fixedBottomEdge = start.elemY + startHeightPercent;
+          const newHeightPercent = (newHeight / canvasHeight) * 100;
+          newY = fixedBottomEdge - newHeightPercent;
           break;
         }
         case 'nw': { // Anchor SE (bottom-right stays fixed)
@@ -282,13 +329,11 @@ function CanvasElementWrapper({
           const fixedRight = start.elemX + startWidthPercent;
           const newWPercent = (newWidth / canvasWidth) * 100;
           newX = fixedRight - newWPercent;
-          if (!isAutoHeight) {
-            newHeight = Math.max(50, start.height - deltaY * scaleY);
-            // Calculate new y to keep bottom edge fixed
-            const fixedBottom = start.elemY + startHeightPercent;
-            const newHPercent = (newHeight / canvasHeight) * 100;
-            newY = fixedBottom - newHPercent;
-          }
+          newHeight = Math.max(50, start.height - deltaY * scaleY);
+          // Calculate new y to keep bottom edge fixed
+          const fixedBottom = start.elemY + startHeightPercent;
+          const newHPercent = (newHeight / canvasHeight) * 100;
+          newY = fixedBottom - newHPercent;
           break;
         }
       }
@@ -340,7 +385,7 @@ function CanvasElementWrapper({
       {element.type === 'text' && <TextElement props={element.props as any} />}
       {element.type === 'gif' && <GifElement props={element.props as any} />}
       {element.type === 'login-form' && (
-        <LoginFormElement props={element.props as any} formStyle={formStyle} width={element.width} />
+        <LoginFormElement props={element.props as any} formStyle={formStyle} width={element.width} containerScale={canvasScale} />
       )}
       {element.type === 'testimonial' && <TestimonialElement props={element.props as any} />}
       {element.type === 'shape' && <ShapeElement props={element.props as any} />}

@@ -11,8 +11,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Eye, Undo2, Redo2 } from 'lucide-react';
+import { Save, Eye, Undo2, Redo2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3X3, ChevronDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useResizablePanels } from '@/hooks/use-resizable-panels';
+import { ResizeHandle } from '@/components/shared/resize-handle';
 import { useHistory } from '../_hooks/use-history';
 import { toast } from 'sonner';
 import { ElementPanel } from './element-panel';
@@ -21,6 +30,7 @@ import { PropertiesPanel } from './properties-panel';
 import { PresetPicker } from './preset-picker';
 import { BackgroundPanel } from './background-panel';
 import { FormStylePanel } from './form-style-panel';
+import { PreviewModal } from './preview-modal';
 import { createLoginDesign, updateLoginDesign } from '../_actions/login-actions';
 import {
   DEFAULT_CANVAS,
@@ -33,14 +43,16 @@ import type {
   CanvasElement,
   LoginDesignBackground,
   LoginDesignFormStyle,
+  ColorConfig,
 } from '@/types/database';
 
 interface LoginDesignerProps {
   designs: LoginDesign[];
   currentDesign: LoginDesign | null;
+  brandColors: ColorConfig | null;
 }
 
-export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
+export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesignerProps) {
   // Canvas state
   const [canvas, setCanvas] = useState(currentDesign?.canvas || DEFAULT_CANVAS);
 
@@ -66,9 +78,49 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
   const [activeTab, setActiveTab] = useState<'elements' | 'background' | 'form'>('elements');
   const [isSaving, setIsSaving] = useState(false);
   const [activePreset, setActivePreset] = useState<LoginLayoutType | null>(currentDesign?.layout || null);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Grid overlay state - persisted to localStorage
+  const [showGrid, setShowGrid] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('login-designer-show-grid') === 'true';
+    }
+    return false;
+  });
+  const [gridSize, setGridSize] = useState<16 | 32>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('login-designer-grid-size');
+      if (saved === '16' || saved === '32') {
+        return parseInt(saved) as 16 | 32;
+      }
+    }
+    return 16;
+  });
+
+  // Persist grid state to localStorage
+  useEffect(() => {
+    localStorage.setItem('login-designer-show-grid', String(showGrid));
+  }, [showGrid]);
+
+  useEffect(() => {
+    localStorage.setItem('login-designer-grid-size', String(gridSize));
+  }, [gridSize]);
 
   // Ref to get actual canvas dimensions for drag calculation
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Resizable panels
+  const {
+    leftWidth,
+    rightWidth,
+    leftCollapsed,
+    rightCollapsed,
+    startDrag,
+    toggleLeftCollapse,
+    toggleRightCollapse,
+  } = useResizablePanels({
+    storageKey: 'login-designer-panels',
+  });
 
   // DnD sensors with activation constraint to prevent accidental drags
   const sensors = useSensors(
@@ -92,11 +144,13 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
     }
   }, [elements]);
 
-  // Keyboard handler for delete and undo/redo
+  // Keyboard handler for delete, undo/redo, escape, and arrow key micro-move
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isInput = (e.target as HTMLElement).tagName === 'INPUT' ||
-                      (e.target as HTMLElement).tagName === 'TEXTAREA';
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' ||
+                      target.tagName === 'TEXTAREA' ||
+                      target.isContentEditable;
 
       // Undo: Cmd+Z / Ctrl+Z
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
@@ -109,6 +163,71 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
       if ((e.metaKey || e.ctrlKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
         e.preventDefault();
         if (canRedo) redo();
+        return;
+      }
+
+      // Escape: Deselect element
+      if (e.key === 'Escape' && selectedElementId) {
+        setSelectedElementId(null);
+        e.preventDefault();
+        return;
+      }
+
+      // Arrow keys: Micro-move selected element (1px normal, 10px with Shift)
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedElementId && !isInput) {
+        e.preventDefault();
+
+        // Get canvas dimensions for percentage conversion
+        if (!canvasRef.current) return;
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const actualWidth = canvasRect.width;
+        const actualHeight = canvasRect.height;
+
+        // Movement amount: 1px normal, 10px with Shift
+        const pixelAmount = e.shiftKey ? 10 : 1;
+
+        // Calculate percentage delta based on direction
+        let deltaX = 0;
+        let deltaY = 0;
+
+        switch (e.key) {
+          case 'ArrowUp':
+            deltaY = -(pixelAmount / actualHeight) * 100;
+            break;
+          case 'ArrowDown':
+            deltaY = (pixelAmount / actualHeight) * 100;
+            break;
+          case 'ArrowLeft':
+            deltaX = -(pixelAmount / actualWidth) * 100;
+            break;
+          case 'ArrowRight':
+            deltaX = (pixelAmount / actualWidth) * 100;
+            break;
+        }
+
+        setElements((prev) =>
+          prev.map((el) => {
+            if (el.id !== selectedElementId) return el;
+
+            // Calculate element size in percentage
+            const elementWidthPercent = (el.width / canvas.width) * 100;
+            const elementHeightPercent = (el.height / canvas.height) * 100;
+
+            // Calculate new position with bounds checking
+            let newX = el.x + deltaX;
+            let newY = el.y + deltaY;
+
+            // Constrain to canvas bounds
+            newX = Math.max(0, Math.min(100 - elementWidthPercent, newX));
+            newY = Math.max(0, Math.min(100 - elementHeightPercent, newY));
+
+            return {
+              ...el,
+              x: Math.round(newX * 100) / 100, // Round to 2 decimals for precision
+              y: Math.round(newY * 100) / 100,
+            };
+          })
+        );
         return;
       }
 
@@ -127,7 +246,7 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElementId, elements, canUndo, canRedo, undo, redo, setElements]);
+  }, [selectedElementId, elements, canUndo, canRedo, undo, redo, setElements, canvas.width, canvas.height]);
 
   // Handle drag end - convert pixel delta to percentage
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -251,6 +370,83 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
     );
   }, []);
 
+  // Layer control handlers
+  const handleBringToFront = useCallback(() => {
+    if (!selectedElementId) return;
+    setElements((prev) => {
+      const maxZ = Math.max(...prev.map((el) => el.zIndex));
+      return prev.map((el) =>
+        el.id === selectedElementId ? { ...el, zIndex: maxZ + 1 } : el
+      );
+    });
+  }, [selectedElementId]);
+
+  const handleBringForward = useCallback(() => {
+    if (!selectedElementId) return;
+    setElements((prev) => {
+      const selected = prev.find((el) => el.id === selectedElementId);
+      if (!selected) return prev;
+
+      // Find elements with higher zIndex
+      const higherElements = prev.filter((el) => el.zIndex > selected.zIndex);
+      if (higherElements.length === 0) return prev; // Already at top
+
+      // Find the next element above
+      const nextAbove = higherElements.reduce((closest, el) =>
+        el.zIndex < closest.zIndex ? el : closest
+      );
+
+      // Swap zIndex values
+      return prev.map((el) => {
+        if (el.id === selectedElementId) return { ...el, zIndex: nextAbove.zIndex };
+        if (el.id === nextAbove.id) return { ...el, zIndex: selected.zIndex };
+        return el;
+      });
+    });
+  }, [selectedElementId]);
+
+  const handleSendBackward = useCallback(() => {
+    if (!selectedElementId) return;
+    setElements((prev) => {
+      const selected = prev.find((el) => el.id === selectedElementId);
+      if (!selected) return prev;
+
+      // Find elements with lower zIndex
+      const lowerElements = prev.filter((el) => el.zIndex < selected.zIndex);
+      if (lowerElements.length === 0) return prev; // Already at bottom
+
+      // Find the next element below
+      const nextBelow = lowerElements.reduce((closest, el) =>
+        el.zIndex > closest.zIndex ? el : closest
+      );
+
+      // Swap zIndex values
+      return prev.map((el) => {
+        if (el.id === selectedElementId) return { ...el, zIndex: nextBelow.zIndex };
+        if (el.id === nextBelow.id) return { ...el, zIndex: selected.zIndex };
+        return el;
+      });
+    });
+  }, [selectedElementId]);
+
+  const handleSendToBack = useCallback(() => {
+    if (!selectedElementId) return;
+    setElements((prev) => {
+      const minZ = Math.min(...prev.map((el) => el.zIndex));
+      return prev.map((el) =>
+        el.id === selectedElementId ? { ...el, zIndex: minZ - 1 } : el
+      );
+    });
+  }, [selectedElementId]);
+
+  // Determine if selected element is at top or bottom layer
+  const selectedElementLayer = selectedElement
+    ? {
+        isTop: selectedElement.zIndex === Math.max(...elements.map((el) => el.zIndex)),
+        isBottom: selectedElement.zIndex === Math.min(...elements.map((el) => el.zIndex)),
+      }
+    : { isTop: false, isBottom: false };
+
   // Save design
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -340,7 +536,45 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => window.open('/preview/login', '_blank')}>
+          {/* Grid Toggle with Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={showGrid ? 'default' : 'outline'}
+                size="sm"
+                className="h-8"
+              >
+                <Grid3X3 className="h-4 w-4 mr-1.5" />
+                Grid
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuCheckboxItem
+                checked={showGrid}
+                onCheckedChange={setShowGrid}
+              >
+                Show Grid
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={gridSize === 16}
+                onCheckedChange={() => setGridSize(16)}
+                disabled={!showGrid}
+              >
+                16px Grid (Fine)
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={gridSize === 32}
+                onCheckedChange={() => setGridSize(32)}
+                disabled={!showGrid}
+              >
+                32px Grid (Coarse)
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
@@ -353,68 +587,165 @@ export function LoginDesigner({ designs, currentDesign }: LoginDesignerProps) {
 
       {/* Main Layout */}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[300px_1fr_280px] gap-4">
+        <div className="flex gap-0">
           {/* Left Panel - Elements & Settings */}
-          <div className="space-y-4">
-            <PresetPicker onSelect={handlePresetSelect} activePreset={activePreset} />
+          <div
+            className="flex-shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+            style={{ width: leftCollapsed ? 0 : leftWidth }}
+          >
+            <div className="space-y-4 pr-2" style={{ width: leftWidth }}>
+              <PresetPicker onSelect={handlePresetSelect} activePreset={activePreset} />
 
-            <Card>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-                <CardHeader className="pb-3">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="elements">Elements</TabsTrigger>
-                    <TabsTrigger value="background">Background</TabsTrigger>
-                    <TabsTrigger value="form">Form</TabsTrigger>
-                  </TabsList>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <TabsContent value="elements" className="mt-0">
-                    <ElementPanel onAddElement={handleAddElement} />
-                  </TabsContent>
-                  <TabsContent value="background" className="mt-0">
-                    <BackgroundPanel
-                      background={canvas.background}
-                      onChange={(bg) => setCanvas({ ...canvas, background: bg })}
-                    />
-                  </TabsContent>
-                  <TabsContent value="form" className="mt-0">
-                    <FormStylePanel
-                      formStyle={formStyle}
-                      onChange={setFormStyle}
-                    />
-                  </TabsContent>
-                </CardContent>
-              </Tabs>
+              <Card>
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+                  <CardHeader className="pb-3">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="elements">Elements</TabsTrigger>
+                      <TabsTrigger value="background">Background</TabsTrigger>
+                      <TabsTrigger value="form">Form</TabsTrigger>
+                    </TabsList>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <TabsContent value="elements" className="mt-0">
+                      <ElementPanel onAddElement={handleAddElement} />
+                    </TabsContent>
+                    <TabsContent value="background" className="mt-0">
+                      <BackgroundPanel
+                        background={canvas.background}
+                        onChange={(bg) => setCanvas({ ...canvas, background: bg })}
+                        brandColors={brandColors || undefined}
+                      />
+                    </TabsContent>
+                    <TabsContent value="form" className="mt-0">
+                      <FormStylePanel
+                        formStyle={formStyle}
+                        onChange={setFormStyle}
+                        brandColors={brandColors}
+                      />
+                    </TabsContent>
+                  </CardContent>
+                </Tabs>
+              </Card>
+            </div>
+          </div>
+
+          {/* Left Resize Handle */}
+          {!leftCollapsed && (
+            <ResizeHandle
+              onDragStart={(clientX) => startDrag('left', clientX)}
+              className="mx-1"
+            />
+          )}
+
+          {/* Left Collapse Button */}
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-5 flex-shrink-0 hover:bg-muted/50"
+                  onClick={toggleLeftCollapse}
+                >
+                  {leftCollapsed ? (
+                    <PanelLeftOpen className="h-4 w-4" />
+                  ) : (
+                    <PanelLeftClose className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {leftCollapsed ? 'Expand left panel' : 'Collapse left panel'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Center - Canvas */}
+          <div className="flex-1 min-w-0 mx-2">
+            <Card className="overflow-hidden h-full">
+              <CardContent className="p-4">
+                <DesignCanvas
+                  canvas={canvas}
+                  elements={elements}
+                  selectedElementId={selectedElementId}
+                  onSelectElement={handleSelectElement}
+                  onResizeElement={handleResizeElement}
+                  formStyle={formStyle}
+                  canvasRef={canvasRef}
+                  showGrid={showGrid}
+                  gridSize={gridSize}
+                />
+              </CardContent>
             </Card>
           </div>
 
-          {/* Center - Canvas */}
-          <Card className="overflow-hidden">
-            <CardContent className="p-4">
-              <DesignCanvas
-                canvas={canvas}
-                elements={elements}
-                selectedElementId={selectedElementId}
-                onSelectElement={handleSelectElement}
-                onResizeElement={handleResizeElement}
-                formStyle={formStyle}
-                canvasRef={canvasRef}
-              />
-            </CardContent>
-          </Card>
+          {/* Right Collapse Button */}
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-5 flex-shrink-0 hover:bg-muted/50"
+                  onClick={toggleRightCollapse}
+                >
+                  {rightCollapsed ? (
+                    <PanelRightOpen className="h-4 w-4" />
+                  ) : (
+                    <PanelRightClose className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {rightCollapsed ? 'Expand right panel' : 'Collapse right panel'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Right Resize Handle */}
+          {!rightCollapsed && (
+            <ResizeHandle
+              onDragStart={(clientX) => startDrag('right', clientX)}
+              className="mx-1"
+            />
+          )}
 
           {/* Right Panel - Properties */}
-          <PropertiesPanel
-            element={selectedElement || null}
-            onUpdate={(updates) => selectedElementId && handleUpdateElement(selectedElementId, updates)}
-            onDelete={() => selectedElementId && handleDeleteElement(selectedElementId)}
-            canvasWidth={canvas.width}
-            canvasHeight={canvas.height}
-            formStyle={formStyle}
-            onFormStyleChange={setFormStyle}
-          />
+          <div
+            className="flex-shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+            style={{ width: rightCollapsed ? 0 : rightWidth }}
+          >
+            <div className="pl-2" style={{ width: rightWidth }}>
+              <PropertiesPanel
+                element={selectedElement || null}
+                onUpdate={(updates) => selectedElementId && handleUpdateElement(selectedElementId, updates)}
+                onDelete={() => selectedElementId && handleDeleteElement(selectedElementId)}
+                canvasWidth={canvas.width}
+                canvasHeight={canvas.height}
+                formStyle={formStyle}
+                onFormStyleChange={setFormStyle}
+                onBringToFront={handleBringToFront}
+                onBringForward={handleBringForward}
+                onSendBackward={handleSendBackward}
+                onSendToBack={handleSendToBack}
+                isTopLayer={selectedElementLayer.isTop}
+                isBottomLayer={selectedElementLayer.isBottom}
+                activePreset={activePreset}
+                brandColors={brandColors}
+              />
+            </div>
+          </div>
         </div>
       </DndContext>
+
+      {/* Preview Modal - shows current design state */}
+      <PreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        canvas={canvas}
+        elements={elements}
+        formStyle={formStyle}
+      />
     </div>
   );
 }

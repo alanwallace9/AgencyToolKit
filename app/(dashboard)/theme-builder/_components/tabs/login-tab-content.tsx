@@ -3,23 +3,27 @@
 import { useEffect, useState } from 'react';
 import { LoginDesigner } from '@/app/(dashboard)/login/_components/login-designer';
 import { getLoginDesigns, getDefaultLoginDesign } from '@/app/(dashboard)/login/_actions/login-actions';
-import type { LoginDesign } from '@/types/database';
+import { getDefaultColors } from '@/app/(dashboard)/colors/_actions/color-actions';
+import type { LoginDesign, ColorConfig } from '@/types/database';
 import { Loader2 } from 'lucide-react';
 
 export function LoginTabContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [designs, setDesigns] = useState<LoginDesign[]>([]);
   const [currentDesign, setCurrentDesign] = useState<LoginDesign | null>(null);
+  const [brandColors, setBrandColors] = useState<ColorConfig | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [designsData, currentData] = await Promise.all([
+        const [designsData, currentData, colorsData] = await Promise.all([
           getLoginDesigns(),
           getDefaultLoginDesign(),
+          getDefaultColors(),
         ]);
         setDesigns(designsData);
         setCurrentDesign(currentData);
+        setBrandColors(colorsData);
       } catch (error) {
         console.error('Failed to load login designs:', error);
       } finally {
@@ -43,7 +47,7 @@ export function LoginTabContent() {
 
   return (
     <div className="login-designer-wrapper">
-      <LoginDesigner designs={designs} currentDesign={currentDesign} />
+      <LoginDesigner designs={designs} currentDesign={currentDesign} brandColors={brandColors} />
     </div>
   );
 }

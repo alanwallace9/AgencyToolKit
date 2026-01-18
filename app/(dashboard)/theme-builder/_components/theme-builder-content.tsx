@@ -1,7 +1,7 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useCallback, useState, useEffect } from 'react';
 import { ThemeTabs, type TabId } from './theme-tabs';
 import { ThemeHeader } from './theme-header';
 import { ThemeStatusProvider, useThemeStatus } from '../_context/theme-status-context';
@@ -19,6 +19,14 @@ import Link from 'next/link';
 
 const validTabs: TabId[] = ['login', 'loading', 'menu', 'colors'];
 
+// Map number keys to tab indices
+const TAB_KEYS: Record<string, number> = {
+  '1': 0,
+  '2': 1,
+  '3': 2,
+  '4': 3,
+};
+
 interface ThemeBuilderContentProps {
   initialSettings: ThemeSettings;
 }
@@ -35,14 +43,18 @@ export function ThemeBuilderContent({ initialSettings }: ThemeBuilderContentProp
 }
 
 function ThemeBuilderInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [isSaving, setIsSaving] = useState(false);
+  const { markSaved, setSaveStatus } = useThemeStatus();
 
   // Default to "login" if no tab or invalid tab
   const activeTab: TabId = validTabs.includes(tabParam as TabId)
     ? (tabParam as TabId)
     : 'login';
+
+  const activeTabIndex = validTabs.indexOf(activeTab);
 
   const handlePreview = useCallback(() => {
     // TODO: Open preview modal
@@ -51,16 +63,77 @@ function ThemeBuilderInner() {
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
+    setSaveStatus('saving');
     try {
       // TODO: Save all settings
+      // For now, just mark as saved to update timestamp
+      markSaved();
       toast.success('Settings saved');
     } catch (error) {
       console.error('Save error:', error);
+      setSaveStatus('error');
       toast.error('Failed to save settings');
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [markSaved, setSaveStatus]);
+
+  // Navigate to a specific tab
+  const navigateToTab = useCallback((tabId: TabId) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tabId);
+    router.push(`/theme-builder?${params.toString()}`);
+  }, [router, searchParams]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Cmd/Ctrl + S: Save
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+
+      // Cmd/Ctrl + Number keys 1-4: Switch tabs
+      if (TAB_KEYS[e.key] !== undefined && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        const tabIndex = TAB_KEYS[e.key];
+        if (tabIndex < validTabs.length) {
+          navigateToTab(validTabs[tabIndex]);
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + Arrow keys: Navigate tabs
+      if (e.key === 'ArrowLeft' && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        const prevIndex = activeTabIndex > 0 ? activeTabIndex - 1 : validTabs.length - 1;
+        navigateToTab(validTabs[prevIndex]);
+        return;
+      }
+
+      if (e.key === 'ArrowRight' && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        const nextIndex = activeTabIndex < validTabs.length - 1 ? activeTabIndex + 1 : 0;
+        navigateToTab(validTabs[nextIndex]);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave, navigateToTab, activeTabIndex]);
 
   return (
     <div>

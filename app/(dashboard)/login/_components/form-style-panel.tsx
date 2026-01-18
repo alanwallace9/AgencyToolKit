@@ -2,49 +2,74 @@
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import { FileUpload } from '@/components/shared/file-upload';
-import { ThemeSelector } from '@/components/shared/color-picker-with-presets';
-import { COLOR_PRESETS } from '@/lib/constants';
+import { CustomColorPicker } from '@/components/shared/custom-color-picker';
 import type { LoginDesignFormStyle, ColorConfig } from '@/types/database';
+
+// Parse rgba color to extract opacity (0-100)
+function parseOpacity(color: string | undefined): number {
+  if (!color) return 100;
+  const rgbaMatch = color.match(/rgba?\([\d\s,]+,\s*([\d.]+)\)/);
+  if (rgbaMatch) {
+    return Math.round(parseFloat(rgbaMatch[1]) * 100);
+  }
+  if (color.length === 9 && color.startsWith('#')) {
+    const alpha = parseInt(color.slice(7), 16);
+    return Math.round((alpha / 255) * 100);
+  }
+  return 100;
+}
+
+// Parse hex color from various formats
+function parseHex(color: string | undefined): string {
+  if (!color) return '#ffffff';
+  const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbaMatch) {
+    const r = parseInt(rgbaMatch[1]);
+    const g = parseInt(rgbaMatch[2]);
+    const b = parseInt(rgbaMatch[3]);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  if (color.length === 9 && color.startsWith('#')) {
+    return color.slice(0, 7);
+  }
+  return color;
+}
+
+// Format color with opacity as rgba
+function formatWithOpacity(hex: string, opacity: number): string {
+  if (opacity >= 100) return hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+}
 
 interface FormStylePanelProps {
   formStyle: LoginDesignFormStyle;
   onChange: (formStyle: LoginDesignFormStyle) => void;
+  brandColors?: ColorConfig | null;
 }
 
-export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
+export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePanelProps) {
   const updateStyle = (key: keyof LoginDesignFormStyle, value: string | number) => {
     onChange({ ...formStyle, [key]: value });
   };
 
-  // Apply theme colors to form style
-  const handleApplyTheme = (colors: ColorConfig) => {
-    onChange({
-      ...formStyle,
-      button_bg: colors.primary,
-      button_text: '#ffffff',
-      link_color: colors.primary,
-      label_color: colors.primary,
-      form_heading_color: colors.primary,
-      // Keep input styling neutral for readability
-      input_bg: '#ffffff',
-      input_border: '#d1d5db',
-      input_text: '#111827',
-    });
-  };
+  // Brand colors for the picker
+  const pickerBrandColors = brandColors ? {
+    primary: brandColors.primary,
+    accent: brandColors.accent,
+    sidebar_bg: brandColors.sidebar_bg,
+    sidebar_text: brandColors.sidebar_text,
+  } : undefined;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Style the login form container, inputs, and button
-        </p>
-        <ThemeSelector
-          label="From Theme"
-          onApplyTheme={handleApplyTheme}
-          compact
-        />
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Style the login form container, inputs, and button
+      </p>
 
       {/* Logo */}
       <div className="space-y-3">
@@ -67,44 +92,23 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
         <Label className="text-xs font-medium text-muted-foreground uppercase">
           Form Container
         </Label>
-        <div>
-          <Label className="text-xs">Background</Label>
-          <div className="flex gap-1">
-            <Input
-              type="color"
-              value={formStyle.form_bg?.startsWith('rgba') ? '#ffffff' : (formStyle.form_bg || '#ffffff')}
-              onChange={(e) => updateStyle('form_bg', e.target.value)}
-              className="h-8 w-10 p-1"
-            />
-            <Input
-              value={formStyle.form_bg || 'rgba(255,255,255,0.05)'}
-              onChange={(e) => updateStyle('form_bg', e.target.value)}
-              placeholder="rgba(255,255,255,0.05)"
-              className="h-8 flex-1 text-xs"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Use rgba() for transparency
-          </p>
-        </div>
+        <CustomColorPicker
+          label="Background"
+          value={formStyle.form_bg || 'rgba(255,255,255,0.05)'}
+          onChange={(color) => updateStyle('form_bg', color)}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={pickerBrandColors}
+        />
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-xs">Border Color</Label>
-            <div className="flex gap-1">
-              <Input
-                type="color"
-                value={formStyle.form_border?.startsWith('rgba') ? '#000000' : (formStyle.form_border || '#000000')}
-                onChange={(e) => updateStyle('form_border', e.target.value)}
-                className="h-8 w-10 p-1"
-              />
-              <Input
-                value={formStyle.form_border || ''}
-                onChange={(e) => updateStyle('form_border', e.target.value)}
-                placeholder="none"
-                className="h-8 flex-1 text-xs"
-              />
-            </div>
-          </div>
+          <CustomColorPicker
+            label="Border Color"
+            value={formStyle.form_border || '#000000'}
+            onChange={(color) => updateStyle('form_border', color)}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={pickerBrandColors}
+          />
           <div>
             <Label className="text-xs">Border Width</Label>
             <Input
@@ -133,22 +137,14 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
             className="h-8"
           />
         </div>
-        <div>
-          <Label className="text-xs">Color</Label>
-          <div className="flex gap-1">
-            <Input
-              type="color"
-              value={formStyle.form_heading_color || '#111827'}
-              onChange={(e) => updateStyle('form_heading_color', e.target.value)}
-              className="h-8 w-10 p-1"
-            />
-            <Input
-              value={formStyle.form_heading_color || '#111827'}
-              onChange={(e) => updateStyle('form_heading_color', e.target.value)}
-              className="h-8 flex-1 text-xs"
-            />
-          </div>
-        </div>
+        <CustomColorPicker
+          label="Color"
+          value={formStyle.form_heading_color || '#111827'}
+          onChange={(color) => updateStyle('form_heading_color', color)}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={pickerBrandColors}
+        />
       </div>
 
       {/* Field Labels */}
@@ -156,23 +152,14 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
         <Label className="text-xs font-medium text-muted-foreground uppercase">
           Field Labels
         </Label>
-        <div>
-          <Label className="text-xs">Label Color</Label>
-          <div className="flex gap-1">
-            <Input
-              type="color"
-              value={formStyle.label_color?.startsWith('rgba') ? '#ffffff' : (formStyle.label_color || '#ffffff')}
-              onChange={(e) => updateStyle('label_color', e.target.value)}
-              className="h-8 w-10 p-1"
-            />
-            <Input
-              value={formStyle.label_color || 'rgba(255,255,255,0.6)'}
-              onChange={(e) => updateStyle('label_color', e.target.value)}
-              placeholder="rgba(255,255,255,0.6)"
-              className="h-8 flex-1 text-xs"
-            />
-          </div>
-        </div>
+        <CustomColorPicker
+          label="Label Color"
+          value={formStyle.label_color || 'rgba(255,255,255,0.6)'}
+          onChange={(color) => updateStyle('label_color', color)}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={pickerBrandColors}
+        />
       </div>
 
       {/* Button Colors */}
@@ -181,38 +168,22 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           Button
         </Label>
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-xs">Background</Label>
-            <div className="flex gap-1">
-              <Input
-                type="color"
-                value={formStyle.button_bg}
-                onChange={(e) => updateStyle('button_bg', e.target.value)}
-                className="h-8 w-10 p-1"
-              />
-              <Input
-                value={formStyle.button_bg}
-                onChange={(e) => updateStyle('button_bg', e.target.value)}
-                className="h-8 flex-1 text-xs"
-              />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Text</Label>
-            <div className="flex gap-1">
-              <Input
-                type="color"
-                value={formStyle.button_text}
-                onChange={(e) => updateStyle('button_text', e.target.value)}
-                className="h-8 w-10 p-1"
-              />
-              <Input
-                value={formStyle.button_text}
-                onChange={(e) => updateStyle('button_text', e.target.value)}
-                className="h-8 flex-1 text-xs"
-              />
-            </div>
-          </div>
+          <CustomColorPicker
+            label="Background"
+            value={formStyle.button_bg}
+            onChange={(color) => updateStyle('button_bg', color)}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={pickerBrandColors}
+          />
+          <CustomColorPicker
+            label="Text"
+            value={formStyle.button_text}
+            onChange={(color) => updateStyle('button_text', color)}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={pickerBrandColors}
+          />
         </div>
       </div>
 
@@ -222,55 +193,31 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
           Inputs
         </Label>
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-xs">Background</Label>
-            <div className="flex gap-1">
-              <Input
-                type="color"
-                value={formStyle.input_bg}
-                onChange={(e) => updateStyle('input_bg', e.target.value)}
-                className="h-8 w-10 p-1"
-              />
-              <Input
-                value={formStyle.input_bg}
-                onChange={(e) => updateStyle('input_bg', e.target.value)}
-                className="h-8 flex-1 text-xs"
-              />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Border</Label>
-            <div className="flex gap-1">
-              <Input
-                type="color"
-                value={formStyle.input_border}
-                onChange={(e) => updateStyle('input_border', e.target.value)}
-                className="h-8 w-10 p-1"
-              />
-              <Input
-                value={formStyle.input_border}
-                onChange={(e) => updateStyle('input_border', e.target.value)}
-                className="h-8 flex-1 text-xs"
-              />
-            </div>
-          </div>
+          <CustomColorPicker
+            label="Background"
+            value={formStyle.input_bg}
+            onChange={(color) => updateStyle('input_bg', color)}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={pickerBrandColors}
+          />
+          <CustomColorPicker
+            label="Border"
+            value={formStyle.input_border}
+            onChange={(color) => updateStyle('input_border', color)}
+            showGradient={true}
+            showTheme={!!brandColors}
+            brandColors={pickerBrandColors}
+          />
         </div>
-        <div>
-          <Label className="text-xs">Text</Label>
-          <div className="flex gap-1">
-            <Input
-              type="color"
-              value={formStyle.input_text}
-              onChange={(e) => updateStyle('input_text', e.target.value)}
-              className="h-8 w-10 p-1"
-            />
-            <Input
-              value={formStyle.input_text}
-              onChange={(e) => updateStyle('input_text', e.target.value)}
-              className="h-8 flex-1 text-xs"
-            />
-          </div>
-        </div>
+        <CustomColorPicker
+          label="Text"
+          value={formStyle.input_text}
+          onChange={(color) => updateStyle('input_text', color)}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={pickerBrandColors}
+        />
       </div>
 
       {/* Link Color */}
@@ -278,22 +225,14 @@ export function FormStylePanel({ formStyle, onChange }: FormStylePanelProps) {
         <Label className="text-xs font-medium text-muted-foreground uppercase">
           Links
         </Label>
-        <div>
-          <Label className="text-xs">Color</Label>
-          <div className="flex gap-1">
-            <Input
-              type="color"
-              value={formStyle.link_color}
-              onChange={(e) => updateStyle('link_color', e.target.value)}
-              className="h-8 w-10 p-1"
-            />
-            <Input
-              value={formStyle.link_color}
-              onChange={(e) => updateStyle('link_color', e.target.value)}
-              className="h-8 flex-1 text-xs"
-            />
-          </div>
-        </div>
+        <CustomColorPicker
+          label="Color"
+          value={formStyle.link_color}
+          onChange={(color) => updateStyle('link_color', color)}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={pickerBrandColors}
+        />
       </div>
 
       {/* Style Presets */}
