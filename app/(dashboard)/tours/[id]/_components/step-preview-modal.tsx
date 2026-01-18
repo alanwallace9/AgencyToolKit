@@ -20,6 +20,18 @@ import {
   PanelRightOpen,
   CircleDot,
   Megaphone,
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Target,
+  CreditCard,
+  Zap,
+  Globe,
+  Star,
+  BarChart3,
+  Settings,
+  Rocket,
+  Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TourStep, TourSettings, TourTheme } from '@/types/database';
@@ -49,6 +61,65 @@ const defaultColors = {
   border: '#e5e7eb',
   overlay: 'rgba(0,0,0,0.5)',
 };
+
+// Map menu item names to icons (matches GHL sidebar)
+const menuItemIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  launchpad: Rocket,
+  dashboard: LayoutDashboard,
+  conversations: MessageSquare,
+  inbox: MessageSquare,
+  calendars: Calendar,
+  contacts: Users,
+  opportunities: Target,
+  pipeline: Target,
+  payments: CreditCard,
+  marketing: Mail,
+  automation: Zap,
+  sites: Globe,
+  reputation: Star,
+  reviews: Star,
+  reporting: BarChart3,
+  settings: Settings,
+};
+
+// Get icon for a menu item based on display name or selector
+function getMenuItemIcon(displayName?: string, selector?: string) {
+  const name = (displayName || selector || '').toLowerCase();
+
+  // Check for exact matches first
+  for (const [key, Icon] of Object.entries(menuItemIcons)) {
+    if (name.includes(key)) {
+      return Icon;
+    }
+  }
+
+  // Default icon
+  return LayoutDashboard;
+}
+
+// Mock menu item that looks like GHL sidebar
+function MockMenuItem({
+  displayName,
+  selector,
+  highlightColor
+}: {
+  displayName?: string;
+  selector?: string;
+  highlightColor: string;
+}) {
+  const Icon = getMenuItemIcon(displayName, selector);
+  const label = displayName || selector?.replace('#sb_', '').replace('_', ' ') || 'Menu Item';
+
+  return (
+    <div
+      className="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-800 text-white border-2"
+      style={{ borderColor: highlightColor }}
+    >
+      <Icon className="h-5 w-5 text-slate-300" />
+      <span className="text-sm font-medium capitalize">{label}</span>
+    </div>
+  );
+}
 
 export function StepPreviewModal({
   open,
@@ -428,14 +499,13 @@ function TooltipPreview({
 }: StepPreviewProps & { isLastStep: boolean; isFirstStep: boolean }) {
   return (
     <div className="relative">
-      {/* Mock target element */}
-      <div
-        className="mb-4 px-4 py-2 rounded border-2 border-dashed"
-        style={{ borderColor: colors.primary }}
-      >
-        <span className="text-sm text-muted-foreground">
-          [Target Element: {step.element?.displayName || step.element?.selector || 'Not set'}]
-        </span>
+      {/* Mock target element - styled like GHL menu item */}
+      <div className="mb-4">
+        <MockMenuItem
+          displayName={step.element?.displayName}
+          selector={step.element?.selector}
+          highlightColor={colors.primary}
+        />
       </div>
 
       {/* Tooltip */}
@@ -612,11 +682,13 @@ function HotspotPreview({
 }) {
   return (
     <div className="relative">
-      {/* Mock target */}
-      <div className="px-4 py-2 rounded border-2 border-dashed mb-4" style={{ borderColor: colors.primary }}>
-        <span className="text-sm text-muted-foreground">
-          [Target: {step.element?.displayName || step.element?.selector || 'Not set'}]
-        </span>
+      {/* Mock target - styled like GHL menu item */}
+      <div className="mb-4">
+        <MockMenuItem
+          displayName={step.element?.displayName}
+          selector={step.element?.selector}
+          highlightColor={colors.primary}
+        />
       </div>
 
       {/* Pulsing hotspot */}

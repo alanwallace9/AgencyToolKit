@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { getCurrentAgency } from '@/lib/auth';
 import { Settings } from 'lucide-react';
 import { EmbedCodeDisplay } from './_components/embed-code-display';
+import { CssExportCard } from './_components/css-export-card';
 import { GhlIntegrationSettings } from './_components/ghl-integration-settings';
 
 export default async function SettingsPage() {
@@ -60,8 +61,14 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Embed Code */}
-        <EmbedCodeDisplay token={agency.token} baseUrl={baseUrl} />
+        {/* Code Export Cards - Side by Side */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Generated CSS (Left) */}
+          <CssExportCard settings={agency.settings} />
+
+          {/* Embed Code (Right) */}
+          <EmbedCodeDisplay token={agency.token} baseUrl={baseUrl} />
+        </div>
 
         {/* GHL Integration Settings */}
         <GhlIntegrationSettings

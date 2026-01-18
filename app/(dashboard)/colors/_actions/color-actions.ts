@@ -194,6 +194,7 @@ export async function updateColorPreset(
 
 /**
  * Delete a color preset
+ * If this was the active theme, also clears agencies.settings.colors
  */
 export async function deleteColorPreset(presetId: string): Promise<ActionResult> {
   try {
@@ -204,6 +205,15 @@ export async function deleteColorPreset(presetId: string): Promise<ActionResult>
 
     const supabase = createAdminClient();
 
+    // 1. Get the preset to check if it matches current active colors
+    const { data: preset } = await supabase
+      .from('color_presets')
+      .select('colors')
+      .eq('id', presetId)
+      .eq('agency_id', agency.id)
+      .single();
+
+    // 2. Delete the preset
     const { error } = await supabase
       .from('color_presets')
       .delete()
@@ -214,9 +224,36 @@ export async function deleteColorPreset(presetId: string): Promise<ActionResult>
       return { success: false, error: error.message };
     }
 
+    // 3. If this was the active theme, clear agencies.settings.colors
+    // Compare the deleted preset's colors with agency.settings.colors
+    const currentColors = agency.settings?.colors;
+    let wasActiveTheme = false;
+
+    if (preset && currentColors) {
+      // Compare by stringifying (handles object comparison)
+      wasActiveTheme = JSON.stringify(preset.colors) === JSON.stringify(currentColors);
+    }
+
+    if (wasActiveTheme) {
+      const currentSettings = agency.settings || {};
+      await supabase
+        .from('agencies')
+        .update({
+          settings: {
+            ...currentSettings,
+            colors: null, // Clear the active colors
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', agency.id);
+    }
+
     revalidatePath('/colors');
+    revalidatePath('/settings');
     revalidatePath('/theme-builder');
-    return { success: true };
+
+    // Return whether it was the active theme so UI can update toggle state
+    return { success: true, data: { wasActiveTheme } };
   } catch (error) {
     console.error('Error deleting color preset:', error);
     return { success: false, error: 'Failed to delete preset' };

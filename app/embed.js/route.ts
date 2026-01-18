@@ -113,26 +113,37 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // BUILDER MODE PARAM CAPTURE
   // ============================================
   // CRITICAL: Capture builder mode params IMMEDIATELY before SPA router can strip them
-  // GHL's router strips URL params on redirect, so we need to persist them in sessionStorage
+  // We now use HASH FRAGMENT (#key=value) instead of query params (?key=value)
+  // because GHL strips unknown query params but can't touch hash fragments
   var BUILDER_SESSION_KEY = 'at_builder_session';
   (function captureBuilderParams() {
     try {
-      var urlParams = new URLSearchParams(window.location.search);
-      var builderMode = urlParams.get('at_builder_mode');
-      var sessionId = urlParams.get('at_session');
-      var autoClose = urlParams.get('at_auto_close');
+      // PRIMARY: Check hash fragment (recommended - survives all redirects)
+      var hashParams = new URLSearchParams(window.location.hash.substring(1));
+      var builderMode = hashParams.get('at_builder_mode');
+      var sessionId = hashParams.get('at_session');
+      var autoClose = hashParams.get('at_auto_close');
+
+      // FALLBACK: Check query params (legacy support)
+      if (!builderMode || !sessionId) {
+        var urlParams = new URLSearchParams(window.location.search);
+        builderMode = builderMode || urlParams.get('at_builder_mode');
+        sessionId = sessionId || urlParams.get('at_session');
+        autoClose = autoClose || urlParams.get('at_auto_close');
+      }
 
       // Log immediately (before any redirect) - always visible in console
       if (builderMode || sessionId) {
-        console.log('[AgencyToolkit] Builder params detected in URL:', {
+        console.log('[AgencyToolkit] Builder params detected:', {
           at_builder_mode: builderMode,
           at_session: sessionId ? sessionId.substring(0, 10) + '...' : null,
-          url: window.location.href.substring(0, 80)
+          source: window.location.hash.includes('at_') ? 'hash' : 'query',
+          url: window.location.href.substring(0, 100)
         });
       }
 
       if (builderMode === 'true' && sessionId) {
-        // Store in sessionStorage so we survive the redirect
+        // Store in sessionStorage so we survive any subsequent navigation
         sessionStorage.setItem(BUILDER_SESSION_KEY, JSON.stringify({
           builderMode: builderMode,
           sessionId: sessionId,
@@ -188,20 +199,30 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
 
     // Rename menu items using CSS ::after trick
-    // GHL uses span.nav-title and span.hl_text-overflow for menu text (NOT span.hl-text-md)
+    // GHL uses span.nav-title and span.hl_text-overflow for menu text
+    // Some items (like Conversations, Reputation) may have different structures
     if (menuConfig.renamed_items && Object.keys(menuConfig.renamed_items).length > 0) {
       css += '/* Renamed Menu Items */\\n';
       Object.keys(menuConfig.renamed_items).forEach(function(itemId) {
         var newName = menuConfig.renamed_items[itemId];
-        // Hide original text, show new text via ::after
-        // Target both .nav-title and .hl_text-overflow classes
+        // Hide original text using font-size:0 and color:transparent (visibility breaks ::after)
+        // Target multiple possible text element classes
         css += '#' + itemId + ' span.nav-title,\\n';
-        css += '#' + itemId + ' span.hl_text-overflow { font-size: 0 !important; visibility: hidden; }\\n';
+        css += '#' + itemId + ' span.hl_text-overflow,\\n';
+        css += '#' + itemId + ' > span:not(.sr-only) { \\n';
+        css += '  font-size: 0 !important; \\n';
+        css += '  color: transparent !important; \\n';
+        css += '  letter-spacing: -9999px !important; \\n';
+        css += '}\\n';
+        // Show new text via ::after pseudo-element
         css += '#' + itemId + ' span.nav-title::after,\\n';
-        css += '#' + itemId + ' span.hl_text-overflow::after { \\n';
+        css += '#' + itemId + ' span.hl_text-overflow::after,\\n';
+        css += '#' + itemId + ' > span:not(.sr-only)::after { \\n';
         css += '  content: "' + newName + '"; \\n';
-        css += '  font-size: 14px; \\n';
-        css += '  visibility: visible; \\n';
+        css += '  font-size: 14px !important; \\n';
+        css += '  color: inherit !important; \\n';
+        css += '  letter-spacing: normal !important; \\n';
+        css += '  visibility: visible !important; \\n';
         css += '}\\n';
       });
     }
@@ -935,19 +956,31 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // ============================================
 
   function initBuilderMode() {
-    var urlParams = new URLSearchParams(window.location.search);
-    var isBuilderMode = urlParams.get('at_builder_mode') === 'true';
-    var sessionId = urlParams.get('at_session');
-    var autoClose = urlParams.get('at_auto_close') !== 'false';
+    // PRIMARY: Check hash fragment (recommended - survives all redirects)
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var isBuilderMode = hashParams.get('at_builder_mode') === 'true';
+    var sessionId = hashParams.get('at_session');
+    var autoClose = hashParams.get('at_auto_close') !== 'false';
 
-    // Debug: Log what we found in URL params
-    log('Builder mode check - URL params', {
-      at_builder_mode: urlParams.get('at_builder_mode'),
-      at_session: urlParams.get('at_session'),
-      currentUrl: window.location.href
+    // FALLBACK 1: Check query params (legacy support)
+    if (!isBuilderMode || !sessionId) {
+      var urlParams = new URLSearchParams(window.location.search);
+      isBuilderMode = isBuilderMode || urlParams.get('at_builder_mode') === 'true';
+      sessionId = sessionId || urlParams.get('at_session');
+      if (urlParams.get('at_auto_close')) {
+        autoClose = urlParams.get('at_auto_close') !== 'false';
+      }
+    }
+
+    // Debug: Log what we found
+    log('Builder mode check - URL', {
+      hash: window.location.hash.substring(0, 50),
+      search: window.location.search.substring(0, 50),
+      foundInHash: hashParams.get('at_builder_mode') === 'true',
+      foundInQuery: new URLSearchParams(window.location.search).get('at_builder_mode') === 'true'
     });
 
-    // If URL params are gone (SPA stripped them), check sessionStorage
+    // FALLBACK 2: Check sessionStorage (in case hash was also stripped somehow)
     if (!isBuilderMode || !sessionId) {
       try {
         var stored = sessionStorage.getItem(BUILDER_SESSION_KEY);

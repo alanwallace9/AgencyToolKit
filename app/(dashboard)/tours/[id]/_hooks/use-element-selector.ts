@@ -99,12 +99,16 @@ export function useElementSelector({
       // localStorage might not be available
     }
 
-    // Build the URL with builder mode params
+    // Build the URL with builder mode params in HASH (not query params)
+    // GHL strips unknown query params, but hash fragments survive server redirects
     try {
       const url = new URL(ghlDomain);
-      url.searchParams.set('at_builder_mode', 'true');
-      url.searchParams.set('at_session', sessionId);
-      url.searchParams.set('at_auto_close', autoClose ? 'true' : 'false');
+      // Use hash fragment instead of query params - GHL can't strip these
+      const hashParams = new URLSearchParams();
+      hashParams.set('at_builder_mode', 'true');
+      hashParams.set('at_session', sessionId);
+      hashParams.set('at_auto_close', autoClose ? 'true' : 'false');
+      url.hash = hashParams.toString();
 
       // Open in new tab
       windowRef.current = window.open(url.toString(), '_blank');
