@@ -3,25 +3,32 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const key = searchParams.get('key');
+  const version = searchParams.get('v'); // Version parameter for cache busting
 
   // Get the base URL for API calls
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.agencytoolkit.com';
 
   // Generate the embed script
-  const script = generateEmbedScript(key, baseUrl);
+  const script = generateEmbedScript(key, baseUrl, version);
 
+  // Cache for 5 minutes, but version parameter will bust cache on config changes
+  // When user saves Theme Builder, we increment the version in the embed URL
   return new NextResponse(script, {
     headers: {
       'Content-Type': 'application/javascript',
       'Cache-Control': 'public, max-age=300, s-maxage=300',
       'Access-Control-Allow-Origin': '*',
+      // Include version in response for debugging
+      'X-AT-Version': version || 'none',
     },
   });
 }
 
-function generateEmbedScript(key: string | null, baseUrl: string): string {
+function generateEmbedScript(key: string | null, baseUrl: string, configVersion?: string | null): string {
   // In production, this would be minified
   const isDev = process.env.NODE_ENV === 'development';
+  // Config version is used to track when settings were last updated
+  const version = configVersion || 'default';
 
   const script = `
 (function() {
@@ -29,11 +36,82 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
 
   // Agency Toolkit Embed Script
   // https://agencytoolkit.com
+  // Version: 2.0.0 (2026-01-18)
 
   var CONFIG_KEY = ${JSON.stringify(key)};
   var API_BASE = ${JSON.stringify(baseUrl)};
   var DEBUG = ${isDev};
+  var SCRIPT_VERSION = '2.0.0';
+  var CONFIG_VERSION = ${JSON.stringify(version)}; // Changes when agency saves settings
 
+  // ============================================
+  // KILL SWITCH - Check FIRST before anything else
+  // ============================================
+  (function checkKillSwitch() {
+    try {
+      var urlParams = new URLSearchParams(window.location.search);
+
+      // Our kill switch: ?at_disable=true
+      if (urlParams.get('at_disable') === 'true') {
+        console.log('[AgencyToolkit] ⛔ Disabled via ?at_disable=true parameter');
+        window.__AGENCY_TOOLKIT_DISABLED__ = true;
+        return;
+      }
+
+      // Also respect GHL's native disable: ?customCode=false
+      if (urlParams.get('customCode') === 'false') {
+        console.log('[AgencyToolkit] ⛔ Disabled via ?customCode=false (GHL native)');
+        window.__AGENCY_TOOLKIT_DISABLED__ = true;
+        return;
+      }
+    } catch (e) {
+      // Continue if URL parsing fails
+    }
+  })();
+
+  // Exit immediately if kill switch is active
+  if (window.__AGENCY_TOOLKIT_DISABLED__) {
+    return;
+  }
+
+  // ============================================
+  // LOGGING SYSTEM
+  // ============================================
+  // Always log: initialization, errors, key events
+  // Debug mode: verbose details (set window.AGENCY_TOOLKIT_DEBUG = true)
+
+  function logInfo(message, data) {
+    // Always log important events (minimal)
+    console.log('[AgencyToolkit]', message, data !== undefined ? data : '');
+  }
+
+  function log(message, data) {
+    // Verbose logging - only in debug mode
+    if (DEBUG || window.AGENCY_TOOLKIT_DEBUG) {
+      console.log('[AgencyToolkit]', message, data !== undefined ? data : '');
+    }
+  }
+
+  function logError(message, error) {
+    // Always log errors
+    console.error('[AgencyToolkit] ❌', message, error || '');
+  }
+
+  function logWarn(message, data) {
+    // Always log warnings
+    console.warn('[AgencyToolkit] ⚠️', message, data !== undefined ? data : '');
+  }
+
+  // Log script initialization
+  logInfo('Script loaded', {
+    version: SCRIPT_VERSION,
+    config: CONFIG_VERSION,
+    key: CONFIG_KEY ? CONFIG_KEY.substring(0, 8) + '...' : 'none'
+  });
+
+  // ============================================
+  // BUILDER MODE PARAM CAPTURE
+  // ============================================
   // CRITICAL: Capture builder mode params IMMEDIATELY before SPA router can strip them
   // GHL's router strips URL params on redirect, so we need to persist them in sessionStorage
   var BUILDER_SESSION_KEY = 'at_builder_session';
@@ -44,6 +122,15 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
       var sessionId = urlParams.get('at_session');
       var autoClose = urlParams.get('at_auto_close');
 
+      // Log immediately (before any redirect) - always visible in console
+      if (builderMode || sessionId) {
+        console.log('[AgencyToolkit] Builder params detected in URL:', {
+          at_builder_mode: builderMode,
+          at_session: sessionId ? sessionId.substring(0, 10) + '...' : null,
+          url: window.location.href.substring(0, 80)
+        });
+      }
+
       if (builderMode === 'true' && sessionId) {
         // Store in sessionStorage so we survive the redirect
         sessionStorage.setItem(BUILDER_SESSION_KEY, JSON.stringify({
@@ -52,22 +139,12 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
           autoClose: autoClose,
           timestamp: Date.now()
         }));
+        console.log('[AgencyToolkit] ✅ Builder mode params saved to sessionStorage');
       }
     } catch (e) {
-      // sessionStorage might not be available
+      console.error('[AgencyToolkit] ❌ Failed to capture builder params:', e);
     }
   })();
-
-  // Logging helper
-  function log(message, data) {
-    if (DEBUG || window.AGENCY_TOOLKIT_DEBUG) {
-      console.log('[AgencyToolkit]', message, data || '');
-    }
-  }
-
-  function logError(message, error) {
-    console.error('[AgencyToolkit]', message, error || '');
-  }
 
   // Check if we should skip customizations
   function shouldSkipCustomizations(config) {
@@ -863,10 +940,18 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     var sessionId = urlParams.get('at_session');
     var autoClose = urlParams.get('at_auto_close') !== 'false';
 
+    // Debug: Log what we found in URL params
+    log('Builder mode check - URL params', {
+      at_builder_mode: urlParams.get('at_builder_mode'),
+      at_session: urlParams.get('at_session'),
+      currentUrl: window.location.href
+    });
+
     // If URL params are gone (SPA stripped them), check sessionStorage
     if (!isBuilderMode || !sessionId) {
       try {
         var stored = sessionStorage.getItem(BUILDER_SESSION_KEY);
+        log('Builder mode check - sessionStorage', { stored: stored ? 'found' : 'empty' });
         if (stored) {
           var data = JSON.parse(stored);
           // Only use if stored within the last 5 minutes (session is fresh)
@@ -874,22 +959,40 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
             isBuilderMode = data.builderMode === 'true';
             sessionId = data.sessionId;
             autoClose = data.autoClose !== 'false';
-            log('Builder mode restored from sessionStorage', { sessionId: sessionId });
+            logInfo('Builder mode restored from sessionStorage', { sessionId: sessionId });
+          } else {
+            log('Builder mode session expired', { age: Date.now() - data.timestamp });
           }
         }
       } catch (e) {
-        // Ignore storage errors
+        logWarn('Builder mode sessionStorage error', e);
       }
     }
 
-    if (!isBuilderMode || !sessionId) return false;
+    if (!isBuilderMode || !sessionId) {
+      log('Builder mode not active', { isBuilderMode: isBuilderMode, hasSessionId: !!sessionId });
+      return false;
+    }
 
     // Clear the stored session to prevent re-triggering on subsequent page loads
     try {
       sessionStorage.removeItem(BUILDER_SESSION_KEY);
     } catch (e) {}
 
-    log('Builder mode activated', { sessionId: sessionId, autoClose: autoClose });
+    // IMPORTANT: Log always (not just debug) so user can confirm builder mode is activating
+    console.log('[AgencyToolkit] 🎯 BUILDER MODE ACTIVATED', { sessionId: sessionId, autoClose: autoClose });
+
+    // Add a temporary visual indicator to confirm script is running
+    // (useful for debugging if toolbar doesn't appear)
+    var debugIndicator = document.createElement('div');
+    debugIndicator.id = 'at-builder-debug';
+    debugIndicator.style.cssText = 'position:fixed;bottom:10px;right:10px;background:#10b981;color:white;padding:8px 12px;border-radius:6px;font-family:sans-serif;font-size:12px;z-index:2147483646;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+    debugIndicator.textContent = '✓ Agency Toolkit: Builder mode active';
+    document.body.appendChild(debugIndicator);
+    // Remove after 5 seconds (once toolbar should be visible)
+    setTimeout(function() {
+      if (debugIndicator.parentNode) debugIndicator.remove();
+    }, 5000);
 
     var builderModeOn = false;
     var currentHighlight = null;
@@ -1496,64 +1599,95 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
 
     // Generate CSS selector
     function generateSelector(element) {
-      // Try ID first
-      if (element.id && !element.id.match(/^\\d/)) {
-        return '#' + element.id;
-      }
+      try {
+        // Try ID first (safest)
+        if (element.id && !element.id.match(/^\\d/) && !element.id.includes(':')) {
+          return '#' + CSS.escape(element.id);
+        }
 
-      // Try data attributes (common in GHL)
-      for (var i = 0; i < element.attributes.length; i++) {
-        var attr = element.attributes[i];
-        if (attr.name.startsWith('data-') && attr.value) {
-          var sel = '[' + attr.name + '="' + attr.value + '"]';
-          if (document.querySelectorAll(sel).length === 1) {
-            return sel;
+        // Try data attributes (common in GHL)
+        for (var i = 0; i < element.attributes.length; i++) {
+          var attr = element.attributes[i];
+          if (attr.name.startsWith('data-') && attr.value && !attr.value.includes('"')) {
+            var sel = '[' + attr.name + '="' + attr.value + '"]';
+            try {
+              if (document.querySelectorAll(sel).length === 1) {
+                return sel;
+              }
+            } catch (e) {
+              // Invalid selector, continue trying
+            }
           }
         }
-      }
 
       // Try unique class combination
       if (element.classList.length > 0) {
         var classes = Array.from(element.classList)
-          .filter(function(c) { return !c.startsWith('at-'); })
+          .filter(function(c) {
+            // Filter out:
+            // - Our own classes (at-)
+            // - Tailwind responsive/state classes with colons (sm:, md:, lg:, hover:, etc.)
+            // - Classes with special characters that break CSS selectors
+            return !c.startsWith('at-') &&
+                   !c.includes(':') &&
+                   !c.includes('[') &&
+                   !c.includes(']');
+          })
           .join('.');
         if (classes) {
           var sel = element.tagName.toLowerCase() + '.' + classes;
-          if (document.querySelectorAll(sel).length === 1) {
-            return sel;
+          try {
+            // Verify the selector is valid before returning
+            if (document.querySelectorAll(sel).length === 1) {
+              return sel;
+            }
+          } catch (e) {
+            // Invalid selector, fall through to path-based
+            log('Invalid selector generated, using path fallback', sel);
           }
         }
       }
 
       // Fall back to path-based selector
       return generatePathSelector(element);
+      } catch (e) {
+        // If all else fails, use path-based selector
+        logError('Selector generation error', e);
+        return generatePathSelector(element);
+      }
     }
 
     function generatePathSelector(element) {
       var path = [];
       var current = element;
 
-      while (current && current !== document.body && path.length < 10) {
-        var selector = current.tagName.toLowerCase();
+      try {
+        while (current && current !== document.body && path.length < 10) {
+          var selector = current.tagName.toLowerCase();
 
-        if (current.id && !current.id.match(/^\\d/)) {
-          selector = '#' + current.id;
+          // Check for valid ID (no special chars)
+          if (current.id && !current.id.match(/^\\d/) && !current.id.includes(':')) {
+            selector = '#' + CSS.escape(current.id);
+            path.unshift(selector);
+            break;
+          }
+
+          var siblings = current.parentElement ? current.parentElement.children : [];
+          var sameTagSiblings = Array.from(siblings).filter(function(s) {
+            return s.tagName === current.tagName;
+          });
+
+          if (sameTagSiblings.length > 1) {
+            var index = sameTagSiblings.indexOf(current) + 1;
+            selector += ':nth-of-type(' + index + ')';
+          }
+
           path.unshift(selector);
-          break;
+          current = current.parentElement;
         }
-
-        var siblings = current.parentElement ? current.parentElement.children : [];
-        var sameTagSiblings = Array.from(siblings).filter(function(s) {
-          return s.tagName === current.tagName;
-        });
-
-        if (sameTagSiblings.length > 1) {
-          var index = sameTagSiblings.indexOf(current) + 1;
-          selector += ':nth-of-type(' + index + ')';
-        }
-
-        path.unshift(selector);
-        current = current.parentElement;
+      } catch (e) {
+        logError('Path selector generation error', e);
+        return 'body'; // Fallback to body
       }
 
       return path.join(' > ');
@@ -1669,15 +1803,16 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
   function init() {
     // Check for builder mode first
     if (initBuilderMode()) {
+      logInfo('Builder mode active - skipping customizations');
       return; // Don't apply customizations in builder mode
     }
 
     if (!CONFIG_KEY) {
-      logError('No API key provided');
+      logError('No API key provided. Check your embed snippet.');
       return;
     }
 
-    log('Initializing with key:', CONFIG_KEY.substring(0, 8) + '...');
+    log('Fetching config...');
 
     // Fetch configuration
     fetch(API_BASE + '/api/config?key=' + encodeURIComponent(CONFIG_KEY))
@@ -1692,25 +1827,50 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
 
         // Check if we should skip
         if (shouldSkipCustomizations(config)) {
+          logInfo('Skipping customizations (whitelisted location)');
           return;
         }
 
         // Store config globally for debugging
         window.__AGENCY_TOOLKIT_CONFIG__ = config;
 
+        // Track what we're applying for summary
+        var applied = [];
+
         // Apply customizations when DOM is ready
         function applyCustomizations() {
           try {
-            applyMenuConfig(config.menu);
-            applyColorConfig(config.colors);
-            applyLoadingConfig(config.loading);
+            if (config.menu) {
+              applyMenuConfig(config.menu);
+              var hiddenCount = (config.menu.hidden_items || []).length;
+              var renamedCount = Object.keys(config.menu.renamed_items || {}).length;
+              if (hiddenCount || renamedCount) {
+                applied.push('menu (' + hiddenCount + ' hidden, ' + renamedCount + ' renamed)');
+              }
+            }
+            if (config.colors) {
+              applyColorConfig(config.colors);
+              applied.push('colors');
+            }
+            if (config.loading) {
+              applyLoadingConfig(config.loading);
+              applied.push('loading');
+            }
             // Use new login design if available, fall back to legacy config
             if (config.login_design) {
               applyLoginDesign(config.login_design);
-            } else {
+              applied.push('login (advanced)');
+            } else if (config.login) {
               applyLoginConfig(config.login);
+              applied.push('login');
             }
-            log('All customizations applied');
+
+            // Summary log (always shown)
+            if (applied.length > 0) {
+              logInfo('✅ Customizations applied: ' + applied.join(', '));
+            } else {
+              logInfo('No customizations configured');
+            }
           } catch (e) {
             logError('Error applying customizations', e);
           }
@@ -1723,12 +1883,18 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
         }
 
         // Re-apply on dynamic content changes (for SPAs)
+        var reapplyCount = 0;
         var observer = new MutationObserver(function(mutations) {
           var shouldReapply = mutations.some(function(m) {
             return m.addedNodes.length > 0;
           });
           if (shouldReapply) {
             applyMenuConfig(config.menu);
+            reapplyCount++;
+            // Only log first few re-applications to avoid spam
+            if (reapplyCount <= 3) {
+              log('Re-applied menu config (SPA navigation #' + reapplyCount + ')');
+            }
           }
         });
 
