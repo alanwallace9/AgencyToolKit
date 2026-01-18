@@ -146,20 +146,22 @@
 ## Next Session Checklist
 
 ### Must Fix
-- [ ] Remove duplicate embed code section (Brand Colors)
+- [x] ~~Remove duplicate embed code section (Brand Colors)~~ - Already done
 - [x] ~~Fix Apply Colors button (Menu tab)~~ - FIXED Session 8
 - [x] ~~Fix menu preset persistence~~ - FIXED Session 8 (autosave implemented)
 
 ### Should Fix
-- [ ] Move embed code inside card (Login page)
-- [ ] Change grid sizes to 8/16/32px
-- [ ] Persist grid state to localStorage
-- [ ] Move keyboard shortcuts hint below canvas
+- [x] ~~Move embed code inside card (Login page)~~ - Staying at bottom (by design)
+- [x] ~~Change grid sizes~~ - Using 16/32 only
+- [x] ~~Persist grid state to localStorage~~ - Done
+- [x] ~~Move keyboard shortcuts hint below canvas~~ - Done
 
 ### Nice to Have
-- [ ] Animation comparison feature (Loading Screen)
-- [ ] Investigate black outline tab bug
-- [ ] Consider toggle approach for Menu colors (like Loading Screen)
+- [x] ~~Animation comparison feature (Loading Screen)~~ - Done
+- [x] ~~Tab black outline bug~~ - Not reproducing, closed
+
+### Session 8 Additional Fix
+- [x] Reset button now defaults to GHL Light (not Dark)
 
 ---
 

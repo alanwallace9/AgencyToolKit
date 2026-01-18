@@ -426,7 +426,7 @@ export function MenuClient({ initialConfig, colors }: MenuClientProps) {
     setItems(defaultItems);
     setHiddenBanners([]);
     setLastTemplate(null);
-    // Note: previewTheme is intentionally NOT reset - it's a display preference
+    setPreviewTheme('ghl-light'); // Default to GHL Light on reset
     toast.success('Reset to GHL defaults');
     triggerAutosave();
   };
