@@ -87,6 +87,7 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
   }
 
   // Apply menu customizations via CSS injection
+  // Updated 2026-01-18: Using correct GHL selectors from discovery
   function applyMenuConfig(menuConfig) {
     if (!menuConfig) return;
     log('Applying menu config', menuConfig);
@@ -98,10 +99,11 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     var css = '';
 
     // Hide menu items using GHL sidebar item selectors
+    // GHL uses ID selectors like #sb_calendars, #sb_opportunities (NOT data-sidebar-item)
     if (menuConfig.hidden_items && menuConfig.hidden_items.length > 0) {
       var hiddenSelectors = menuConfig.hidden_items.map(function(item) {
-        // GHL uses data-sidebar-item attribute on sidebar items
-        return '[data-sidebar-item="' + item + '"]';
+        // GHL uses ID attribute on sidebar items: id="sb_calendars"
+        return '#' + item;
       }).join(',\\n');
 
       css += '/* Hidden Menu Items */\\n';
@@ -109,13 +111,21 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     }
 
     // Rename menu items using CSS ::after trick
+    // GHL uses span.nav-title and span.hl_text-overflow for menu text (NOT span.hl-text-md)
     if (menuConfig.renamed_items && Object.keys(menuConfig.renamed_items).length > 0) {
       css += '/* Renamed Menu Items */\\n';
       Object.keys(menuConfig.renamed_items).forEach(function(itemId) {
         var newName = menuConfig.renamed_items[itemId];
         // Hide original text, show new text via ::after
-        css += '[data-sidebar-item="' + itemId + '"] span.hl-text-md { font-size: 0 !important; }\\n';
-        css += '[data-sidebar-item="' + itemId + '"] span.hl-text-md::after { content: "' + newName + '"; font-size: 14px; }\\n';
+        // Target both .nav-title and .hl_text-overflow classes
+        css += '#' + itemId + ' span.nav-title,\\n';
+        css += '#' + itemId + ' span.hl_text-overflow { font-size: 0 !important; visibility: hidden; }\\n';
+        css += '#' + itemId + ' span.nav-title::after,\\n';
+        css += '#' + itemId + ' span.hl_text-overflow::after { \\n';
+        css += '  content: "' + newName + '"; \\n';
+        css += '  font-size: 14px; \\n';
+        css += '  visibility: visible; \\n';
+        css += '}\\n';
       });
     }
 
@@ -123,7 +133,8 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     if (menuConfig.hidden_banners && menuConfig.hidden_banners.indexOf('hide_promos') !== -1) {
       css += '/* Hidden Promotional Banners */\\n';
       css += '[class*="promo-banner"], [class*="wordpress-promo"], [class*="upgrade-prompt"], ';
-      css += '[class*="feature-announcement"], .hl-banner-promo { display: none !important; }\\n';
+      css += '[class*="feature-announcement"], .hl-banner-promo, .branded-banner, ';
+      css += '.notification-banner-wrapper, [class*="notification-banner"] { display: none !important; }\\n';
     }
 
     // Hide warning banners
@@ -137,7 +148,7 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     if (menuConfig.hidden_banners && menuConfig.hidden_banners.indexOf('hide_connects') !== -1) {
       css += '/* Hidden Connect Prompts */\\n';
       css += '[class*="connect-prompt"], [class*="facebook-connect"], [class*="whatsapp-connect"], ';
-      css += '[class*="invite-user"], .launchpad-connect-card { display: none !important; }\\n';
+      css += '[class*="invite-user"], .launchpad-connect-card, [class*="lead-connector"] { display: none !important; }\\n';
     }
 
     // Inject styles
@@ -151,33 +162,172 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
   }
 
   // Apply color customizations
+  // Updated 2026-01-18: Using correct GHL selectors from discovery + extended elements
   function applyColorConfig(colorConfig) {
     if (!colorConfig) return;
     log('Applying color config', colorConfig);
 
+    // Remove existing color styles if any
+    var existingStyle = document.getElementById('agency-toolkit-colors');
+    if (existingStyle) existingStyle.remove();
+
     var style = document.createElement('style');
     style.id = 'agency-toolkit-colors';
 
-    var css = ':root {';
-    if (colorConfig.primary) css += '--at-primary: ' + colorConfig.primary + ';';
-    if (colorConfig.accent) css += '--at-accent: ' + colorConfig.accent + ';';
-    if (colorConfig.sidebar_bg) css += '--at-sidebar-bg: ' + colorConfig.sidebar_bg + ';';
-    if (colorConfig.sidebar_text) css += '--at-sidebar-text: ' + colorConfig.sidebar_text + ';';
-    css += '}';
+    var css = '/* Agency Toolkit Color Customizations */\\n';
 
-    // Apply colors to common GHL elements
-    if (colorConfig.primary) {
-      css += '.hl-primary, .btn-primary { background-color: ' + colorConfig.primary + ' !important; }';
-    }
+    // CSS Custom Properties for theming
+    css += ':root {\\n';
+    if (colorConfig.primary) css += '  --at-primary: ' + colorConfig.primary + ';\\n';
+    if (colorConfig.accent) css += '  --at-accent: ' + colorConfig.accent + ';\\n';
+    if (colorConfig.sidebar_bg) css += '  --at-sidebar-bg: ' + colorConfig.sidebar_bg + ';\\n';
+    if (colorConfig.sidebar_text) css += '  --at-sidebar-text: ' + colorConfig.sidebar_text + ';\\n';
+    css += '}\\n';
+
+    // ============================================
+    // SIDEBAR COLORS
+    // GHL uses: .lead-connector, #sidebar-v2, .sidebar-v2-location
+    // ============================================
     if (colorConfig.sidebar_bg) {
-      css += '.sidebar, .nav-sidebar, [class*="sidebar"] { background-color: ' + colorConfig.sidebar_bg + ' !important; }';
+      css += '/* Sidebar Background */\\n';
+      css += '.lead-connector,\\n';
+      css += '#sidebar-v2,\\n';
+      css += '.sidebar-v2-location,\\n';
+      css += '.hl_nav-location { background-color: ' + colorConfig.sidebar_bg + ' !important; }\\n';
     }
     if (colorConfig.sidebar_text) {
-      css += '.sidebar a, .nav-sidebar a, [class*="sidebar"] a { color: ' + colorConfig.sidebar_text + ' !important; }';
+      css += '/* Sidebar Text */\\n';
+      css += '.lead-connector a,\\n';
+      css += '#sidebar-v2 a,\\n';
+      css += '[id^="sb_"],\\n';
+      css += '[id^="sb_"] span.nav-title,\\n';
+      css += '[id^="sb_"] span.hl_text-overflow,\\n';
+      css += '.hl_nav-settings a { color: ' + colorConfig.sidebar_text + ' !important; }\\n';
+    }
+
+    // ============================================
+    // EXTENDED ELEMENTS (from Theme Builder)
+    // ============================================
+    var ext = colorConfig.extended_elements || {};
+
+    // Top Navigation / Header
+    // GHL uses: .hl_header, .hl-header-container
+    if (ext.top_nav_bg) {
+      css += '/* Top Navigation Background */\\n';
+      css += '.hl_header,\\n';
+      css += '.hl-header-container,\\n';
+      css += '.hl_topbar-tabs { background-color: ' + ext.top_nav_bg + ' !important; }\\n';
+    }
+    if (ext.top_nav_text) {
+      css += '/* Top Navigation Text */\\n';
+      css += '.hl_header,\\n';
+      css += '.hl_header a,\\n';
+      css += '.hl_header span,\\n';
+      css += '.hl-header-container,\\n';
+      css += '.hl_topbar-tabs a { color: ' + ext.top_nav_text + ' !important; }\\n';
+    }
+
+    // Main Area Background
+    if (ext.main_area_bg) {
+      css += '/* Main Content Area Background */\\n';
+      css += '.hl_main-content,\\n';
+      css += '.hl-main-content,\\n';
+      css += 'main,\\n';
+      css += '[class*="main-content"],\\n';
+      css += '.content-wrapper { background-color: ' + ext.main_area_bg + ' !important; }\\n';
+    }
+
+    // Cards
+    // GHL uses: .hl-card, .ui-card, .card
+    if (ext.card_bg) {
+      css += '/* Card Backgrounds */\\n';
+      css += '.hl-card,\\n';
+      css += '.ui-card,\\n';
+      css += '.card,\\n';
+      css += '.n-card,\\n';
+      css += '[class*="card-body"] { background-color: ' + ext.card_bg + ' !important; }\\n';
+    }
+
+    // Primary Buttons
+    // GHL uses: .btn-primary, .hr-button--primary-type, .n-button--primary-type
+    if (ext.button_primary_bg) {
+      css += '/* Primary Button Background */\\n';
+      css += '.btn-primary,\\n';
+      css += '.hr-button--primary-type,\\n';
+      css += '.n-button--primary-type,\\n';
+      css += 'button.primary,\\n';
+      css += '[class*="btn-primary"] {\\n';
+      css += '  background-color: ' + ext.button_primary_bg + ' !important;\\n';
+      css += '  border-color: ' + ext.button_primary_bg + ' !important;\\n';
+      css += '}\\n';
+    }
+    if (ext.button_primary_text) {
+      css += '/* Primary Button Text */\\n';
+      css += '.btn-primary,\\n';
+      css += '.hr-button--primary-type,\\n';
+      css += '.n-button--primary-type,\\n';
+      css += 'button.primary,\\n';
+      css += '[class*="btn-primary"] { color: ' + ext.button_primary_text + ' !important; }\\n';
+    }
+
+    // Also apply primary color to buttons if set (backward compatibility)
+    if (colorConfig.primary && !ext.button_primary_bg) {
+      css += '/* Primary Color on Buttons (fallback) */\\n';
+      css += '.btn-primary,\\n';
+      css += '.hr-button--primary-type,\\n';
+      css += '.n-button--primary-type {\\n';
+      css += '  background-color: ' + colorConfig.primary + ' !important;\\n';
+      css += '  border-color: ' + colorConfig.primary + ' !important;\\n';
+      css += '}\\n';
+    }
+
+    // Input Fields
+    // GHL uses: .hl-text-input, .hr-input__input-el, .n-input__input-el
+    if (ext.input_bg) {
+      css += '/* Input Field Background */\\n';
+      css += '.hl-text-input,\\n';
+      css += '.hr-input__input-el,\\n';
+      css += '.n-input__input-el,\\n';
+      css += '.hl-text-area-input,\\n';
+      css += '.form-control,\\n';
+      css += 'input[type="text"],\\n';
+      css += 'input[type="email"],\\n';
+      css += 'input[type="password"],\\n';
+      css += 'input[type="number"],\\n';
+      css += 'input[type="tel"],\\n';
+      css += 'textarea,\\n';
+      css += '.hr-select,\\n';
+      css += '.n-select { background-color: ' + ext.input_bg + ' !important; }\\n';
+    }
+    if (ext.input_border) {
+      css += '/* Input Field Border */\\n';
+      css += '.hl-text-input,\\n';
+      css += '.hr-input__input-el,\\n';
+      css += '.n-input__input-el,\\n';
+      css += '.hl-text-area-input,\\n';
+      css += '.form-control,\\n';
+      css += 'input[type="text"],\\n';
+      css += 'input[type="email"],\\n';
+      css += 'input[type="password"],\\n';
+      css += 'input[type="number"],\\n';
+      css += 'input[type="tel"],\\n';
+      css += 'textarea,\\n';
+      css += '.hr-select,\\n';
+      css += '.n-select { border-color: ' + ext.input_border + ' !important; }\\n';
+    }
+
+    // Link Color
+    if (ext.link_color) {
+      css += '/* Link Colors */\\n';
+      css += 'a:not(.btn):not([class*="button"]),\\n';
+      css += '.hl-text-btn,\\n';
+      css += '.hr-button--text,\\n';
+      css += '.text-link { color: ' + ext.link_color + ' !important; }\\n';
     }
 
     style.textContent = css;
     document.head.appendChild(style);
+    log('Color CSS injected with extended elements');
   }
 
   // Apply loading animation
@@ -220,34 +370,50 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     }
 
     // Hide GHL's default loading spinners
+    // Updated 2026-01-18: Using correct GHL selectors from discovery
+    // GHL uses: .v-spinner, .app-loader, .hl-loader-container
     var hideGHLLoader = document.createElement('style');
     hideGHLLoader.id = 'agency-toolkit-hide-ghl-loader';
     hideGHLLoader.textContent = [
       '/* Hide GHL default loaders when our loader is active */',
+      '/* Primary GHL spinner selectors (from discovery 2026-01-18) */',
+      '.v-spinner,',
+      '.app-loader,',
+      '.hl-loader-container > *:not(.agency-toolkit-loader-instance),',
+      '/* Secondary/legacy spinner selectors */',
       '.hl-loader, .hl-loading, [class*="hl-spinner"],',
       '.loading-spinner, .page-loader, .hl-page-loader,',
       '[class*="loading-indicator"], .spinner-border,',
+      '.hr-skeleton, .n-skeleton,',
       '.hl-loading-overlay .hl-loading-spinner { display: none !important; }',
       '/* Ensure our loader container shows */',
-      '.hl-loading-overlay { background: var(--loading-bg, transparent) !important; }'
+      '.hl-loading-overlay, .hl-loader-container, .app-loader-container { background: var(--loading-bg, transparent) !important; }'
     ].join('\\n');
     document.head.appendChild(hideGHLLoader);
 
     // Inject our custom loader HTML
     if (loadingConfig.html) {
       // Find GHL loading containers and inject our loader
+      // Updated 2026-01-18: Added more GHL container selectors
       function injectLoader() {
         var loader = document.createElement('div');
         loader.id = 'agency-toolkit-loader';
         loader.innerHTML = loadingConfig.html;
 
-        // Look for GHL loading overlay containers
-        var loaderContainers = document.querySelectorAll('.hl-loading-overlay, .hl-loader-container, .loading-container, [class*="loader-wrapper"]');
+        // Look for GHL loading overlay containers (expanded selector list)
+        var loaderContainers = document.querySelectorAll([
+          '.hl-loading-overlay',
+          '.hl-loader-container',
+          '.app-loader',
+          '.v-spinner',
+          '.loading-container',
+          '[class*="loader-wrapper"]'
+        ].join(', '));
 
         if (loaderContainers.length > 0) {
           loaderContainers.forEach(function(container) {
             // Check if we haven't already added our loader
-            if (!container.querySelector('#agency-toolkit-loader')) {
+            if (!container.querySelector('.agency-toolkit-loader-instance')) {
               var clone = loader.cloneNode(true);
               clone.removeAttribute('id');
               clone.classList.add('agency-toolkit-loader-instance');
@@ -268,7 +434,9 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
             if (node.nodeType === 1) {
               var isLoaderContainer = node.classList && (
                 node.classList.contains('hl-loading-overlay') ||
-                node.classList.contains('hl-loader-container')
+                node.classList.contains('hl-loader-container') ||
+                node.classList.contains('app-loader') ||
+                node.classList.contains('v-spinner')
               );
               if (isLoaderContainer) {
                 injectLoader();
@@ -294,42 +462,90 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
   }
 
   // Apply login page customizations (legacy simple config)
+  // Updated 2026-01-18: Enhanced GHL login page selectors
   function applyLoginConfig(loginConfig) {
     if (!loginConfig) return;
 
     // Only apply on login pages
     var isLoginPage = window.location.pathname.includes('/login') ||
                       window.location.pathname.includes('/signin') ||
-                      document.querySelector('[class*="login"]');
+                      window.location.pathname.includes('/oauth') ||
+                      document.querySelector('[class*="login"]') ||
+                      document.querySelector('[class*="sign-in"]');
 
     if (!isLoginPage) return;
     log('Applying login config', loginConfig);
 
+    // Remove existing login styles
+    var existingStyle = document.getElementById('agency-toolkit-login');
+    if (existingStyle) existingStyle.remove();
+
     var style = document.createElement('style');
     style.id = 'agency-toolkit-login';
-    var css = '';
+    var css = '/* Agency Toolkit Login Customizations */\\n';
+
+    // Background selectors for GHL login pages
+    var bgSelectors = [
+      'body',
+      '.login-container',
+      '.login-page',
+      '.sign-in-page',
+      '.hl-login-page',
+      '[class*="login-wrapper"]',
+      '[class*="auth-wrapper"]'
+    ].join(',\\n');
 
     if (loginConfig.background_color) {
-      css += 'body, .login-container { background-color: ' + loginConfig.background_color + ' !important; }';
+      css += bgSelectors + ' { background-color: ' + loginConfig.background_color + ' !important; }\\n';
     }
     if (loginConfig.background_image_url) {
-      css += 'body, .login-container { background-image: url(' + loginConfig.background_image_url + ') !important; background-size: cover; }';
-    }
-    if (loginConfig.button_color) {
-      css += '.login-btn, .signin-btn, [type="submit"] { background-color: ' + loginConfig.button_color + ' !important; }';
-    }
-    if (loginConfig.button_text_color) {
-      css += '.login-btn, .signin-btn, [type="submit"] { color: ' + loginConfig.button_text_color + ' !important; }';
+      css += bgSelectors + ' {\\n';
+      css += '  background-image: url(' + loginConfig.background_image_url + ') !important;\\n';
+      css += '  background-size: cover !important;\\n';
+      css += '  background-position: center !important;\\n';
+      css += '  background-repeat: no-repeat !important;\\n';
+      css += '}\\n';
     }
 
-    if (css) {
+    // Button selectors for GHL login pages
+    var buttonSelectors = [
+      '.login-btn',
+      '.signin-btn',
+      '.sign-in-btn',
+      '[type="submit"]',
+      'button[type="submit"]',
+      '.btn-primary',
+      '.hr-button--primary-type',
+      '.n-button--primary-type',
+      '.hl-login-btn'
+    ].join(',\\n');
+
+    if (loginConfig.button_color) {
+      css += buttonSelectors + ' {\\n';
+      css += '  background-color: ' + loginConfig.button_color + ' !important;\\n';
+      css += '  border-color: ' + loginConfig.button_color + ' !important;\\n';
+      css += '}\\n';
+    }
+    if (loginConfig.button_text_color) {
+      css += buttonSelectors + ' { color: ' + loginConfig.button_text_color + ' !important; }\\n';
+    }
+
+    if (css !== '/* Agency Toolkit Login Customizations */\\n') {
       style.textContent = css;
       document.head.appendChild(style);
+      log('Login CSS injected');
     }
 
     // Replace logo if specified
     if (loginConfig.logo_url) {
-      var logos = document.querySelectorAll('.logo img, [class*="logo"] img, header img');
+      var logos = document.querySelectorAll([
+        '.logo img',
+        '[class*="logo"] img',
+        'header img',
+        '.brand-logo img',
+        '.company-logo img',
+        '.hl-logo img'
+      ].join(', '));
       logos.forEach(function(logo) {
         logo.src = loginConfig.logo_url;
       });
@@ -337,13 +553,16 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
   }
 
   // Apply advanced login design (canvas-based)
+  // Updated 2026-01-18: Comprehensive GHL login page selectors + all form_style properties
   function applyLoginDesign(loginDesign) {
     if (!loginDesign) return;
 
     // Only apply on login pages
     var isLoginPage = window.location.pathname.includes('/login') ||
                       window.location.pathname.includes('/signin') ||
-                      document.querySelector('[class*="login"]');
+                      window.location.pathname.includes('/oauth') ||
+                      document.querySelector('[class*="login"]') ||
+                      document.querySelector('[class*="sign-in"]');
 
     if (!isLoginPage) return;
     log('Applying login design', loginDesign);
@@ -354,13 +573,24 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
 
     var style = document.createElement('style');
     style.id = 'agency-toolkit-login-design';
-    var css = '';
+    var css = '/* Agency Toolkit Advanced Login Design */\\n';
+
+    // Background selectors
+    var bgSelectors = [
+      'body',
+      '.login-page',
+      '.login-container',
+      '.sign-in-page',
+      '.hl-login-page',
+      '[class*="login-wrapper"]',
+      '[class*="auth-wrapper"]'
+    ].join(',\\n');
 
     // Apply background
     var canvas = loginDesign.canvas;
     if (canvas && canvas.background) {
       var bg = canvas.background;
-      css += 'body, .login-page, .login-container, [class*="login-wrapper"] {\\n';
+      css += bgSelectors + ' {\\n';
 
       if (bg.type === 'solid' && bg.color) {
         css += '  background-color: ' + bg.color + ' !important;\\n';
@@ -370,6 +600,7 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
         css += '  background-image: url(' + bg.image_url + ') !important;\\n';
         css += '  background-size: cover !important;\\n';
         css += '  background-position: center !important;\\n';
+        css += '  background-repeat: no-repeat !important;\\n';
         if (bg.image_blur) {
           css += '  backdrop-filter: blur(' + bg.image_blur + 'px) !important;\\n';
         }
@@ -379,7 +610,7 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
 
       // Image overlay
       if (bg.type === 'image' && bg.image_overlay) {
-        css += 'body::before, .login-page::before {\\n';
+        css += 'body::before, .login-page::before, .sign-in-page::before {\\n';
         css += '  content: "";\\n';
         css += '  position: fixed;\\n';
         css += '  inset: 0;\\n';
@@ -393,32 +624,155 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     // Apply form styling
     var formStyle = loginDesign.form_style;
     if (formStyle) {
-      // Form container background
+      // Form container selectors
+      var formSelectors = [
+        '.login-form',
+        '.signin-form',
+        '.sign-in-form',
+        '.auth-form',
+        '[class*="login-card"]',
+        '[class*="auth-card"]',
+        '.hl-login-form',
+        '.card.login',
+        'form[class*="login"]'
+      ].join(',\\n');
+
+      // Form container background and border
+      css += formSelectors + ' {\\n';
       if (formStyle.form_bg) {
-        css += '.login-form, .signin-form, .auth-form, [class*="login-card"], [class*="auth-card"] {\\n';
         css += '  background-color: ' + formStyle.form_bg + ' !important;\\n';
         css += '  backdrop-filter: blur(8px) !important;\\n';
+      }
+      if (formStyle.form_border) {
+        css += '  border-color: ' + formStyle.form_border + ' !important;\\n';
+        css += '  border-style: solid !important;\\n';
+      }
+      if (formStyle.form_border_width) {
+        css += '  border-width: ' + formStyle.form_border_width + 'px !important;\\n';
+      }
+      if (formStyle.form_border_radius) {
+        css += '  border-radius: ' + formStyle.form_border_radius + 'px !important;\\n';
+      }
+      css += '}\\n';
+
+      // Form heading styles
+      if (formStyle.form_heading_color) {
+        css += '/* Form Headings */\\n';
+        var headingSelectors = [
+          '.login-form h1',
+          '.login-form h2',
+          '.login-form h3',
+          '.signin-form h1',
+          '.signin-form h2',
+          '.auth-form h1',
+          '[class*="login-card"] h1',
+          '[class*="login-card"] h2',
+          '.login-title',
+          '.sign-in-title',
+          '.auth-title'
+        ].join(',\\n');
+        css += headingSelectors + ' { color: ' + formStyle.form_heading_color + ' !important; }\\n';
+      }
+
+      // Label styles
+      if (formStyle.label_color) {
+        css += '/* Form Labels */\\n';
+        var labelSelectors = [
+          '.login-form label',
+          '.signin-form label',
+          '.auth-form label',
+          '[class*="login-card"] label',
+          'form[class*="login"] label',
+          '.form-label',
+          '.input-label'
+        ].join(',\\n');
+        css += labelSelectors + ' { color: ' + formStyle.label_color + ' !important; }\\n';
+      }
+
+      // Button selectors
+      var buttonSelectors = [
+        '.login-btn',
+        '.signin-btn',
+        '.sign-in-btn',
+        '[type="submit"]',
+        'button[type="submit"]',
+        '.submit-btn',
+        '.btn-primary',
+        '.hr-button--primary-type',
+        '.n-button--primary-type',
+        '.hl-login-btn'
+      ].join(',\\n');
+
+      // Button styles
+      if (formStyle.button_bg || formStyle.button_text) {
+        css += '/* Login Buttons */\\n';
+        css += buttonSelectors + ' {\\n';
+        if (formStyle.button_bg) {
+          css += '  background-color: ' + formStyle.button_bg + ' !important;\\n';
+          css += '  border-color: ' + formStyle.button_bg + ' !important;\\n';
+        }
+        if (formStyle.button_text) {
+          css += '  color: ' + formStyle.button_text + ' !important;\\n';
+        }
         css += '}\\n';
       }
 
-      // Button styles
-      css += '.login-btn, .signin-btn, [type="submit"], .submit-btn, button[type="submit"] {\\n';
-      css += '  background-color: ' + formStyle.button_bg + ' !important;\\n';
-      css += '  color: ' + formStyle.button_text + ' !important;\\n';
-      css += '  border: none !important;\\n';
-      css += '}\\n';
+      // Input selectors
+      var inputSelectors = [
+        'input[type="email"]',
+        'input[type="password"]',
+        'input[type="text"]',
+        '.login-input',
+        '.signin-input',
+        '.hl-text-input',
+        '.hr-input__input-el',
+        '.n-input__input-el',
+        '.form-control'
+      ].join(',\\n');
 
       // Input styles
-      css += 'input[type="email"], input[type="password"], input[type="text"], .login-input {\\n';
-      css += '  background-color: ' + formStyle.input_bg + ' !important;\\n';
-      css += '  border-color: ' + formStyle.input_border + ' !important;\\n';
-      css += '  color: ' + formStyle.input_text + ' !important;\\n';
+      css += '/* Login Inputs */\\n';
+      css += inputSelectors + ' {\\n';
+      if (formStyle.input_bg) {
+        css += '  background-color: ' + formStyle.input_bg + ' !important;\\n';
+      }
+      if (formStyle.input_border) {
+        css += '  border-color: ' + formStyle.input_border + ' !important;\\n';
+      }
+      if (formStyle.input_text) {
+        css += '  color: ' + formStyle.input_text + ' !important;\\n';
+      }
       css += '}\\n';
 
+      // Input placeholder text
+      if (formStyle.input_text) {
+        css += inputSelectors.split(',\\n').map(function(sel) {
+          return sel + '::placeholder';
+        }).join(',\\n') + ' { color: ' + formStyle.input_text + '; opacity: 0.6 !important; }\\n';
+      }
+
       // Link styles
-      css += '.login-link, .forgot-password, a[href*="forgot"], a[href*="reset"] {\\n';
-      css += '  color: ' + formStyle.link_color + ' !important;\\n';
-      css += '}\\n';
+      if (formStyle.link_color) {
+        css += '/* Login Links */\\n';
+        var linkSelectors = [
+          '.login-link',
+          '.forgot-password',
+          '.forgot-password-link',
+          'a[href*="forgot"]',
+          'a[href*="reset"]',
+          'a[href*="signup"]',
+          'a[href*="register"]',
+          '.login-form a',
+          '.signin-form a',
+          '.auth-form a'
+        ].join(',\\n');
+        css += linkSelectors + ' { color: ' + formStyle.link_color + ' !important; }\\n';
+      }
+
+      // Logo replacement
+      if (formStyle.logo_url) {
+        // Will be handled via DOM manipulation below
+      }
     }
 
     // Inject elements as overlays
@@ -475,6 +829,25 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
         document.body.appendChild(el);
       }
     });
+
+    // Replace logo if specified in form_style
+    if (formStyle && formStyle.logo_url) {
+      var logoSelectors = [
+        '.logo img',
+        '[class*="logo"] img',
+        'header img',
+        '.brand-logo img',
+        '.company-logo img',
+        '.hl-logo img',
+        '.login-logo img',
+        '.signin-logo img'
+      ];
+      var logos = document.querySelectorAll(logoSelectors.join(', '));
+      logos.forEach(function(logo) {
+        logo.src = formStyle.logo_url;
+      });
+      log('Login logo replaced');
+    }
 
     log('Login design applied');
   }

@@ -81,6 +81,44 @@ When a gradient is applied to a preset with a partial background (e.g., left sid
 
 ---
 
+## Infrastructure & Maintenance
+
+### Automated GHL Selector Monitoring
+**Priority:** Medium
+**Added:** 2026-01-18
+
+**Description:**
+Build an admin panel that automatically monitors GHL's DOM structure for selector changes. When GHL updates their UI (2-3 times per year), this system would detect and alert us to broken selectors.
+
+**Options to explore:**
+
+1. **Admin Health Check Page**
+   - Admin-only page in Agency Toolkit dashboard
+   - Loads GHL in a sandboxed iframe
+   - Runs the discovery script automatically
+   - Compares results against `docs/GHL_SELECTORS.md` reference
+   - Alerts when selectors have changed
+
+2. **Scheduled Cron Job**
+   - Vercel cron or external service (e.g., Checkly, Playwright Cloud)
+   - Runs weekly/monthly
+   - Uses headless browser to load GHL and extract selectors
+   - Sends email/Slack alert when changes detected
+
+3. **User-Reported Monitoring**
+   - "Report broken customization" button in dashboard
+   - Collects selector data from user's GHL instance
+   - Aggregates reports to detect patterns
+
+**Benefits:**
+- Proactive detection of GHL UI changes
+- Faster response time to fix broken customizations
+- Better user experience (no waiting for user reports)
+
+**Reference:** Discovery script at `scripts/ghl-selector-discovery.js`
+
+---
+
 ## Future Considerations
 
 ### Gradient Presets for Login
