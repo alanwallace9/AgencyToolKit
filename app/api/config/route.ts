@@ -91,16 +91,34 @@ export async function GET(request: Request) {
       (preset: { is_default: boolean }) => preset.is_default
     );
 
-    // Build menu config from default preset
-    const menuConfig = defaultPreset?.config
+    // DEBUG: Log which menu source is being used
+    console.log('[API Config] Menu source debug:', {
+      hasDefaultPreset: !!defaultPreset,
+      presetName: defaultPreset?.name || 'none',
+      hasSettingsMenu: !!agency.settings?.menu,
+      settingsMenuHidden: agency.settings?.menu?.hidden_items?.length || 0,
+      settingsMenuRenamed: Object.keys(agency.settings?.menu?.renamed_items || {}).length,
+    });
+
+    // CHANGED: Prioritize agency.settings.menu (Theme Builder) over menu_presets
+    // This fixes the bug where old presets override Theme Builder changes
+    const menuConfig = agency.settings?.menu
       ? {
-          hidden_items: defaultPreset.config.hidden_items || [],
-          renamed_items: defaultPreset.config.renamed_items || {},
-          item_order: defaultPreset.config.item_order || [],
-          hidden_banners: defaultPreset.config.hidden_banners || [],
-          dividers: defaultPreset.config.dividers || [],
+          hidden_items: agency.settings.menu.hidden_items || [],
+          renamed_items: agency.settings.menu.renamed_items || {},
+          item_order: agency.settings.menu.item_order || [],
+          hidden_banners: agency.settings.menu.hidden_banners || [],
+          dividers: agency.settings.menu.dividers || [],
         }
-      : agency.settings?.menu || null;
+      : defaultPreset?.config
+        ? {
+            hidden_items: defaultPreset.config.hidden_items || [],
+            renamed_items: defaultPreset.config.renamed_items || {},
+            item_order: defaultPreset.config.item_order || [],
+            hidden_banners: defaultPreset.config.hidden_banners || [],
+            dividers: defaultPreset.config.dividers || [],
+          }
+        : null;
 
     // Get the default login design
     const defaultLoginDesign = (agency.login_designs || []).find(
@@ -154,6 +172,18 @@ export async function GET(request: Request) {
         steps: tour.steps,
       })),
     };
+
+    // DEBUG: Log full config summary
+    console.log('[API Config] Returning config:', {
+      token: agency.token.substring(0, 10) + '...',
+      hasMenu: !!config.menu,
+      menuHiddenCount: config.menu?.hidden_items?.length || 0,
+      menuRenamedCount: Object.keys(config.menu?.renamed_items || {}).length,
+      hasColors: !!config.colors,
+      colorsSidebarBg: config.colors?.sidebar_bg || 'none',
+      hasLoading: !!config.loading,
+      toursCount: config.tours.length,
+    });
 
     return NextResponse.json(config, {
       headers: {

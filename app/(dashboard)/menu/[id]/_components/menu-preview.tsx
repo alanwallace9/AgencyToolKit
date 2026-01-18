@@ -142,8 +142,9 @@ export function MenuPreview({
 
   // Get colors for a theme (built-in or from props)
   const getThemeColors = (themeId: string | null) => {
-    // GHL Default themes
-    if (themeId === null) return defaultDarkColors;
+    // GHL Default themes - null = GHL Light (most common)
+    if (themeId === null) return defaultLightColors;
+    if (themeId === 'ghl-dark') return defaultDarkColors;
     if (themeId === 'ghl-light') return defaultLightColors;
     if (themeId === 'brand' && hasCustomColors) {
       // Use user's brand colors
@@ -202,7 +203,8 @@ export function MenuPreview({
 
   // Get the display name for current theme
   const getThemeName = () => {
-    if (selectedTheme === null) return 'GHL Dark';
+    if (selectedTheme === null) return 'GHL Light';
+    if (selectedTheme === 'ghl-dark') return 'GHL Dark';
     if (selectedTheme === 'ghl-light') return 'GHL Light';
     if (selectedTheme === 'brand') return 'My Brand Colors';
     const preset = COLOR_PRESETS.find((p) => p.id === selectedTheme);
