@@ -145,10 +145,11 @@ function generateEmbedScript(key: string | null, baseUrl: string): string {
     }
 
     // Hide connect prompts
+    // NOTE: DO NOT use [class*="lead-connector"] - that's the entire sidebar container!
     if (menuConfig.hidden_banners && menuConfig.hidden_banners.indexOf('hide_connects') !== -1) {
       css += '/* Hidden Connect Prompts */\\n';
       css += '[class*="connect-prompt"], [class*="facebook-connect"], [class*="whatsapp-connect"], ';
-      css += '[class*="invite-user"], .launchpad-connect-card, [class*="lead-connector"] { display: none !important; }\\n';
+      css += '[class*="invite-user"], .launchpad-connect-card { display: none !important; }\\n';
     }
 
     // Inject styles
