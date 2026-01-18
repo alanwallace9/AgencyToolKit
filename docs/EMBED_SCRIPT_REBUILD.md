@@ -253,5 +253,28 @@ console.log('[AgencyToolkit] Script loaded');
 
 ---
 
+## Session Notes: 2026-01-18
+
+### User Clarifications
+- The "Connect Google" and "Social Planner" renames in screenshot were from **manual CSS the user added previously**, NOT our embed script
+- Conversations → Inbox rename is broken (our code)
+- User likes **hybrid approach** but concerned about reinstalling CSS each time
+- User likes **GHL Style interface** - live preview on right as you change colors on left
+- Floating toolbar for tours may be too complex - explore **iframe wrapper approach** instead
+- Need to research: Can you select elements inside an iframe? Cross-origin issues?
+
+### Decisions Pending (Next Session)
+1. **Cache time** - User questions benefit of 5-min cache; need to explain or reduce
+2. **Hybrid approach** - How to minimize reinstall friction?
+3. **Element selector** - Iframe wrapper vs floating toolbar vs pre-built library?
+4. **GHL Style-like interface** - Consider redesigning Theme Builder preview
+
+### To Implement (Agreed)
+- [ ] Kill switch parameter (`?at_disable=true`)
+- [ ] Console logging for debugging (`[AgencyToolkit] Script loaded`)
+- [ ] Fix Theme Builder save/delete bug (brown color persisting)
+
+---
+
 *Document created: 2026-01-18*
 *Last updated: 2026-01-18*
