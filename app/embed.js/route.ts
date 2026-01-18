@@ -1773,25 +1773,57 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       sendSelection(data);
 
       // Auto-close if enabled
-      if (autoClose) {
-        setTimeout(function() { window.close(); }, 2500);
-      }
+      // TODO: Re-enable after fixing element selection bug
+      // if (autoClose) {
+      //   setTimeout(function() { window.close(); }, 2500);
+      // }
     }
 
     function sendSelection(data) {
-      // Send via BroadcastChannel
+      // Debug: Log opener status
+      console.log('[AgencyToolkit DEBUG] sendSelection called');
+      console.log('[AgencyToolkit DEBUG] window.opener exists:', !!window.opener);
+      console.log('[AgencyToolkit DEBUG] window.opener.closed:', window.opener ? window.opener.closed : 'N/A');
+      console.log('[AgencyToolkit DEBUG] data to send:', JSON.stringify(data, null, 2));
+
+      // Primary method: window.opener.postMessage (works cross-origin)
+      if (window.opener && !window.opener.closed) {
+        try {
+          var message = {
+            type: 'at_element_selection',
+            payload: data
+          };
+          console.log('[AgencyToolkit DEBUG] Attempting postMessage with:', message);
+          window.opener.postMessage(message, '*');
+          console.log('[AgencyToolkit DEBUG] postMessage SUCCESS - message sent to opener');
+        } catch (e) {
+          console.error('[AgencyToolkit DEBUG] postMessage FAILED:', e);
+        }
+      } else {
+        console.warn('[AgencyToolkit DEBUG] No opener window available - cannot use postMessage');
+        console.log('[AgencyToolkit DEBUG] This may happen if:');
+        console.log('  - The tab was opened via link instead of window.open()');
+        console.log('  - The opener window was closed');
+        console.log('  - Browser security blocked the reference');
+      }
+
+      // Fallback: BroadcastChannel (same-origin only)
       try {
         var channel = new BroadcastChannel('at_element_selection');
         channel.postMessage(data);
         channel.close();
+        console.log('[AgencyToolkit DEBUG] BroadcastChannel fallback sent');
       } catch (e) {
-        log('BroadcastChannel not supported');
+        console.log('[AgencyToolkit DEBUG] BroadcastChannel not available (expected for cross-origin)');
       }
 
-      // Also store in localStorage as fallback
+      // Fallback: localStorage (same-origin only)
       try {
         localStorage.setItem('at_selected_element', JSON.stringify(data));
-      } catch (e) {}
+        console.log('[AgencyToolkit DEBUG] localStorage fallback set');
+      } catch (e) {
+        console.log('[AgencyToolkit DEBUG] localStorage not available');
+      }
 
       log('Selection sent', data);
     }

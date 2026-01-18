@@ -42,7 +42,10 @@ export function useElementSelector({
 
   // Process selected element data from builder mode
   const processSelection = useCallback((data: SelectedElementData) => {
+    console.log('[DEBUG] processSelection called with:', data);
+
     if (data.cancelled) {
+      console.log('[DEBUG] Selection was cancelled');
       setIsSelecting(false);
       setError(null);
       return;
@@ -60,11 +63,13 @@ export function useElementSelector({
       },
     };
 
+    console.log('[DEBUG] Created elementTarget:', elementTarget);
     setSelectedElement(elementTarget);
     setIsSelecting(false);
     setError(null);
 
     // Notify parent via callback
+    console.log('[DEBUG] Calling onSelect callback, onSelect exists:', !!onSelect);
     onSelect?.(elementTarget);
 
     // Close the window if auto-close is enabled
@@ -132,7 +137,7 @@ export function useElementSelector({
     setError(null);
   }, []);
 
-  // Set up BroadcastChannel and localStorage polling when selecting
+  // Set up message listeners when selecting
   useEffect(() => {
     if (!isSelecting || !sessionIdRef.current) {
       return;
@@ -140,20 +145,39 @@ export function useElementSelector({
 
     const sessionId = sessionIdRef.current;
 
-    // Set up BroadcastChannel listener
+    // Primary method: Listen for postMessage from child window (works cross-origin)
+    const handleMessage = (event: MessageEvent) => {
+      // Check if this is our selection message
+      if (event.data?.type === 'at_element_selection' && event.data?.payload) {
+        const data = event.data.payload as SelectedElementData;
+        console.log('[DEBUG] postMessage received:', data);
+        console.log('[DEBUG] Expected sessionId:', sessionId, 'Received:', data.sessionId);
+        if (data.sessionId === sessionId) {
+          console.log('[DEBUG] Session IDs match, processing selection');
+          processSelection(data);
+        } else {
+          console.log('[DEBUG] Session IDs do NOT match, ignoring message');
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    console.log('[DEBUG] postMessage listener set up for session:', sessionId);
+
+    // Fallback: BroadcastChannel (same-origin only)
     try {
       channelRef.current = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
       channelRef.current.onmessage = (event: MessageEvent<SelectedElementData>) => {
+        console.log('[DEBUG] BroadcastChannel message received:', event.data);
         if (event.data.sessionId === sessionId) {
           processSelection(event.data);
         }
       };
     } catch (e) {
       // BroadcastChannel might not be supported
-      console.warn('BroadcastChannel not supported, falling back to localStorage');
+      console.warn('BroadcastChannel not supported');
     }
 
-    // Poll localStorage as fallback
+    // Fallback: Poll localStorage (same-origin only)
     pollIntervalRef.current = setInterval(() => {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -185,6 +209,7 @@ export function useElementSelector({
 
     // Cleanup
     return () => {
+      window.removeEventListener('message', handleMessage);
       if (channelRef.current) {
         channelRef.current.close();
         channelRef.current = null;

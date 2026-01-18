@@ -300,11 +300,14 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
   };
 
   const handleUpdateStep = (stepId: string, updates: Partial<TourStep>) => {
+    console.log('[DEBUG] handleUpdateStep called with stepId:', stepId, 'updates:', updates);
     const newSteps = steps.map((s) =>
       s.id === stepId ? { ...s, ...updates } : s
     );
+    console.log('[DEBUG] Updated step element:', newSteps.find(s => s.id === stepId)?.element);
     setSteps(newSteps);
     pushHistory(newSteps);
+    console.log('[DEBUG] setSteps called with new steps');
   };
 
   // Publish/Unpublish

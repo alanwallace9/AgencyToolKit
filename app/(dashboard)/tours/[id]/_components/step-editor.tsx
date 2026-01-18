@@ -184,7 +184,12 @@ export function StepEditor({
       {needsElement && (
         <ElementSelectorField
           value={step.element}
-          onChange={(element) => onUpdateStep({ element })}
+          onChange={(element) => {
+            console.log('[DEBUG] StepEditor onChange called with element:', element);
+            console.log('[DEBUG] Current step.element:', step.element);
+            onUpdateStep({ element });
+            console.log('[DEBUG] onUpdateStep called');
+          }}
           ghlDomain={ghlDomain}
           autoClose={builderAutoClose}
         />

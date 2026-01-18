@@ -44,6 +44,8 @@ export function ElementSelectorField({
   const [showManual, setShowManual] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  console.log('[DEBUG] ElementSelectorField render, value:', value);
+
   const {
     isSelecting,
     openSelector,
@@ -53,8 +55,11 @@ export function ElementSelectorField({
     ghlDomain,
     autoClose,
     onSelect: (element) => {
+      console.log('[DEBUG] onSelect callback in ElementSelectorField, element:', element);
+      console.log('[DEBUG] Calling onChange with element');
       onChange(element);
       setManualSelector(element.selector);
+      console.log('[DEBUG] onChange called successfully');
     },
   });
 
