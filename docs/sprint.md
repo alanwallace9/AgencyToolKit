@@ -97,13 +97,16 @@
 - ✅ 2026-01-16: Created dev agency record for localhost testing
 
 ### In Progress
-- [ ] **Theme Builder Consolidation** (Phase 2) - Migrating 4 Customize pages into unified Theme Builder
-  - See `docs/THEME_BUILDER_DECISIONS.md` for complete decision log
+- [ ] **CRITICAL: Embed Script Rebuild** - See `docs/EMBED_SCRIPT_REBUILD.md`
+  - 2026-01-18: Testing revealed broken CSS selectors, timing issues
+  - Planning systematic rebuild with proper GHL integration
+  - Researching alternative approaches (CSS-only vs JS)
 
 ### Paused
-- [ ] Feature 20: Visual Element Selector (GHL Builder Mode) - Resume after Theme Builder
+- [ ] **Theme Builder Consolidation** (Phase 2) - Paused for embed script fixes
+- [ ] Feature 20: Visual Element Selector (GHL Builder Mode) - Paused pending approach decision
 
-### Up Next
+### Up Next (After Embed Script Stable)
 - Feature 21: Tour Preview (Live Preview in Iframe)
 - Feature 22: Apply Tours in Embed Script (Driver.js Integration)
 - Feature 23: Tour Themes Builder
