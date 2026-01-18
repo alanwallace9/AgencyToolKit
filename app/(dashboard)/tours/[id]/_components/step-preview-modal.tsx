@@ -434,7 +434,7 @@ function TooltipPreview({
         style={{ borderColor: colors.primary }}
       >
         <span className="text-sm text-muted-foreground">
-          [Target Element: {step.element?.selector || 'Not set'}]
+          [Target Element: {step.element?.displayName || step.element?.selector || 'Not set'}]
         </span>
       </div>
 
@@ -615,7 +615,7 @@ function HotspotPreview({
       {/* Mock target */}
       <div className="px-4 py-2 rounded border-2 border-dashed mb-4" style={{ borderColor: colors.primary }}>
         <span className="text-sm text-muted-foreground">
-          [Target: {step.element?.selector || 'Not set'}]
+          [Target: {step.element?.displayName || step.element?.selector || 'Not set'}]
         </span>
       </div>
 

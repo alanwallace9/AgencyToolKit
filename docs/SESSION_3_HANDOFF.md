@@ -10,7 +10,11 @@
 
 | Priority | Task | Decision Made | Status |
 |----------|------|---------------|--------|
-| 1 | Tour Element Feedback | Needs debugging first | Not Started |
+| 1 | Tour Element Feedback | Fixed with postMessage | ✅ Complete |
+| 1a | Auto-close timing | 3 second delay | In Progress |
+| 1b | Popup message update | "Captured! Taking you back..." | In Progress |
+| 1c | Preview display fix | Show displayName not selector | In Progress |
+| 1d | Builder mode inconsistency | Investigate URL params | Pending |
 | 2 | Theme Delete Bug | Option A (toggle inactive) | Not Started |
 | 3 | Menu Selectors | Check GHL_SELECTORS.md first | Not Started |
 | 4 | CSS Export Card | Option C (everything) | Not Started |
@@ -59,6 +63,50 @@ Lines 104-189 in `element-selector-field.tsx` have the UI for displaying selecte
 2. Test element selection in GHL
 3. Check browser console to see where data flow breaks
 4. Fix the broken link in the chain
+
+### Resolution (Completed)
+**Root Cause:** BroadcastChannel and localStorage don't work cross-origin. GHL (app.getrapidreviews.com) and Agency Toolkit (localhost/production) are different origins.
+
+**Fix Applied:**
+- Added `window.opener.postMessage()` to embed script for cross-origin communication
+- Updated `use-element-selector.ts` to listen for postMessage events
+- Commit: `14208db` - "fix: Add cross-origin postMessage for element selection"
+
+---
+
+## Priority 1a-1d: Element Selector Polish
+
+### 1a: Auto-close Timing
+**Problem:** Tab closes too fast, user can't see the confirmation popup
+**Fix:** Re-enable auto-close with 3 second delay (was 2.5s, currently disabled)
+**File:** `app/embed.js/route.ts` line ~1777
+
+### 1b: Popup Message Update
+**Problem:** Current message is generic
+**Fix:** Update to:
+- Header: "Element Captured!" (or similar)
+- Body: Keep current format showing element name and selector
+- Footer: "Taking you back to Agency Toolkit now..."
+**File:** Find popup component in embed script builder mode section
+
+### 1c: Preview Display Fix
+**Problem:** Tour Preview shows `[Target Element: #sb_contacts > span]` instead of just "Contacts"
+**Fix:** Update preview component to show `displayName` instead of full selector
+**File:** Find the step preview component that renders target element
+
+### 1d: Builder Mode Inconsistency
+**Problem:** Clicking "Select Element" sometimes opens GHL without builder mode (no hover highlights, regular dashboard with brown sidebar)
+**Frequency:** ~85-90% of the time it fails to load builder mode
+**Symptoms:**
+- URL shows `app.getrapidreviews.com/agency_dashboard` without `?at_builder_mode=true` params
+- Sidebar shows brown color (customizations applied, not builder mode)
+- No element highlight boxes on hover
+
+**Investigation Needed:**
+1. Check if URL params are being added by `openSelector()` in use-element-selector.ts
+2. Check if GHL is stripping/redirecting URL params
+3. Check embed script's `captureBuilderParams()` and `initBuilderMode()` functions
+4. May need to persist builder params in sessionStorage before GHL redirects
 
 ---
 

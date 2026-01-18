@@ -1743,7 +1743,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       popup.innerHTML = \`
         <div class="at-popup-header">
           <div class="at-popup-icon">✓</div>
-          <h3>Element Selected</h3>
+          <h3>Element Captured!</h3>
         </div>
         <div class="at-element-preview">
           <div class="at-element-name">
@@ -1753,7 +1753,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           <div class="at-selector-preview">\${escapeHtml(data.selector)}</div>
         </div>
         \${fragileWarning}
-        <p>The selector has been sent to your tour builder. This tab will close automatically.</p>
+        <p>Taking you back to Agency Toolkit now...</p>
         <button onclick="document.getElementById('at-selection-popup').remove(); window.close();">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"/>
@@ -1772,11 +1772,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       // Send data
       sendSelection(data);
 
-      // Auto-close if enabled
-      // TODO: Re-enable after fixing element selection bug
-      // if (autoClose) {
-      //   setTimeout(function() { window.close(); }, 2500);
-      // }
+      // Auto-close if enabled (3 second delay to let user see confirmation)
+      if (autoClose) {
+        setTimeout(function() { window.close(); }, 3000);
+      }
     }
 
     function sendSelection(data) {
