@@ -1095,7 +1095,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           </svg>
         </div>
         <span class="at-toolbar-label">Agency Toolkit</span>
-        <div class="at-toolbar-status">
+        <div class="at-toolbar-status at-status-inactive">
+          <span class="at-status-text">Navigate to subaccount</span>
+        </div>
+        <div class="at-toolbar-status at-status-active">
           <span class="at-status-dot"></span>
           <span class="at-status-text">Select an element</span>
         </div>
@@ -1243,10 +1246,16 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         align-items: center;
         gap: 6px;
         padding-left: 10px;
-        border-left: 1px solid rgba(6,182,212,0.2);
+        border-left: 1px solid var(--at-slate-200);
         margin-left: 2px;
       }
-      #at-builder-toolbar.at-active .at-toolbar-status { display: flex; }
+      /* Show inactive status (navigate) when toggle is OFF */
+      .at-status-inactive { display: flex; }
+      .at-status-inactive .at-status-text { color: var(--at-slate-500); }
+      /* When active, hide inactive and show active status */
+      #at-builder-toolbar.at-active .at-status-inactive { display: none; }
+      #at-builder-toolbar.at-active .at-status-active { display: flex; }
+      #at-builder-toolbar.at-active .at-toolbar-status { border-left-color: rgba(6,182,212,0.2); }
 
       .at-status-dot {
         width: 8px;
@@ -3036,10 +3045,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       return; // Don't apply customizations in validation mode
     }
 
-    // Check for builder mode
-    if (initBuilderMode()) {
-      logInfo('Builder mode active - skipping customizations');
-      return; // Don't apply customizations in builder mode
+    // Check for builder mode (bar shows, but customizations still apply)
+    var isBuilderMode = initBuilderMode();
+    if (isBuilderMode) {
+      logInfo('Builder mode active - customizations will still apply');
+      // Don't return - let customizations apply so renamed elements are visible
     }
 
     if (!CONFIG_KEY) {

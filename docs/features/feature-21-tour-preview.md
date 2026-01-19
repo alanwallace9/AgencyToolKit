@@ -359,3 +359,31 @@ pnpm add driver.js
 - **Contrast with GHL**: Ensure preview UI doesn't blend with GHL's UI
 - **Non-blocking**: Toolbar should not block critical GHL navigation
 - **Mobile consideration**: Preview primarily for desktop; mobile preview is lower priority
+
+---
+
+## Known Issues (To Investigate)
+
+### 1. Re-select Button Race Condition (2026-01-19)
+**Symptoms:**
+- Clicking "Re-select" from the tour editor sometimes doesn't show the builder toolbar
+- Instead, it just redirects to the agency dashboard with no toolbar
+- Occurs intermittently - works on 4th attempt after 3 failures
+
+**Suspected cause:** Race condition between:
+- GHL SPA router stripping URL params before script runs
+- sessionStorage capture timing
+- Possible redirect chain losing hash params
+
+**Investigation steps:**
+1. Add console logging to trace param capture timing
+2. Check if hash params are present when page loads
+3. Verify sessionStorage is written before any redirect
+4. Test with network throttling to expose timing issues
+
+### 2. Builder Mode Was Skipping Customizations (FIXED 2026-01-19)
+**Issue:** When builder mode was detected, the embed script returned early and skipped applying theme/menu/color customizations.
+
+**Problem:** If user renamed "Launch Pad" to "Connect Google", the builder mode showed the original GHL names, but production shows customized names. Tour selectors would capture wrong element names.
+
+**Fix:** Removed early return in `init()` function. Builder mode bar now shows while customizations still apply normally.
