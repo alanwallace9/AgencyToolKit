@@ -320,19 +320,24 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var ext = colorConfig.extended_elements || {};
 
     // Top Navigation / Header
-    // ONLY target the main header bar, NOT sub-navigation tabs
-    // .hl_topbar-tabs was matching content below header (bleeding)
+    // Multiple selectors to catch different GHL page layouts
+    // Some pages (like Media Storage) may use different header structures
     if (ext.top_nav_bg) {
-      css += '/* Top Navigation Background - header bar only */\\n';
+      css += '/* Top Navigation Background */\\n';
       css += '.hl_header,\\n';
-      css += '.hl-header-container { background-color: ' + ext.top_nav_bg + ' !important; }\\n';
+      css += '.hl-header-container,\\n';
+      css += '.hl-header,\\n';
+      css += '.location-header,\\n';
+      css += 'header.flex.items-center { background-color: ' + ext.top_nav_bg + ' !important; }\\n';
     }
     if (ext.top_nav_text) {
-      css += '/* Top Navigation Text - header bar only */\\n';
+      css += '/* Top Navigation Text */\\n';
       css += '.hl_header,\\n';
-      css += '.hl_header > a,\\n';  // Direct children only
-      css += '.hl_header > span,\\n';  // Direct children only
-      css += '.hl-header-container { color: ' + ext.top_nav_text + ' !important; }\\n';
+      css += '.hl_header a,\\n';
+      css += '.hl_header span,\\n';
+      css += '.hl-header-container,\\n';
+      css += '.hl-header,\\n';
+      css += '.location-header { color: ' + ext.top_nav_text + ' !important; }\\n';
     }
 
     // Main Area Background
