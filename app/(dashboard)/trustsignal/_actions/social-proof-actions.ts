@@ -158,7 +158,7 @@ export async function createWidget(name: string) {
 
   if (error) throw error;
 
-  revalidatePath('/social-proof');
+  revalidatePath('/trustsignal');
   return widget as SocialProofWidget;
 }
 
@@ -212,8 +212,8 @@ export async function updateWidget(
 
   if (error) throw error;
 
-  revalidatePath(`/social-proof/${id}`);
-  revalidatePath('/social-proof');
+  revalidatePath(`/trustsignal/${id}`);
+  revalidatePath('/trustsignal');
   return widget as SocialProofWidget;
 }
 
@@ -231,7 +231,7 @@ export async function deleteWidget(id: string) {
 
   if (error) throw error;
 
-  revalidatePath('/social-proof');
+  revalidatePath('/trustsignal');
 }
 
 export async function duplicateWidget(id: string) {
@@ -284,7 +284,7 @@ export async function duplicateWidget(id: string) {
 
   if (error) throw error;
 
-  revalidatePath('/social-proof');
+  revalidatePath('/trustsignal');
   return widget as SocialProofWidget;
 }
 
@@ -324,7 +324,7 @@ export async function getEvents(widgetId: string, options?: { source?: string; l
 
 // Note: Manual event creation has been removed to enforce "real data only" policy.
 // Events can only be created via:
-// - Auto-capture from website forms (via /api/social-proof/event)
+// - Auto-capture from website forms (via /api/trustsignal/event)
 // - Google Reviews integration (Phase 1B)
 // - Future: Stripe webhooks, GHL webhooks
 
@@ -373,7 +373,7 @@ export async function bulkUpdateEventVisibility(widgetId: string, eventIds: stri
 
   if (error) throw error;
 
-  revalidatePath(`/social-proof/${widgetId}`);
+  revalidatePath(`/trustsignal/${widgetId}`);
 }
 
 export async function bulkDeleteEvents(widgetId: string, eventIds: string[]) {
@@ -391,7 +391,7 @@ export async function bulkDeleteEvents(widgetId: string, eventIds: string[]) {
 
   if (error) throw error;
 
-  revalidatePath(`/social-proof/${widgetId}`);
+  revalidatePath(`/trustsignal/${widgetId}`);
 }
 
 // Note: CSV import has been removed to enforce "real data only" policy.
@@ -445,7 +445,7 @@ export async function saveWidgetTheme(
 
   if (error) throw error;
 
-  revalidatePath('/social-proof');
+  revalidatePath('/trustsignal');
 
   return newTheme;
 }
@@ -471,7 +471,7 @@ export async function deleteWidgetTheme(themeId: string) {
 
   if (error) throw error;
 
-  revalidatePath('/social-proof');
+  revalidatePath('/trustsignal');
 }
 
 export async function renameWidgetTheme(themeId: string, newName: string) {
@@ -497,5 +497,5 @@ export async function renameWidgetTheme(themeId: string, newName: string) {
 
   if (error) throw error;
 
-  revalidatePath('/social-proof');
+  revalidatePath('/trustsignal');
 }

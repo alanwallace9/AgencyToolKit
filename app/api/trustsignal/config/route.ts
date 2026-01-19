@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { SOCIAL_PROOF_EVENT_TYPE_TEXT } from '@/types/database';
 
 /**
- * GET /api/social-proof/config
+ * GET /api/trustsignal/config
  * Public endpoint for embed script to fetch widget config and events
  *
  * Query params:
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
       { headers: corsHeaders }
     );
   } catch (error) {
-    console.error('Error fetching social proof config:', error);
+    console.error('Error fetching TrustSignal config:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500, headers: corsHeaders }
@@ -148,14 +148,14 @@ function formatTimeAgo(dateString: string): string {
   if (diffSecs < 60) {
     return 'just now';
   } else if (diffMins < 60) {
-    return `${diffMins} minute${diffMins === 1 ? '' : 's'}`;
+    return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
   } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours === 1 ? '' : 's'}`;
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
   } else if (diffDays < 7) {
-    return `${diffDays} day${diffDays === 1 ? '' : 's'}`;
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
   } else if (diffDays < 30) {
     const weeks = Math.floor(diffDays / 7);
-    return `${weeks} week${weeks === 1 ? '' : 's'}`;
+    return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
   } else {
     return 'recently';
   }

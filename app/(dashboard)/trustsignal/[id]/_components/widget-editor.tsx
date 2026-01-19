@@ -79,7 +79,8 @@ export function WidgetEditor({
       toast.success('Widget saved');
     } catch (error) {
       console.error('Error saving widget:', error);
-      toast.error('Failed to save widget');
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to save widget: ${message}`);
     } finally {
       setIsSaving(false);
     }
@@ -115,7 +116,7 @@ export function WidgetEditor({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/social-proof">
+          <Link href="/trustsignal">
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <ArrowLeft className="h-4 w-4" />
             </Button>

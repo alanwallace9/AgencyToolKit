@@ -52,7 +52,7 @@ export function AddWidgetDialog({
       toast.success('Widget created! Configure it to get your embed code.');
       setOpen(false);
       setName('');
-      router.push(`/social-proof/${widget.id}`);
+      router.push(`/trustsignal/${widget.id}`);
     } catch (error) {
       console.error('Error creating widget:', error);
       const message = error instanceof Error ? error.message : 'Failed to create widget';
@@ -72,7 +72,7 @@ export function AddWidgetDialog({
       const widget = await createWidget('My TrustSignal Widget');
       toast.success('Widget created! Your embed code is ready.');
       setOpen(false);
-      router.push(`/social-proof/${widget.id}?tab=embed`);
+      router.push(`/trustsignal/${widget.id}?tab=embed`);
     } catch (error) {
       console.error('Error creating widget:', error);
       const message = error instanceof Error ? error.message : 'Failed to create widget';
@@ -89,7 +89,7 @@ export function AddWidgetDialog({
   // Show upgrade button instead when at limit
   if (isAtLimit) {
     return (
-      <Link href="/upgrade/social-proof">
+      <Link href="/upgrade/trustsignal">
         <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
           <AlertCircle className="h-4 w-4 mr-2" />
           Upgrade to create more

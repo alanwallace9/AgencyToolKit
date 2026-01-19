@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Plus, X, Check, Save, Trash2, Loader2, Pencil } from 'lucide-react';
+import { Plus, X, Check, Save, Trash2, Loader2, Pencil, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -80,6 +80,13 @@ export function SettingsTab({ widget, onChange, savedThemes = [] }: SettingsTabP
   const [deletingThemeId, setDeletingThemeId] = useState<string | null>(null);
   const [renamingTheme, setRenamingTheme] = useState<SavedWidgetTheme | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [selectorCopied, setSelectorCopied] = useState(false);
+
+  const handleCopySelector = async () => {
+    await navigator.clipboard.writeText('.sp-notification');
+    setSelectorCopied(true);
+    setTimeout(() => setSelectorCopied(false), 2000);
+  };
 
   const handleAddPattern = () => {
     if (!newPattern.trim()) return;
@@ -414,8 +421,23 @@ export function SettingsTab({ widget, onChange, savedThemes = [] }: SettingsTabP
 }`}
               className="font-mono text-xs min-h-[120px]"
             />
-            <p className="text-xs text-muted-foreground">
-              Override notification styles. Use <code className="bg-muted px-1 rounded">.sp-notification</code> as the selector.
+            <p className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+              <span>Override notification styles. Use</span>
+              <button
+                onClick={handleCopySelector}
+                className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded hover:bg-muted/80 transition-colors"
+              >
+                <code>.sp-notification</code>
+                {selectorCopied ? (
+                  <span className="inline-flex items-center gap-0.5 text-green-600">
+                    <Check className="h-3 w-3" />
+                    <span className="text-[10px]">Copied</span>
+                  </span>
+                ) : (
+                  <Copy className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+              <span>as the selector.</span>
             </p>
           </div>
 

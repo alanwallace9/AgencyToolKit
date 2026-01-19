@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 /**
- * GET /sp.js
- * Social Proof embed script
+ * GET /ts.js
+ * TrustSignal embed script
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   var DEBUG = false;
 
   function log() {
-    if (DEBUG) console.log('[SocialProof]', ...arguments);
+    if (DEBUG) console.log('[TrustSignal]', ...arguments);
   }
 
   // State
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
   // Fetch config and events
   function fetchConfig() {
-    return fetch(API_URL + '/api/social-proof/config?key=' + WIDGET_KEY)
+    return fetch(API_URL + '/api/trustsignal/config?key=' + WIDGET_KEY)
       .then(function(res) { return res.json(); })
       .then(function(data) {
         if (!data.active) {
@@ -192,7 +192,7 @@ export async function GET(request: Request) {
 
   // Send capture to server
   function sendCapture(data) {
-    fetch(API_URL + '/api/social-proof/capture', {
+    fetch(API_URL + '/api/trustsignal/capture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -208,7 +208,7 @@ export async function GET(request: Request) {
     var el = document.createElement('div');
     el.id = 'sp-notification';
     el.style.cssText = getPositionStyles() + getBaseStyles();
-    el.innerHTML = '<div class="sp-content"></div><button class="sp-close" aria-label="Dismiss">&times;</button><div class="sp-attribution"><span class="sp-check">✓</span> TrustSignal</div>';
+    el.innerHTML = '<div class="sp-content"></div><button class="sp-close" aria-label="Dismiss">&times;</button>';
 
     var style = document.createElement('style');
     style.textContent = getThemeStyles();
@@ -238,7 +238,7 @@ export async function GET(request: Request) {
 
   // Get base styles
   function getBaseStyles() {
-    return 'opacity:0;transform:translateY(20px);transition:all 0.3s ease;pointer-events:auto;max-width:320px;';
+    return 'opacity:0;transform:translateY(20px);transition:opacity 0.5s ease, transform 0.5s ease;pointer-events:auto;max-width:420px;min-width:320px;';
   }
 
   // Get theme styles
@@ -249,7 +249,7 @@ export async function GET(request: Request) {
     var baseStyles = \`
       #sp-notification {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 12px 16px 20px 16px;
+        padding: 10px 32px 10px 14px;
         border-radius: 8px;
         display: flex;
         align-items: flex-start;
@@ -263,16 +263,41 @@ export async function GET(request: Request) {
       #sp-notification .sp-name {
         font-weight: 600;
         font-size: 14px;
-        line-height: 1.3;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       #sp-notification .sp-action {
         font-size: 13px;
-        margin-top: 2px;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #sp-notification .sp-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 4px;
+        gap: 8px;
       }
       #sp-notification .sp-time {
         font-size: 11px;
-        margin-top: 4px;
-        opacity: 0.7;
+        line-height: 1.2;
+        opacity: 0.6;
+      }
+      #sp-notification .sp-attribution {
+        font-size: 10px;
+        opacity: 0.5;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+      }
+      #sp-notification .sp-verified {
+        color: #3b82f6;
+        font-weight: 600;
       }
       #sp-notification .sp-close {
         position: absolute;
@@ -280,9 +305,9 @@ export async function GET(request: Request) {
         right: 8px;
         background: rgba(0, 0, 0, 0.1);
         border: none;
-        font-size: 16px;
+        font-size: 14px;
         cursor: pointer;
-        padding: 2px 6px;
+        padding: 2px 5px;
         line-height: 1;
         border-radius: 4px;
         opacity: 0.7;
@@ -291,19 +316,6 @@ export async function GET(request: Request) {
       #sp-notification .sp-close:hover {
         opacity: 1;
         background: rgba(0, 0, 0, 0.2);
-      }
-      #sp-notification .sp-attribution {
-        position: absolute;
-        bottom: 4px;
-        right: 12px;
-        font-size: 9px;
-        opacity: 0.5;
-        display: flex;
-        align-items: center;
-        gap: 2px;
-      }
-      #sp-notification .sp-check {
-        color: #22c55e;
       }
       #sp-notification.sp-visible {
         opacity: 1;
@@ -394,7 +406,11 @@ export async function GET(request: Request) {
 
   // Show notification
   function showNotification(event) {
-    if (!notificationEl || isDismissed) return;
+    log('showNotification called', event);
+    if (!notificationEl || isDismissed) {
+      log('Cannot show: notificationEl=', !!notificationEl, 'isDismissed=', isDismissed);
+      return;
+    }
 
     var name = '';
     if (config.show_business_name && event.business_name) {
@@ -411,13 +427,24 @@ export async function GET(request: Request) {
 
     var html = '<div class="sp-name">' + name + location + '</div>';
     html += '<div class="sp-action">' + action + '</div>';
+    html += '<div class="sp-footer">';
     if (time) {
-      html += '<div class="sp-time">' + time + (config.time_ago_text ? ' ' + config.time_ago_text : '') + '</div>';
+      // Only add time_ago_text if time doesn't already end with "ago"
+      var timeDisplay = time;
+      if (config.time_ago_text && !time.endsWith('ago')) {
+        timeDisplay = time + ' ' + config.time_ago_text;
+      }
+      html += '<span class="sp-time">' + timeDisplay + '</span>';
     }
+    html += '<span class="sp-attribution"><span class="sp-verified">✓</span> Verified by TrustSignal</span>';
+    html += '</div>';
 
     notificationEl.querySelector('.sp-content').innerHTML = html;
     notificationEl.classList.add('sp-visible');
+    notificationEl.style.opacity = '1';
+    notificationEl.style.transform = 'translateY(0)';
     isVisible = true;
+    log('Notification made visible');
 
     setTimeout(function() {
       hideNotification();
@@ -428,7 +455,10 @@ export async function GET(request: Request) {
   function hideNotification() {
     if (!notificationEl) return;
     notificationEl.classList.remove('sp-visible');
+    notificationEl.style.opacity = '0';
+    notificationEl.style.transform = 'translateY(20px)';
     isVisible = false;
+    log('Notification hidden');
   }
 
   // Dismiss widget
@@ -453,6 +483,7 @@ export async function GET(request: Request) {
 
   // Start rotation
   function startRotation() {
+    log('startRotation called, events:', events.length);
     if (events.length === 0) {
       log('No events to display');
       return;
@@ -460,8 +491,10 @@ export async function GET(request: Request) {
 
     eventQueue = config.randomize_order ? shuffleArray(events) : events.slice();
     currentIndex = 0;
+    log('Event queue ready, first event:', eventQueue[0]);
 
     function showNext() {
+      log('showNext called, isDismissed:', isDismissed);
       if (isDismissed) return;
 
       if (currentIndex >= eventQueue.length) {
@@ -503,10 +536,15 @@ export async function GET(request: Request) {
 
       // Create notification element
       notificationEl = createNotification();
+      log('Notification element created:', notificationEl ? 'yes' : 'no');
 
       // Start rotation after initial delay (default 10s for better UX)
       var initialDelay = (config.initial_delay || 10) * 1000;
-      setTimeout(startRotation, initialDelay);
+      log('Starting rotation in', initialDelay / 1000, 'seconds');
+      setTimeout(function() {
+        log('Timer fired, calling startRotation');
+        startRotation();
+      }, initialDelay);
     });
   }
 

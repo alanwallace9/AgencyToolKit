@@ -73,7 +73,7 @@ export function WidgetCard({ widget }: WidgetCardProps) {
     try {
       const newWidget = await duplicateWidget(widget.id);
       toast.success('Widget duplicated');
-      router.push(`/social-proof/${newWidget.id}`);
+      router.push(`/trustsignal/${newWidget.id}`);
     } catch {
       toast.error('Failed to duplicate widget');
     }
@@ -98,7 +98,7 @@ export function WidgetCard({ widget }: WidgetCardProps) {
       <Card className="hover:shadow-md transition-shadow cursor-pointer group">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0" onClick={() => router.push(`/social-proof/${widget.id}`)}>
+            <div className="flex-1 min-w-0" onClick={() => router.push(`/trustsignal/${widget.id}`)}>
               <CardTitle className="text-sm font-medium truncate">
                 {widget.name}
               </CardTitle>
@@ -134,7 +134,7 @@ export function WidgetCard({ widget }: WidgetCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => router.push(`/social-proof/${widget.id}`)}>
+                <DropdownMenuItem onClick={() => router.push(`/trustsignal/${widget.id}`)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
@@ -170,7 +170,7 @@ export function WidgetCard({ widget }: WidgetCardProps) {
 
         <CardContent
           className="pb-3"
-          onClick={() => router.push(`/social-proof/${widget.id}`)}
+          onClick={() => router.push(`/trustsignal/${widget.id}`)}
         >
           {/* Theme Preview */}
           <div className="mb-3">
@@ -184,7 +184,7 @@ export function WidgetCard({ widget }: WidgetCardProps) {
 
         <CardFooter
           className="border-t pt-3 text-xs text-muted-foreground"
-          onClick={() => router.push(`/social-proof/${widget.id}`)}
+          onClick={() => router.push(`/trustsignal/${widget.id}`)}
         >
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">

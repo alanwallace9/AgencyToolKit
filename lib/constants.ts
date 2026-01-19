@@ -236,7 +236,7 @@ export const PLANS = {
   pro: {
     label: 'Pro',
     price: 39,
-    features: ['menu', 'login', 'loading', 'colors', 'tours', 'images', 'gbp', 'social-proof'],
+    features: ['menu', 'login', 'loading', 'colors', 'tours', 'images', 'gbp', 'trustsignal'],
     customer_limit: Infinity,
   },
 } as const;

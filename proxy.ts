@@ -8,9 +8,13 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/config(.*)',
   '/api/debug-auth(.*)',  // Temporary debug endpoint
+  '/api/trustsignal/config(.*)',  // TrustSignal widget config (public)
+  '/api/trustsignal/capture(.*)',  // TrustSignal form capture (public)
   '/embed.js(.*)',
+  '/ts.js(.*)',  // TrustSignal embed script
   '/api/og(.*)',
   '/preview(.*)',
+  '/test-widget(.*)',  // Test page for TrustSignal
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

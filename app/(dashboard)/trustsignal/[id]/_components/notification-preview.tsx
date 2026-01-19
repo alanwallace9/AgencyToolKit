@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatTimeAgo } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -71,19 +72,12 @@ export function NotificationPreview({
     if (!widget.show_time_ago) return null;
     if (event.display_time_override) return event.display_time_override;
 
-    // Calculate time ago
+    // Use shared time formatting
     if (event.created_at) {
-      const diffMs = Date.now() - new Date(event.created_at).getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-
-      if (diffMins < 1) return `just now`;
-      if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ${widget.time_ago_text}`;
-      if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ${widget.time_ago_text}`;
-      return `recently`;
+      return formatTimeAgo(event.created_at);
     }
 
-    return `2 hours ${widget.time_ago_text}`;
+    return '2 hours ago';
   };
 
   // Theme styles
@@ -252,48 +246,52 @@ export function NotificationPreview({
             }`}
           >
             <div
-              className={`p-3 min-w-[180px] max-w-[220px] ${widget.theme === 'rounded' ? 'rounded-2xl' : 'rounded-lg'} ${styles.container}`}
+              className={`p-3 pr-8 min-w-[320px] max-w-[400px] relative ${widget.theme === 'rounded' ? 'rounded-2xl' : 'rounded-lg'} ${styles.container}`}
               style={widget.theme === 'custom' ? styles.containerStyle : undefined}
             >
-              <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <div
-                    className={`font-semibold text-sm truncate ${styles.title}`}
-                    style={widget.theme === 'custom' ? styles.titleStyle : undefined}
-                  >
-                    {name}
-                    {city && <span className="font-normal"> from {city}</span>}
-                  </div>
-                  <div
-                    className={`text-xs mt-0.5 ${styles.subtitle}`}
-                    style={widget.theme === 'custom' ? styles.subtitleStyle : undefined}
-                  >
-                    {actionText}
-                  </div>
-                  {timeText && (
-                    <div
-                      className={`text-[10px] mt-1 ${styles.time}`}
-                      style={widget.theme === 'custom' ? styles.timeStyle : undefined}
-                    >
-                      {timeText}
-                    </div>
-                  )}
-                </div>
-                <button
-                  className={`px-1 py-0.5 rounded text-[10px] -mt-0.5 transition-colors ${
-                    widget.theme === 'dark'
-                      ? 'bg-white/10 hover:bg-white/20 text-gray-400'
-                      : 'bg-black/10 hover:bg-black/20 text-gray-500'
-                  }`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
+              {/* Close button */}
+              <button
+                className={`absolute top-2 right-2 px-1 py-0.5 rounded text-[10px] transition-colors ${
+                  widget.theme === 'dark'
+                    ? 'bg-white/10 hover:bg-white/20 text-gray-400'
+                    : 'bg-black/10 hover:bg-black/20 text-gray-500'
+                }`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+
+              {/* Line 1: Name */}
+              <div
+                className={`font-semibold text-sm truncate ${styles.title}`}
+                style={widget.theme === 'custom' ? styles.titleStyle : undefined}
+              >
+                {name}
+                {city && <span className="font-normal"> from {city}</span>}
               </div>
-              {/* TrustSignal Attribution */}
-              <div className={`text-[8px] mt-1.5 flex items-center gap-0.5 ${
-                widget.theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                <span className="text-green-500">✓</span> TrustSignal
+
+              {/* Line 2: Action */}
+              <div
+                className={`text-xs mt-0.5 ${styles.subtitle}`}
+                style={widget.theme === 'custom' ? styles.subtitleStyle : undefined}
+              >
+                {actionText}
+              </div>
+
+              {/* Line 3: Time (left) + Attribution (right) */}
+              <div className="flex items-center justify-between mt-1 gap-2">
+                {timeText && (
+                  <span
+                    className={`text-[10px] ${styles.time}`}
+                    style={widget.theme === 'custom' ? styles.timeStyle : undefined}
+                  >
+                    {timeText}
+                  </span>
+                )}
+                <span className={`text-[9px] flex items-center gap-0.5 ml-auto ${
+                  widget.theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  <span className="text-blue-500 font-semibold">✓</span> Verified by TrustSignal
+                </span>
               </div>
             </div>
           </div>

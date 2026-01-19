@@ -128,11 +128,11 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
             <Link
-              href="/social-proof"
+              href="/trustsignal"
               className={cn(
                 navigationMenuTriggerStyle(),
                 "text-[14px] font-medium h-9 px-3 gap-1.5",
-                pathname.startsWith("/social-proof")
+                pathname.startsWith("/trustsignal")
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}

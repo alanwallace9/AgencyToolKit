@@ -24,7 +24,7 @@ export function EmbedCodeTab({ widget, agency }: EmbedCodeTabProps) {
 
   // Generate the embed URL - always use production URL for embed code
   const productionUrl = 'https://toolkit.getrapidreviews.com';
-  const embedCode = `<script src="${productionUrl}/sp.js?key=${widget.token}"></script>`;
+  const embedCode = `<script src="${productionUrl}/ts.js?key=${widget.token}"></script>`;
 
   const handleCopy = async () => {
     try {
@@ -127,7 +127,7 @@ export function EmbedCodeTab({ widget, agency }: EmbedCodeTabProps) {
                 What does this script do?
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>The Social Proof script adds trust-building notifications to your website:</p>
+                <p>The TrustSignal script adds trust-building notifications to your website:</p>
                 <ul className="list-disc list-inside space-y-1 pl-2">
                   <li>
                     <strong>Auto-captures form submissions</strong> — Detects when visitors
@@ -197,7 +197,7 @@ export function EmbedCodeTab({ widget, agency }: EmbedCodeTabProps) {
                 <p className="pl-2">
                   Open your browser&apos;s developer tools (F12) and look for any errors
                   in the Console tab. The script logs debug info starting with
-                  &quot;[SocialProof]&quot;.
+                  &quot;[TrustSignal]&quot;.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -253,7 +253,7 @@ export function EmbedCodeTab({ widget, agency }: EmbedCodeTabProps) {
           </p>
           <Button variant="outline" asChild>
             <a
-              href={`/api/social-proof/preview?key=${widget.token}`}
+              href={`/api/trustsignal/preview?key=${widget.token}`}
               target="_blank"
               rel="noopener noreferrer"
             >

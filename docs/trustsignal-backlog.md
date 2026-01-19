@@ -17,9 +17,23 @@
 - [x] Make dismiss button more prominent (always visible)
 - [x] Update source enum: removed `csv`/`manual`, added `google`
 
+### Phase 1B: MVP Polish ✅
+*Completed: 2026-01-19*
+
+- [x] Fix notification display bug (CSS specificity)
+- [x] 3-line notification layout (Name, Action, Time + Attribution)
+- [x] Consistent time formatting across app
+- [x] Wider widget (320-420px)
+- [x] Slower entrance animation (0.5s)
+- [x] Copy button for CSS selector
+- [x] Business name column in Events tab
+- [x] Live preview matches actual widget styling
+
+**MVP is now complete and functional.**
+
 ---
 
-## Phase 1B: Google Reviews Integration
+## Phase 1C: Google Reviews Integration (BACKLOGGED)
 
 **Goal:** Give new users a way to populate real, verifiable review data immediately via OAuth.
 
@@ -255,9 +269,24 @@ Once connected, users could filter which reviews to show:
 
 ---
 
-## Phase 2: Placements System
+## Phase 2: Placements System (BACKLOGGED - NEEDS B-MAD SPEC)
+
+**Status:** Backlogged pending full specification document
+**Spec Required:** `docs/features/trustsignal-phase2-spec.md`
+**Estimated Implementation:** 8-12 hours (2-3 sessions)
 
 **Goal:** Replace single embed code with multiple "placements" - each placement has its own event type and can be installed on different pages.
+
+### Before Implementation Required:
+- [ ] Full B-MAD feature spec document
+- [ ] User stories with acceptance criteria
+- [ ] Database schema design review
+- [ ] UI/UX wireframes (especially for inline previews table)
+- [ ] API endpoint specifications
+- [ ] Implementation order and dependencies
+
+### Additional Requirement (from 2026-01-19 session):
+**Inline Live Previews in Widgets Table** - ProveSource-style table with live notification preview card in each row. See competitor analysis: `docs/sessions/session-social-proof-competitor-analysis.md`
 
 **Why:** Agencies want one widget but different notifications on different pages:
 - Homepage: "John just signed up"

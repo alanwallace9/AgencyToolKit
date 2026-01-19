@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimeAgo } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -253,6 +253,7 @@ export function EventsTab({
                     />
                   </TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Business</TableHead>
                   <TableHead>City</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Source</TableHead>
@@ -271,7 +272,10 @@ export function EventsTab({
                       />
                     </TableCell>
                     <TableCell className="font-medium">
-                      {event.first_name || event.business_name || '—'}
+                      {event.first_name || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {event.business_name || '—'}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {event.city || '—'}
@@ -294,10 +298,7 @@ export function EventsTab({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {event.display_time_override ||
-                        formatDistanceToNow(new Date(event.created_at), {
-                          addSuffix: true,
-                        })}
+                      {event.display_time_override || formatTimeAgo(event.created_at)}
                     </TableCell>
                     <TableCell>
                       <button
