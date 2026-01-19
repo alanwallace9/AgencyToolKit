@@ -38,8 +38,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Plus,
-  Upload,
   MoreHorizontal,
   Trash2,
   Eye,
@@ -49,8 +47,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AddEventDialog } from './add-event-dialog';
-import { CsvImportDialog } from './csv-import-dialog';
 import {
   updateEventVisibility,
   deleteEvent,
@@ -67,18 +63,17 @@ interface EventsTabProps {
   onEventsChange: () => void;
 }
 
+// Only verified data sources - no manual entry
 const SOURCE_LABELS: Record<SocialProofEventSource, string> = {
   auto: 'Auto-captured',
-  manual: 'Manual',
-  csv: 'CSV Import',
+  google: 'Google Reviews',
   webhook: 'Webhook',
   stripe: 'Stripe',
 };
 
 const SOURCE_COLORS: Record<SocialProofEventSource, string> = {
   auto: 'bg-green-100 text-green-700',
-  manual: 'bg-blue-100 text-blue-700',
-  csv: 'bg-purple-100 text-purple-700',
+  google: 'bg-blue-100 text-blue-700',
   webhook: 'bg-orange-100 text-orange-700',
   stripe: 'bg-pink-100 text-pink-700',
 };
@@ -91,8 +86,6 @@ export function EventsTab({
 }: EventsTabProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sourceFilter, setSourceFilter] = useState<string>('all');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -196,8 +189,7 @@ export function EventsTab({
             <SelectContent>
               <SelectItem value="all">All sources</SelectItem>
               <SelectItem value="auto">Auto-captured</SelectItem>
-              <SelectItem value="manual">Manual</SelectItem>
-              <SelectItem value="csv">CSV Import</SelectItem>
+              <SelectItem value="google">Google Reviews</SelectItem>
             </SelectContent>
           </Select>
 
@@ -224,21 +216,6 @@ export function EventsTab({
             </div>
           )}
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowImportDialog(true)}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Import CSV
-          </Button>
-          <Button size="sm" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Event
-          </Button>
-        </div>
       </div>
 
       {/* Events Table */}
@@ -257,24 +234,10 @@ export function EventsTab({
                 <Sparkles className="h-6 w-6 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-sm mb-1">No events yet</h3>
-              <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-                Events will appear here when captured from your website or added
-                manually.
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                Events appear here automatically when captured from your website.
+                Install the embed code to start collecting real visitor activity.
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowImportDialog(true)}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import CSV
-                </Button>
-                <Button size="sm" onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Event
-                </Button>
-              </div>
             </div>
           ) : (
             <Table>
@@ -400,21 +363,7 @@ export function EventsTab({
         </CardContent>
       </Card>
 
-      {/* Dialogs */}
-      <AddEventDialog
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        widgetId={widgetId}
-        onEventAdded={onEventsChange}
-      />
-
-      <CsvImportDialog
-        open={showImportDialog}
-        onOpenChange={setShowImportDialog}
-        widgetId={widgetId}
-        onImportComplete={onEventsChange}
-      />
-
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

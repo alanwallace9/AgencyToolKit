@@ -94,11 +94,55 @@ export async function getWidget(id: string) {
   return widget as SocialProofWidget;
 }
 
+// Widget limits by plan
+const WIDGET_LIMITS: Record<string, number> = {
+  free: 1,
+  toolkit: 5,
+  pro: Infinity,
+};
+
+export async function getWidgetLimitInfo() {
+  const agency = await getCurrentAgency();
+  if (!agency) throw new Error('Unauthorized');
+
+  const supabase = createAdminClient();
+
+  const { count } = await supabase
+    .from('social_proof_widgets')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agency.id);
+
+  const limit = WIDGET_LIMITS[agency.plan] ?? 1;
+  const current = count ?? 0;
+
+  return {
+    current,
+    limit,
+    remaining: limit === Infinity ? Infinity : limit - current,
+    canCreate: current < limit,
+    plan: agency.plan,
+  };
+}
+
 export async function createWidget(name: string) {
   const agency = await getCurrentAgency();
   if (!agency) throw new Error('Unauthorized');
 
   const supabase = createAdminClient();
+
+  // Check widget limit
+  const { count } = await supabase
+    .from('social_proof_widgets')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agency.id);
+
+  const limit = WIDGET_LIMITS[agency.plan] ?? 1;
+  if ((count ?? 0) >= limit) {
+    throw new Error(
+      `Widget limit reached. Your ${agency.plan} plan allows ${limit} widget${limit === 1 ? '' : 's'}. Upgrade to create more.`
+    );
+  }
+
   const token = generateSocialProofWidgetToken();
 
   const { data: widget, error } = await supabase
@@ -107,6 +151,7 @@ export async function createWidget(name: string) {
       agency_id: agency.id,
       name,
       token,
+      initial_delay: 10, // Default to 10s for better UX
     })
     .select()
     .single();
@@ -130,6 +175,7 @@ export async function updateWidget(
       accent: string;
       border: string;
     };
+    custom_css: string | null;
     display_duration: number;
     gap_between: number;
     initial_delay: number;
@@ -276,45 +322,11 @@ export async function getEvents(widgetId: string, options?: { source?: string; l
   };
 }
 
-export async function createEvent(
-  widgetId: string,
-  eventData: {
-    event_type: SocialProofEventType;
-    first_name?: string;
-    business_name?: string;
-    city?: string;
-    custom_text?: string;
-    display_time_override?: string;
-  }
-) {
-  const agency = await getCurrentAgency();
-  if (!agency) throw new Error('Unauthorized');
-
-  const supabase = createAdminClient();
-
-  const { data: event, error } = await supabase
-    .from('social_proof_events')
-    .insert({
-      agency_id: agency.id,
-      widget_id: widgetId,
-      event_type: eventData.event_type,
-      source: 'manual',
-      first_name: eventData.first_name || null,
-      business_name: eventData.business_name || '',
-      city: eventData.city || null,
-      custom_text: eventData.custom_text || null,
-      display_time_override: eventData.display_time_override || null,
-      details: {},
-      is_visible: true,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  revalidatePath(`/social-proof/${widgetId}`);
-  return event as SocialProofEvent;
-}
+// Note: Manual event creation has been removed to enforce "real data only" policy.
+// Events can only be created via:
+// - Auto-capture from website forms (via /api/social-proof/event)
+// - Google Reviews integration (Phase 1B)
+// - Future: Stripe webhooks, GHL webhooks
 
 export async function updateEventVisibility(eventId: string, isVisible: boolean) {
   const agency = await getCurrentAgency();
@@ -382,19 +394,27 @@ export async function bulkDeleteEvents(widgetId: string, eventIds: string[]) {
   revalidatePath(`/social-proof/${widgetId}`);
 }
 
-export async function importEvents(
-  widgetId: string,
-  rows: Array<{
-    first_name?: string;
-    business_name?: string;
-    city?: string;
-    event_type?: string;
-  }>,
-  options: {
-    column_mapping?: Record<string, string>;
-    default_event_type: SocialProofEventType;
-    use_time_override: boolean;
-    time_override_text?: string;
+// Note: CSV import has been removed to enforce "real data only" policy.
+// All events must come from verified sources (auto-capture, Google Reviews, webhooks).
+
+// ============================================
+// SAVED WIDGET THEME ACTIONS
+// ============================================
+
+export async function getSavedWidgetThemes() {
+  const agency = await getCurrentAgency();
+  if (!agency) throw new Error('Unauthorized');
+
+  return agency.settings?.saved_widget_themes || [];
+}
+
+export async function saveWidgetTheme(
+  name: string,
+  colors: {
+    background: string;
+    text: string;
+    accent: string;
+    border: string;
   }
 ) {
   const agency = await getCurrentAgency();
@@ -402,73 +422,80 @@ export async function importEvents(
 
   const supabase = createAdminClient();
 
-  const validEventTypes = [
-    'signup', 'trial', 'demo', 'purchase', 'subscription',
-    'milestone', 'connected', 'review_milestone', 'lead_milestone', 'custom',
-  ];
+  const existingThemes = agency.settings?.saved_widget_themes || [];
 
-  const mapping = options.column_mapping || {};
-
-  const eventsToInsert = rows
-    .map((row) => {
-      const firstName = mapping.first_name
-        ? row[mapping.first_name as keyof typeof row]
-        : row.first_name;
-      const businessName = mapping.business_name
-        ? row[mapping.business_name as keyof typeof row]
-        : row.business_name;
-      const city = mapping.city
-        ? row[mapping.city as keyof typeof row]
-        : row.city;
-      const eventTypeFromRow = mapping.event_type
-        ? row[mapping.event_type as keyof typeof row]
-        : row.event_type;
-
-      let eventType = options.default_event_type;
-      if (eventTypeFromRow && validEventTypes.includes(String(eventTypeFromRow).toLowerCase())) {
-        eventType = String(eventTypeFromRow).toLowerCase() as SocialProofEventType;
-      }
-
-      if (!firstName && !businessName) return null;
-
-      return {
-        agency_id: agency.id,
-        widget_id: widgetId,
-        event_type: eventType,
-        source: 'csv',
-        first_name: firstName ? String(firstName).trim() : null,
-        business_name: businessName ? String(businessName).trim() : '',
-        city: city ? String(city).trim() : null,
-        display_time_override: options.use_time_override
-          ? options.time_override_text || 'recently'
-          : null,
-        details: {},
-        is_visible: true,
-      };
-    })
-    .filter((event) => event !== null);
-
-  if (eventsToInsert.length === 0) {
-    throw new Error('No valid rows to import');
-  }
-
-  // Insert in batches
-  const batchSize = 100;
-  let insertedCount = 0;
-
-  for (let i = 0; i < eventsToInsert.length; i += batchSize) {
-    const batch = eventsToInsert.slice(i, i + batchSize);
-    const { error } = await supabase.from('social_proof_events').insert(batch);
-    if (!error) {
-      insertedCount += batch.length;
-    }
-  }
-
-  revalidatePath(`/social-proof/${widgetId}`);
-
-  return {
-    imported: insertedCount,
-    skipped: rows.length - eventsToInsert.length,
-    total: rows.length,
+  // Generate unique ID
+  const newTheme = {
+    id: `theme_${Date.now()}`,
+    name,
+    colors,
   };
+
+  const updatedThemes = [...existingThemes, newTheme];
+
+  const { error } = await supabase
+    .from('agencies')
+    .update({
+      settings: {
+        ...agency.settings,
+        saved_widget_themes: updatedThemes,
+      },
+    })
+    .eq('id', agency.id);
+
+  if (error) throw error;
+
+  revalidatePath('/social-proof');
+
+  return newTheme;
+}
+
+export async function deleteWidgetTheme(themeId: string) {
+  const agency = await getCurrentAgency();
+  if (!agency) throw new Error('Unauthorized');
+
+  const supabase = createAdminClient();
+
+  const existingThemes = agency.settings?.saved_widget_themes || [];
+  const updatedThemes = existingThemes.filter((t: { id: string }) => t.id !== themeId);
+
+  const { error } = await supabase
+    .from('agencies')
+    .update({
+      settings: {
+        ...agency.settings,
+        saved_widget_themes: updatedThemes,
+      },
+    })
+    .eq('id', agency.id);
+
+  if (error) throw error;
+
+  revalidatePath('/social-proof');
+}
+
+export async function renameWidgetTheme(themeId: string, newName: string) {
+  const agency = await getCurrentAgency();
+  if (!agency) throw new Error('Unauthorized');
+
+  const supabase = createAdminClient();
+
+  const existingThemes = agency.settings?.saved_widget_themes || [];
+  const updatedThemes = existingThemes.map((t: { id: string; name: string; colors: object }) =>
+    t.id === themeId ? { ...t, name: newName } : t
+  );
+
+  const { error } = await supabase
+    .from('agencies')
+    .update({
+      settings: {
+        ...agency.settings,
+        saved_widget_themes: updatedThemes,
+      },
+    })
+    .eq('id', agency.id);
+
+  if (error) throw error;
+
+  revalidatePath('/social-proof');
 }

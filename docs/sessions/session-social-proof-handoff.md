@@ -2,11 +2,11 @@
 
 **Feature:** 42-43 Social Proof Widget
 **Date:** 2026-01-18
-**Status:** Core Implementation Complete, Minor Polish Needed
+**Status:** Core Implementation Complete, Polish Items Remaining
 
 ---
 
-## What Was Built
+## What Was Built (Previous Session)
 
 ### Database
 - `social_proof_widgets` table with full configuration
@@ -34,7 +34,7 @@
   - **Settings Tab**: Theme selector (5 themes), position, timing sliders, content display toggles, URL targeting, form capture CSS selector
   - **Events Tab**: Table with visibility toggles, bulk actions, manual add dialog, CSV import with column mapping and sample download
   - **Embed Code Tab**: Copy button, accordion instructions for WordPress/Squarespace/Wix/Webflow/GHL
-- **Notification Preview** - Live preview with theme-aware backgrounds, test simulation mode
+- **Notification Preview** - Live preview with test simulation mode
 
 ### Embed Script (sp.js)
 - Form auto-detection (email/phone + name fields)
@@ -44,85 +44,118 @@
 - Session-based dismiss
 - 5 themes with full CSS styling
 
-### Navigation
-- Added "Social Proof" as top-level nav item with Bell icon (right of Theme Builder)
-
 ---
 
-## Key Decisions Made
+## What Was Built (This Session)
 
-1. **Widget Limit**: 5 for Toolkit plan, unlimited for Pro (enforcement not yet implemented)
-2. **Themes**: 5 total - Minimal, Glass (Apple-style), Dark, Rounded, Custom
-3. **Embed URL**: Hardcoded to `https://toolkit.getrapidreviews.com` for embed code display
-4. **Color Picker**: Custom component with opacity slider for Background and Border colors
-5. **Server Actions**: Use `createAdminClient()` (service role) because Clerk auth doesn't work with Supabase RLS
+### 1. Fixed Live Preview Background
+- **File:** `notification-preview.tsx`
+- Preview container now uses neutral gray gradient for all themes
+- Only the notification widget styling changes, not the "website mockup" background
 
----
+### 2. Green Active Toggle Switch
+- **File:** `widget-editor.tsx`
+- Active/Paused toggle switch is now green when active (was black)
 
-## Files Created/Modified
+### 3. Upgraded Color Picker
+- **File:** `settings-tab.tsx`
+- Replaced basic HTML color picker with `CustomColorPicker` component
+- Now has HSV color area, eyedropper tool, and saved colors grid
+- Disabled Gradient and Theme tabs (Color tab only)
 
-### New Files
-```
-app/(dashboard)/social-proof/
-├── page.tsx
-├── _actions/social-proof-actions.ts
-├── _components/
-│   ├── add-widget-dialog.tsx
-│   ├── empty-state.tsx
-│   ├── social-proof-client.tsx
-│   └── widget-card.tsx
-└── [id]/
-    ├── page.tsx
-    └── _components/
-        ├── widget-editor.tsx
-        ├── settings-tab.tsx
-        ├── events-tab.tsx
-        ├── embed-code-tab.tsx
-        ├── notification-preview.tsx
-        ├── add-event-dialog.tsx
-        └── csv-import-dialog.tsx
+### 4. Active Theme Indicator (Green Checkmark)
+- **File:** `settings-tab.tsx`
+- Selected theme now shows green checkmark badge in top-right corner
+- Changed border/background from blue to green for selected state
 
-app/api/social-proof/
-├── config/route.ts
-├── capture/route.ts
-├── widgets/route.ts
-├── widgets/[id]/route.ts
-├── events/route.ts
-├── events/[id]/route.ts
-├── events/bulk/route.ts
-└── events/import/route.ts
+### 5. Widget Limit Enforcement
+- **Files:** `social-proof-actions.ts`, `add-widget-dialog.tsx`, `social-proof-client.tsx`, `empty-state.tsx`
+- Added limit check: Toolkit = 5 widgets, Pro = unlimited
+- Shows remaining count on button: "New Widget (4 left)"
+- At limit: Shows "Upgrade to create more" amber button instead
+- Added upgrade prompt banner when at limit
 
-app/sp.js/route.ts
-```
-
-### Modified Files
-- `types/database.ts` - Added SocialProofWidget, SocialProofEvent types
-- `lib/tokens.ts` - Added `generateSocialProofWidgetToken()`
-- `components/dashboard/main-nav.tsx` - Added Social Proof nav item
+### 6. Save Custom Widget Themes (Backend Ready)
+- **Files:** `types/database.ts`, `social-proof-actions.ts`, `settings-tab.tsx`
+- Added `SavedWidgetTheme` type and `saved_widget_themes` to AgencySettings
+- Added server actions: `saveWidgetTheme()`, `deleteWidgetTheme()`
+- Added "Save as Preset" button (only shows when Custom theme is selected)
+- Added "Saved Presets" section with delete-on-hover
 
 ---
 
 ## What Still Needs to Be Done
 
-### High Priority
-1. **Widget Limit Enforcement** - Check widget count against plan limit before creating
-2. **Test on Production** - Verify embed script works cross-origin on real websites
-3. **Test Form Capture** - Verify auto-detection works on various form structures
+### High Priority (User Requested)
+
+1. **Save as Preset UX Improvement**
+   - Currently "Save as Preset" only shows when "Custom" theme is selected
+   - User wants to: Select a built-in theme (e.g., Glass) → Tweak colors → Save as custom preset
+   - Solution: Allow "Edit as Custom" flow - clicking "Edit" on any theme copies its colors to custom mode and shows the color pickers
+
+2. **Pro Plan Widget Count Display**
+   - For Pro plan (unlimited), show "1 widgets" but could add "of unlimited" as a selling point
+   - Currently shows just "1 widgets" with no limit indicator
+
+3. **Theme Rename Ability**
+   - User wants to rename saved presets after creation
 
 ### Medium Priority
-4. **"Test on Current Page" Feature** - Inject notification preview onto the actual dashboard page (deferred from this session)
-5. **App Naming** - User wants to name the social proof app for a dedicated subdomain (e.g., `appname.getrapidreviews.com`)
 
-### Low Priority / Polish
-6. **Event Analytics** - Track impressions, clicks, dismisses
-7. **Webhook Integration** - Receive events from external sources
-8. **Stripe Integration** - Auto-capture purchase events
+4. **"Test on Current Page" Feature** - Inject notification preview onto the actual dashboard page
+
+5. **Glass Theme Enhancement** - User mentioned wanting to make the glass theme more translucent. Could be a preset variation or better defaults.
+
+### Low Priority / Future
+
+6. **Review Theme Template** - Add a preset with Google 5-star review styling
+7. **Liquid Glass / Apple Glass** - Research required for advanced glass blur effects
+8. **Event Analytics** - Track impressions, clicks, dismisses
+9. **Webhook Integration** - Receive events from external sources
+10. **Stripe Integration** - Auto-capture purchase events
 
 ---
 
-## Known Issues
+## Files Modified This Session
 
-None currently - build passes, all features functional.
+### Modified
+- `app/(dashboard)/social-proof/[id]/_components/notification-preview.tsx` - Fixed background
+- `app/(dashboard)/social-proof/[id]/_components/widget-editor.tsx` - Green switch
+- `app/(dashboard)/social-proof/[id]/_components/settings-tab.tsx` - Color picker, checkmark, save presets
+- `app/(dashboard)/social-proof/_actions/social-proof-actions.ts` - Widget limits, theme save/delete
+- `app/(dashboard)/social-proof/_components/add-widget-dialog.tsx` - Limit enforcement UI
+- `app/(dashboard)/social-proof/_components/social-proof-client.tsx` - Limit display
+- `app/(dashboard)/social-proof/_components/empty-state.tsx` - Plan prop
+- `types/database.ts` - SavedWidgetTheme type, AgencySettings update, Infinity for pro limit
+
+---
+
+## Key Decisions Made
+
+1. **Color Picker**: Uses existing `CustomColorPicker` with Gradient/Theme tabs disabled
+2. **Theme Save Location**: Saved in `agency.settings.saved_widget_themes` (JSONB)
+3. **Widget Limits**: Enforced server-side in `createWidget()` action
+4. **Pro Plan Display**: Currently shows just count, no "unlimited" text
+
+---
+
+## Next Session Prompt
+
+```
+Continue work on the Social Proof Widget feature.
+
+Read the handoff document first:
+docs/sessions/session-social-proof-handoff.md
+
+Remaining tasks:
+1. **Save as Preset UX** - Allow users to start from any built-in theme, tweak colors, and save as preset. Currently only shows "Save as Preset" when Custom theme is selected. Add an "Edit as Custom" flow.
+
+2. **Pro Plan Display** - For unlimited (Pro) plans, show "1 of unlimited widgets" instead of just "1 widgets"
+
+3. **Theme Rename** - Add ability to rename saved widget theme presets
+
+The build currently passes. Focus on the Save as Preset UX first as that's the main user-facing issue.
+```
 
 ---
 

@@ -5,9 +5,10 @@ import { AddWidgetDialog } from './add-widget-dialog';
 
 interface EmptyStateProps {
   widgetLimit: number;
+  plan: string;
 }
 
-export function EmptyState({ widgetLimit }: EmptyStateProps) {
+export function EmptyState({ widgetLimit, plan }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="rounded-full bg-muted p-4 mb-4">
@@ -18,7 +19,7 @@ export function EmptyState({ widgetLimit }: EmptyStateProps) {
         Create your first social proof widget to start showing real-time notifications
         on your website. Capture leads automatically and build trust with visitors.
       </p>
-      <AddWidgetDialog widgetCount={0} widgetLimit={widgetLimit} />
+      <AddWidgetDialog widgetCount={0} widgetLimit={widgetLimit} plan={plan} />
     </div>
   );
 }

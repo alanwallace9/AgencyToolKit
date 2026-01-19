@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -12,50 +13,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Plus, X } from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Plus, X, Check, Save, Trash2, Loader2, Pencil } from 'lucide-react';
 import { useState } from 'react';
-import type { SocialProofWidget, SocialProofTheme, SocialProofPosition, SocialProofUrlMode } from '@/types/database';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { CustomColorPicker } from '@/components/shared/custom-color-picker';
+import { saveWidgetTheme, deleteWidgetTheme, renameWidgetTheme } from '../../_actions/social-proof-actions';
+import type { SocialProofWidget, SocialProofTheme, SocialProofPosition, SocialProofUrlMode, SavedWidgetTheme } from '@/types/database';
 
-// Parse rgba or hex to {hex, opacity}
-function parseColor(color: string): { hex: string; opacity: number } {
-  if (!color) return { hex: '#000000', opacity: 100 };
-
-  const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-  if (rgbaMatch) {
-    const r = parseInt(rgbaMatch[1]);
-    const g = parseInt(rgbaMatch[2]);
-    const b = parseInt(rgbaMatch[3]);
-    const a = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 1;
-    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    return { hex, opacity: Math.round(a * 100) };
-  }
-
-  return { hex: color, opacity: 100 };
-}
-
-// Format to rgba if opacity < 100
-function formatColor(hex: string, opacity: number): string {
-  if (opacity >= 100) return hex;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
-}
+// Default colors for each built-in theme (used as starting point for customization)
+const THEME_DEFAULT_COLORS: Record<Exclude<SocialProofTheme, 'custom'>, {
+  background: string;
+  text: string;
+  accent: string;
+  border: string;
+}> = {
+  minimal: {
+    background: '#ffffff',
+    text: '#1f2937',
+    accent: '#3b82f6',
+    border: '#e5e7eb',
+  },
+  glass: {
+    background: 'rgba(255, 255, 255, 0.85)',
+    text: '#1f2937',
+    accent: '#3b82f6',
+    border: 'rgba(255, 255, 255, 0.4)',
+  },
+  dark: {
+    background: '#1f2937',
+    text: '#f9fafb',
+    accent: '#60a5fa',
+    border: '#374151',
+  },
+  rounded: {
+    background: '#ffffff',
+    text: '#1f2937',
+    accent: '#8b5cf6',
+    border: '#e5e7eb',
+  },
+};
 
 interface SettingsTabProps {
   widget: SocialProofWidget;
   onChange: (updates: Partial<SocialProofWidget>) => void;
+  savedThemes?: SavedWidgetTheme[];
 }
 
-export function SettingsTab({ widget, onChange }: SettingsTabProps) {
+export function SettingsTab({ widget, onChange, savedThemes = [] }: SettingsTabProps) {
+  const router = useRouter();
   const [newPattern, setNewPattern] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [themeName, setThemeName] = useState('');
+  const [themeDescription, setThemeDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingThemeId, setDeletingThemeId] = useState<string | null>(null);
+  const [renamingTheme, setRenamingTheme] = useState<SavedWidgetTheme | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const handleAddPattern = () => {
     if (!newPattern.trim()) return;
@@ -69,6 +93,96 @@ export function SettingsTab({ widget, onChange }: SettingsTabProps) {
     const patterns = [...(widget.url_patterns || [])];
     patterns.splice(index, 1);
     onChange({ url_patterns: patterns });
+  };
+
+  // Save current custom colors as a preset
+  const handleSaveTheme = async () => {
+    if (!themeName.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await saveWidgetTheme(themeName.trim(), {
+        background: widget.custom_colors?.background || '#ffffff',
+        text: widget.custom_colors?.text || '#1f2937',
+        accent: widget.custom_colors?.accent || '#3b82f6',
+        border: widget.custom_colors?.border || '#e5e7eb',
+      });
+      toast.success('Theme saved');
+      setShowSaveDialog(false);
+      setThemeName('');
+      router.refresh();
+    } catch {
+      toast.error('Failed to save theme');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete a saved preset
+  const handleDeleteTheme = async (themeId: string) => {
+    setDeletingThemeId(themeId);
+    try {
+      await deleteWidgetTheme(themeId);
+      toast.success('Theme deleted');
+      router.refresh();
+    } catch {
+      toast.error('Failed to delete theme');
+    } finally {
+      setDeletingThemeId(null);
+    }
+  };
+
+  // Apply a saved preset (switch to custom mode and apply colors)
+  const handleApplySavedTheme = (theme: SavedWidgetTheme) => {
+    onChange({
+      theme: 'custom',
+      custom_colors: theme.colors,
+    });
+  };
+
+  // Create a new custom theme from scratch
+  const handleCreateCustomTheme = async () => {
+    if (!themeName.trim()) return;
+
+    setIsSaving(true);
+    try {
+      // Save the new theme preset
+      await saveWidgetTheme(themeName.trim(), THEME_DEFAULT_COLORS.minimal);
+
+      // Switch widget to custom mode with minimal defaults
+      onChange({
+        theme: 'custom',
+        custom_colors: THEME_DEFAULT_COLORS.minimal,
+      });
+
+      toast.success(`Theme "${themeName}" created`);
+      setShowCreateDialog(false);
+      setThemeName('');
+      setThemeDescription('');
+      router.refresh();
+    } catch {
+      toast.error('Failed to create theme');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Rename a saved theme preset
+  const handleRenameTheme = async () => {
+    if (!renamingTheme || !renameValue.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await renameWidgetTheme(renamingTheme.id, renameValue.trim());
+      toast.success('Theme renamed');
+      setRenamingTheme(null);
+      setRenameValue('');
+      router.refresh();
+    } catch {
+      toast.error('Failed to rename theme');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -106,68 +220,204 @@ export function SettingsTab({ widget, onChange }: SettingsTabProps) {
                 { id: 'glass', label: 'Glass', description: 'Frosted blur effect' },
                 { id: 'dark', label: 'Dark', description: 'Dark mode style' },
                 { id: 'rounded', label: 'Rounded', description: 'Soft corners' },
-                { id: 'custom', label: 'Custom', description: 'Your colors' },
               ] as const).map((theme) => (
                 <button
                   key={theme.id}
-                  onClick={() => onChange({ theme: theme.id })}
-                  className={`p-3 rounded-lg border-2 transition-all text-center ${
+                  onClick={() => {
+                    // Set theme and populate custom_colors with theme defaults
+                    onChange({
+                      theme: theme.id,
+                      custom_colors: THEME_DEFAULT_COLORS[theme.id],
+                    });
+                  }}
+                  className={`relative p-3 rounded-lg border-2 transition-all text-center ${
                     widget.theme === theme.id
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-green-500 bg-green-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
+                  {/* Active checkmark */}
+                  {widget.theme === theme.id && (
+                    <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                  )}
                   <ThemePreviewIcon theme={theme.id} />
                   <span className="text-sm mt-1 block font-medium">{theme.label}</span>
                   <span className="text-[10px] text-muted-foreground">{theme.description}</span>
                 </button>
               ))}
+              {/* Create Custom Theme Card */}
+              <button
+                onClick={() => setShowCreateDialog(true)}
+                className="p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all text-center"
+              >
+                <div className="h-12 w-full flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-gray-400" />
+                </div>
+                <span className="text-sm mt-1 block font-medium text-gray-600">Create Custom</span>
+                <span className="text-[10px] text-muted-foreground">Start from scratch</span>
+              </button>
             </div>
           </div>
 
-          {/* Custom Colors */}
-          {widget.theme === 'custom' && (
+          {/* Color Customization - Always visible */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Customize Colors</Label>
+              {widget.theme === 'custom' && (
+                <span className="text-xs text-muted-foreground">Modified from original</span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-              <ColorPickerWithOpacity
+              <CustomColorPicker
                 label="Background"
-                value={widget.custom_colors?.background || '#ffffff'}
+                value={widget.custom_colors?.background || THEME_DEFAULT_COLORS.minimal.background}
                 onChange={(value) =>
                   onChange({
+                    theme: 'custom', // Switch to custom when colors are modified
                     custom_colors: { ...widget.custom_colors, background: value },
                   })
                 }
-                showOpacity
+                showGradient={false}
+                showTheme={false}
               />
-              <ColorPickerWithOpacity
+              <CustomColorPicker
                 label="Text"
-                value={widget.custom_colors?.text || '#1f2937'}
+                value={widget.custom_colors?.text || THEME_DEFAULT_COLORS.minimal.text}
                 onChange={(value) =>
                   onChange({
+                    theme: 'custom',
                     custom_colors: { ...widget.custom_colors, text: value },
                   })
                 }
+                showGradient={false}
+                showTheme={false}
               />
-              <ColorPickerWithOpacity
+              <CustomColorPicker
                 label="Accent"
-                value={widget.custom_colors?.accent || '#3b82f6'}
+                value={widget.custom_colors?.accent || THEME_DEFAULT_COLORS.minimal.accent}
                 onChange={(value) =>
                   onChange({
+                    theme: 'custom',
                     custom_colors: { ...widget.custom_colors, accent: value },
                   })
                 }
+                showGradient={false}
+                showTheme={false}
               />
-              <ColorPickerWithOpacity
+              <CustomColorPicker
                 label="Border"
-                value={widget.custom_colors?.border || '#e5e7eb'}
+                value={widget.custom_colors?.border || THEME_DEFAULT_COLORS.minimal.border}
                 onChange={(value) =>
                   onChange({
+                    theme: 'custom',
                     custom_colors: { ...widget.custom_colors, border: value },
                   })
                 }
-                showOpacity
+                showGradient={false}
+                showTheme={false}
               />
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSaveDialog(true)}
+              className="w-full"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save as Preset
+            </Button>
+          </div>
+
+          {/* Saved Presets */}
+          {savedThemes.length > 0 && (
+            <div className="space-y-3">
+              <Label>Saved Presets</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {savedThemes.map((savedTheme) => (
+                  <button
+                    key={savedTheme.id}
+                    onClick={() => handleApplySavedTheme(savedTheme)}
+                    className="group relative p-3 rounded-lg border-2 transition-all text-center border-gray-200 hover:border-gray-300"
+                  >
+                    {/* Action buttons */}
+                    <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Rename button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenamingTheme(savedTheme);
+                          setRenameValue(savedTheme.name);
+                        }}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-500"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      {/* Delete button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTheme(savedTheme.id);
+                        }}
+                        disabled={deletingThemeId === savedTheme.id}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500"
+                      >
+                        {deletingThemeId === savedTheme.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                      </button>
+                    </div>
+                    {/* Color swatches */}
+                    <div className="h-12 w-full flex items-center justify-center gap-0.5 mb-1">
+                      <div
+                        className="w-6 h-6 rounded-l border border-gray-200"
+                        style={{ backgroundColor: savedTheme.colors.background }}
+                        title="Background"
+                      />
+                      <div
+                        className="w-6 h-6 border-t border-b border-gray-200"
+                        style={{ backgroundColor: savedTheme.colors.text }}
+                        title="Text"
+                      />
+                      <div
+                        className="w-6 h-6 border-t border-b border-gray-200"
+                        style={{ backgroundColor: savedTheme.colors.accent }}
+                        title="Accent"
+                      />
+                      <div
+                        className="w-6 h-6 rounded-r border border-gray-200"
+                        style={{ backgroundColor: savedTheme.colors.border }}
+                        title="Border"
+                      />
+                    </div>
+                    <span className="text-sm block font-medium truncate">{savedTheme.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
+
+          {/* Custom CSS */}
+          <div className="space-y-3">
+            <Label htmlFor="custom-css">Custom CSS (Advanced)</Label>
+            <Textarea
+              id="custom-css"
+              value={widget.custom_css || ''}
+              onChange={(e) => onChange({ custom_css: e.target.value || null })}
+              placeholder={`.sp-notification {
+  /* Your custom styles here */
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.3);
+}`}
+              className="font-mono text-xs min-h-[120px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Override notification styles. Use <code className="bg-muted px-1 rounded">.sp-notification</code> as the selector.
+            </p>
+          </div>
 
           {/* Position Selector */}
           <div className="space-y-3">
@@ -256,7 +506,7 @@ export function SettingsTab({ widget, onChange }: SettingsTabProps) {
               step={1}
             />
             <p className="text-xs text-muted-foreground">
-              Wait before showing first notification
+              Wait before showing first notification (10s recommended)
             </p>
           </div>
         </CardContent>
@@ -451,6 +701,174 @@ export function SettingsTab({ widget, onChange }: SettingsTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Save Theme Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save Theme Preset</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="theme-name">Preset Name</Label>
+              <Input
+                id="theme-name"
+                value={themeName}
+                onChange={(e) => setThemeName(e.target.value)}
+                placeholder="e.g., Brand Colors"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && themeName.trim()) {
+                    handleSaveTheme();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex gap-1">
+              <div
+                className="flex-1 h-8 rounded-l border border-gray-200"
+                style={{ backgroundColor: widget.custom_colors?.background || '#ffffff' }}
+              />
+              <div
+                className="flex-1 h-8 border-t border-b border-gray-200"
+                style={{ backgroundColor: widget.custom_colors?.text || '#1f2937' }}
+              />
+              <div
+                className="flex-1 h-8 border-t border-b border-gray-200"
+                style={{ backgroundColor: widget.custom_colors?.accent || '#3b82f6' }}
+              />
+              <div
+                className="flex-1 h-8 rounded-r border border-gray-200"
+                style={{ backgroundColor: widget.custom_colors?.border || '#e5e7eb' }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Background • Text • Accent • Border
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSaveDialog(false);
+                setThemeName('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTheme} disabled={!themeName.trim() || isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Preset
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Custom Theme Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Custom Theme</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-theme-name">Theme Name</Label>
+              <Input
+                id="create-theme-name"
+                value={themeName}
+                onChange={(e) => setThemeName(e.target.value)}
+                placeholder="e.g., My Brand Theme"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && themeName.trim()) {
+                    handleCreateCustomTheme();
+                  }
+                }}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Your theme will start with default colors. Customize them using the color pickers after creation.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateDialog(false);
+                setThemeName('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateCustomTheme} disabled={!themeName.trim() || isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Theme
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Theme Dialog */}
+      <Dialog open={!!renamingTheme} onOpenChange={(open) => !open && setRenamingTheme(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Theme</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rename-theme-name">Theme Name</Label>
+              <Input
+                id="rename-theme-name"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Theme name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && renameValue.trim()) {
+                    handleRenameTheme();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenamingTheme(null);
+                setRenameValue('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRenameTheme} disabled={!renameValue.trim() || isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -502,129 +920,3 @@ function PositionIcon({
   );
 }
 
-// Color picker with optional opacity slider
-function ColorPickerWithOpacity({
-  label,
-  value,
-  onChange,
-  showOpacity = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  showOpacity?: boolean;
-}) {
-  const parsed = parseColor(value);
-  const [hex, setHex] = useState(parsed.hex);
-  const [opacity, setOpacity] = useState(parsed.opacity);
-
-  const handleHexChange = (newHex: string) => {
-    setHex(newHex);
-    onChange(formatColor(newHex, opacity));
-  };
-
-  const handleOpacityChange = (values: number[]) => {
-    const newOpacity = values[0];
-    setOpacity(newOpacity);
-    onChange(formatColor(hex, newOpacity));
-  };
-
-  // Checkerboard pattern for transparency preview
-  const checkerboardBg = `linear-gradient(45deg, #ccc 25%, transparent 25%),
-    linear-gradient(-45deg, #ccc 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #ccc 75%),
-    linear-gradient(-45deg, transparent 75%, #ccc 75%)`;
-
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs">{label}</Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <button className="flex items-center gap-2 w-full">
-            <div
-              className="w-8 h-8 rounded border border-border cursor-pointer relative overflow-hidden"
-              style={{
-                background: checkerboardBg,
-                backgroundSize: '8px 8px',
-                backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
-              }}
-            >
-              <div
-                className="absolute inset-0"
-                style={{ backgroundColor: formatColor(hex, opacity) }}
-              />
-            </div>
-            <Input
-              value={hex}
-              onChange={(e) => handleHexChange(e.target.value)}
-              className="h-8 text-xs font-mono flex-1"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-3" align="start">
-          <div className="space-y-3">
-            {/* Color picker */}
-            <div className="space-y-2">
-              <Label className="text-xs">Color</Label>
-              <input
-                type="color"
-                value={hex}
-                onChange={(e) => handleHexChange(e.target.value)}
-                className="w-full h-24 rounded cursor-pointer border-0"
-              />
-            </div>
-
-            {/* Hex input */}
-            <div className="space-y-1">
-              <Label className="text-xs">Hex</Label>
-              <Input
-                value={hex}
-                onChange={(e) => handleHexChange(e.target.value)}
-                className="h-8 text-xs font-mono"
-                placeholder="#000000"
-              />
-            </div>
-
-            {/* Opacity slider */}
-            {showOpacity && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Opacity</Label>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {opacity}%
-                  </span>
-                </div>
-                <Slider
-                  value={[opacity]}
-                  onValueChange={handleOpacityChange}
-                  min={0}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            )}
-
-            {/* Preview */}
-            <div className="pt-2 border-t">
-              <Label className="text-xs text-muted-foreground">Preview</Label>
-              <div
-                className="mt-1 h-8 rounded border"
-                style={{
-                  background: checkerboardBg,
-                  backgroundSize: '8px 8px',
-                  backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
-                }}
-              >
-                <div
-                  className="w-full h-full rounded"
-                  style={{ backgroundColor: formatColor(hex, opacity) }}
-                />
-              </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}

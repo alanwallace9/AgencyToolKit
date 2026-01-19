@@ -29,6 +29,8 @@ export interface AgencySettings {
   colors_active?: boolean;
   // Saved colors from color picker (max 20)
   saved_colors?: string[];
+  // Saved widget themes for Social Proof
+  saved_widget_themes?: SavedWidgetTheme[];
 }
 
 export interface MenuConfig {
@@ -833,13 +835,20 @@ export type SocialProofEventType =
   | 'review_milestone'
   | 'lead_milestone'
   | 'custom';
-export type SocialProofEventSource = 'auto' | 'manual' | 'csv' | 'webhook' | 'stripe';
+// Verified data sources only - no manual entry or CSV import
+export type SocialProofEventSource = 'auto' | 'google' | 'webhook' | 'stripe';
 
 export interface SocialProofCustomColors {
   background: string;
   text: string;
   accent: string;
   border: string;
+}
+
+export interface SavedWidgetTheme {
+  id: string;
+  name: string;
+  colors: SocialProofCustomColors;
 }
 
 export interface SocialProofWidget {
@@ -853,6 +862,7 @@ export interface SocialProofWidget {
   theme: SocialProofTheme;
   position: SocialProofPosition;
   custom_colors: SocialProofCustomColors;
+  custom_css: string | null;
 
   // Timing
   display_duration: number;
@@ -919,7 +929,7 @@ export const SOCIAL_PROOF_EVENT_TYPE_TEXT: Record<SocialProofEventType, string> 
 export const SOCIAL_PROOF_WIDGET_LIMITS: Record<string, number> = {
   free: 0,
   toolkit: 5,
-  pro: 999, // Effectively unlimited
+  pro: Infinity,
 };
 
 export interface AnalyticsEvent {

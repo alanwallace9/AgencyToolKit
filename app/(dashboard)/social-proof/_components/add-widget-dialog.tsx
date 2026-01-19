@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Zap } from 'lucide-react';
+import { Plus, Zap, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { createWidget } from '../_actions/social-proof-actions';
 
@@ -22,19 +23,22 @@ interface AddWidgetDialogProps {
   disabled?: boolean;
   widgetCount: number;
   widgetLimit: number;
+  plan: string;
 }
 
 export function AddWidgetDialog({
   disabled,
   widgetCount,
   widgetLimit,
+  plan,
 }: AddWidgetDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  const isAtLimit = widgetCount >= widgetLimit;
+  const isAtLimit = widgetLimit !== Infinity && widgetCount >= widgetLimit;
+  const remaining = widgetLimit === Infinity ? 'unlimited' : widgetLimit - widgetCount;
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -51,7 +55,12 @@ export function AddWidgetDialog({
       router.push(`/social-proof/${widget.id}`);
     } catch (error) {
       console.error('Error creating widget:', error);
-      toast.error('Failed to create widget');
+      const message = error instanceof Error ? error.message : 'Failed to create widget';
+      if (message.includes('limit reached')) {
+        toast.error(message);
+      } else {
+        toast.error('Failed to create widget');
+      }
     } finally {
       setIsCreating(false);
     }
@@ -66,18 +75,40 @@ export function AddWidgetDialog({
       router.push(`/social-proof/${widget.id}?tab=embed`);
     } catch (error) {
       console.error('Error creating widget:', error);
-      toast.error('Failed to create widget');
+      const message = error instanceof Error ? error.message : 'Failed to create widget';
+      if (message.includes('limit reached')) {
+        toast.error(message);
+      } else {
+        toast.error('Failed to create widget');
+      }
     } finally {
       setIsCreating(false);
     }
   };
 
+  // Show upgrade button instead when at limit
+  if (isAtLimit) {
+    return (
+      <Link href="/upgrade/social-proof">
+        <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          Upgrade to create more
+        </Button>
+      </Link>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button disabled={disabled || isAtLimit}>
+        <Button disabled={disabled}>
           <Plus className="h-4 w-4 mr-2" />
           New Widget
+          {widgetLimit !== Infinity && (
+            <span className="ml-2 text-xs opacity-70">
+              ({remaining} left)
+            </span>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent>

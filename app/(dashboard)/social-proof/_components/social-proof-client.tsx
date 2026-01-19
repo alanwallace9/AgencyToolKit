@@ -29,10 +29,10 @@ export function SocialProofClient({
 
   const activeCount = widgets.filter((w) => w.is_active).length;
   const pausedCount = widgets.filter((w) => !w.is_active).length;
-  const isAtLimit = widgets.length >= widgetLimit;
+  const isAtLimit = widgetLimit !== Infinity && widgets.length >= widgetLimit;
 
   if (widgets.length === 0) {
-    return <EmptyState widgetLimit={widgetLimit} />;
+    return <EmptyState widgetLimit={widgetLimit} plan={plan} />;
   }
 
   return (
@@ -41,7 +41,7 @@ export function SocialProofClient({
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-3 flex-wrap">
           <Badge variant="secondary" className="text-xs">
-            {widgets.length} / {widgetLimit === 999 ? '∞' : widgetLimit} widgets
+            {widgets.length} {widgetLimit === Infinity ? 'of unlimited' : `/ ${widgetLimit}`} widgets
           </Badge>
           {activeCount > 0 && (
             <Badge
@@ -79,7 +79,7 @@ export function SocialProofClient({
           <AddWidgetDialog
             widgetCount={widgets.length}
             widgetLimit={widgetLimit}
-            disabled={isAtLimit}
+            plan={plan}
           />
         </div>
       </div>

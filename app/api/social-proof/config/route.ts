@@ -86,6 +86,7 @@ export async function GET(request: Request) {
           theme: widget.theme,
           position: widget.position,
           custom_colors: widget.custom_colors,
+          custom_css: widget.custom_css,
           display_duration: widget.display_duration,
           gap_between: widget.gap_between,
           initial_delay: widget.initial_delay,

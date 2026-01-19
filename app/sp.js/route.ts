@@ -208,7 +208,7 @@ export async function GET(request: Request) {
     var el = document.createElement('div');
     el.id = 'sp-notification';
     el.style.cssText = getPositionStyles() + getBaseStyles();
-    el.innerHTML = '<div class="sp-content"></div><button class="sp-close">&times;</button>';
+    el.innerHTML = '<div class="sp-content"></div><button class="sp-close" aria-label="Dismiss">&times;</button><div class="sp-attribution"><span class="sp-check">✓</span> TrustSignal</div>';
 
     var style = document.createElement('style');
     style.textContent = getThemeStyles();
@@ -249,11 +249,12 @@ export async function GET(request: Request) {
     var baseStyles = \`
       #sp-notification {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 12px 16px;
+        padding: 12px 16px 20px 16px;
         border-radius: 8px;
         display: flex;
         align-items: flex-start;
         gap: 8px;
+        position: relative;
       }
       #sp-notification .sp-content {
         flex: 1;
@@ -274,17 +275,35 @@ export async function GET(request: Request) {
         opacity: 0.7;
       }
       #sp-notification .sp-close {
-        background: none;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.1);
         border: none;
-        font-size: 18px;
+        font-size: 16px;
         cursor: pointer;
-        padding: 0;
+        padding: 2px 6px;
         line-height: 1;
-        opacity: 0.5;
-        transition: opacity 0.2s;
+        border-radius: 4px;
+        opacity: 0.7;
+        transition: all 0.2s;
       }
       #sp-notification .sp-close:hover {
         opacity: 1;
+        background: rgba(0, 0, 0, 0.2);
+      }
+      #sp-notification .sp-attribution {
+        position: absolute;
+        bottom: 4px;
+        right: 12px;
+        font-size: 9px;
+        opacity: 0.5;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+      #sp-notification .sp-check {
+        color: #22c55e;
       }
       #sp-notification.sp-visible {
         opacity: 1;
@@ -292,8 +311,10 @@ export async function GET(request: Request) {
       }
     \`;
 
+    var themeCSS;
+
     if (theme === 'glass') {
-      return baseStyles + \`
+      themeCSS = baseStyles + \`
         #sp-notification {
           background: rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(20px);
@@ -307,7 +328,7 @@ export async function GET(request: Request) {
         #sp-notification .sp-close { color: #4b5563; }
       \`;
     } else if (theme === 'dark') {
-      return baseStyles + \`
+      themeCSS = baseStyles + \`
         #sp-notification {
           background: #111827;
           border: 1px solid #374151;
@@ -316,10 +337,12 @@ export async function GET(request: Request) {
         #sp-notification .sp-name { color: #f9fafb; }
         #sp-notification .sp-action { color: #d1d5db; }
         #sp-notification .sp-time { color: #6b7280; }
-        #sp-notification .sp-close { color: #6b7280; }
+        #sp-notification .sp-close { color: #9ca3af; background: rgba(255, 255, 255, 0.1); }
+        #sp-notification .sp-close:hover { background: rgba(255, 255, 255, 0.2); }
+        #sp-notification .sp-attribution { color: #6b7280; }
       \`;
     } else if (theme === 'rounded') {
-      return baseStyles + \`
+      themeCSS = baseStyles + \`
         #sp-notification {
           background: #ffffff;
           border: 1px solid #e5e7eb;
@@ -332,7 +355,7 @@ export async function GET(request: Request) {
         #sp-notification .sp-close { color: #9ca3af; }
       \`;
     } else if (theme === 'custom') {
-      return baseStyles + \`
+      themeCSS = baseStyles + \`
         #sp-notification {
           background: \${colors.background || '#ffffff'};
           border: 1px solid \${colors.border || '#e5e7eb'};
@@ -345,7 +368,7 @@ export async function GET(request: Request) {
       \`;
     } else {
       // Minimal theme (default)
-      return baseStyles + \`
+      themeCSS = baseStyles + \`
         #sp-notification {
           background: #ffffff;
           border: 1px solid #e5e7eb;
@@ -357,6 +380,16 @@ export async function GET(request: Request) {
         #sp-notification .sp-close { color: #9ca3af; }
       \`;
     }
+
+    // Append custom CSS if provided (allows overriding any styles)
+    var customCSS = config.custom_css || '';
+    if (customCSS) {
+      // Replace .sp-notification selector with #sp-notification for specificity
+      customCSS = customCSS.replace(/\\.sp-notification/g, '#sp-notification');
+      themeCSS += '\\n/* Custom CSS */\\n' + customCSS;
+    }
+
+    return themeCSS;
   }
 
   // Show notification
@@ -471,8 +504,8 @@ export async function GET(request: Request) {
       // Create notification element
       notificationEl = createNotification();
 
-      // Start rotation after initial delay
-      var initialDelay = (config.initial_delay || 3) * 1000;
+      // Start rotation after initial delay (default 10s for better UX)
+      var initialDelay = (config.initial_delay || 10) * 1000;
       setTimeout(startRotation, initialDelay);
     });
   }

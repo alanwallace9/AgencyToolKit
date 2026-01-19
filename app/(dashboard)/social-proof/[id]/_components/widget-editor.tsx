@@ -57,6 +57,7 @@ export function WidgetEditor({
         theme: widget.theme,
         position: widget.position,
         custom_colors: widget.custom_colors,
+        custom_css: widget.custom_css,
         display_duration: widget.display_duration,
         gap_between: widget.gap_between,
         initial_delay: widget.initial_delay,
@@ -145,6 +146,7 @@ export function WidgetEditor({
             <Switch
               checked={widget.is_active}
               onCheckedChange={handleToggleActive}
+              className="data-[state=checked]:bg-green-500"
             />
           </div>
           <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
@@ -192,6 +194,7 @@ export function WidgetEditor({
               <SettingsTab
                 widget={widget}
                 onChange={handleWidgetChange}
+                savedThemes={agency.settings?.saved_widget_themes || []}
               />
             </TabsContent>
 

@@ -220,14 +220,8 @@ export function NotificationPreview({
         </div>
       </CardHeader>
       <CardContent>
-        {/* Preview Container - simulating a website */}
-        <div className={`relative rounded-lg h-64 overflow-hidden ${
-          widget.theme === 'glass'
-            ? 'bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100'
-            : widget.theme === 'dark'
-            ? 'bg-gradient-to-br from-gray-700 to-gray-900'
-            : 'bg-gradient-to-br from-gray-50 to-gray-100'
-        }`}>
+        {/* Preview Container - simulating a website (neutral background for all themes) */}
+        <div className="relative rounded-lg h-64 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
           {/* Website mockup elements */}
           <div className="absolute top-0 left-0 right-0 h-8 bg-gray-800 flex items-center px-3 gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -285,9 +279,21 @@ export function NotificationPreview({
                     </div>
                   )}
                 </div>
-                <button className="text-gray-400 hover:text-gray-600 -mt-0.5">
+                <button
+                  className={`px-1 py-0.5 rounded text-[10px] -mt-0.5 transition-colors ${
+                    widget.theme === 'dark'
+                      ? 'bg-white/10 hover:bg-white/20 text-gray-400'
+                      : 'bg-black/10 hover:bg-black/20 text-gray-500'
+                  }`}
+                >
                   <X className="h-3 w-3" />
                 </button>
+              </div>
+              {/* TrustSignal Attribution */}
+              <div className={`text-[8px] mt-1.5 flex items-center gap-0.5 ${
+                widget.theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                <span className="text-green-500">✓</span> TrustSignal
               </div>
             </div>
           </div>
