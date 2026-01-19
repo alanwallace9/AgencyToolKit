@@ -213,7 +213,6 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         css += '#' + escapedId + ' span {\\n';
         css += '  visibility: hidden !important;\\n';
         css += '  position: relative !important;\\n';
-        css += '  width: 115px !important;\\n';
         css += '}\\n';
         // Show new text via ::after with position:absolute
         css += '#' + escapedId + ' span::after {\\n';
@@ -327,13 +326,14 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
 
     // Main Area Background
+    // NOTE: Using GHL-specific selectors only - avoid broad selectors like 'main' or wildcards
+    // that could accidentally color unintended elements
     if (ext.main_area_bg) {
       css += '/* Main Content Area Background */\\n';
       css += '.hl_main-content,\\n';
       css += '.hl-main-content,\\n';
-      css += 'main,\\n';
-      css += '[class*="main-content"],\\n';
-      css += '.content-wrapper { background-color: ' + ext.main_area_bg + ' !important; }\\n';
+      css += '.hl-right-pane,\\n';
+      css += '.location-layout__content { background-color: ' + ext.main_area_bg + ' !important; }\\n';
     }
 
     // Cards
