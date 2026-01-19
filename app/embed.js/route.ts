@@ -201,32 +201,28 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
 
     // Rename menu items using CSS ::after trick
-    // GHL uses span.nav-title and span.hl_text-overflow for menu text
-    // Some items (like Conversations, Reputation) may have different structures
+    // PROVEN PATTERN from user's working CSS - uses visibility + position absolute
     // NOTE: Some IDs have spaces - must escape for CSS
     if (menuConfig.renamed_items && Object.keys(menuConfig.renamed_items).length > 0) {
       css += '/* Renamed Menu Items */\\n';
       Object.keys(menuConfig.renamed_items).forEach(function(itemId) {
         var newName = menuConfig.renamed_items[itemId];
         var escapedId = CSS.escape(itemId);
-        // Hide original text using font-size:0 and color:transparent (visibility breaks ::after)
-        // Target multiple possible text element classes
-        css += '#' + escapedId + ' span.nav-title,\\n';
-        css += '#' + escapedId + ' span.hl_text-overflow,\\n';
-        css += '#' + escapedId + ' > span:not(.sr-only) { \\n';
-        css += '  font-size: 0 !important; \\n';
-        css += '  color: transparent !important; \\n';
-        css += '  letter-spacing: -9999px !important; \\n';
+        // Hide original text using visibility:hidden + position:relative
+        // Target all spans inside the menu item (simpler, more reliable)
+        css += '#' + escapedId + ' span {\\n';
+        css += '  visibility: hidden !important;\\n';
+        css += '  position: relative !important;\\n';
+        css += '  width: 115px !important;\\n';
         css += '}\\n';
-        // Show new text via ::after pseudo-element
-        css += '#' + escapedId + ' span.nav-title::after,\\n';
-        css += '#' + escapedId + ' span.hl_text-overflow::after,\\n';
-        css += '#' + escapedId + ' > span:not(.sr-only)::after { \\n';
-        css += '  content: "' + newName + '"; \\n';
-        css += '  font-size: 14px !important; \\n';
-        css += '  color: inherit !important; \\n';
-        css += '  letter-spacing: normal !important; \\n';
-        css += '  visibility: visible !important; \\n';
+        // Show new text via ::after with position:absolute
+        css += '#' + escapedId + ' span::after {\\n';
+        css += '  content: "' + newName + '";\\n';
+        css += '  visibility: visible !important;\\n';
+        css += '  position: absolute !important;\\n';
+        css += '  top: 0 !important;\\n';
+        css += '  left: 0 !important;\\n';
+        css += '  white-space: nowrap !important;\\n';
         css += '}\\n';
       });
     }
