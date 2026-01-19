@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 39% Complete (19 of 48 Features)
+## Progress: 42% Complete (20 of 48 Features)
 
 ---
 
@@ -593,3 +593,81 @@
 - `app/(dashboard)/tours/_actions/tour-actions.ts`
 - `app/(dashboard)/tours/_components/*` (4 components)
 - `app/(dashboard)/tours/page.tsx`
+
+### Feature 20: Visual Element Selector (GHL Builder Mode)
+**Completed:** 2026-01-18
+
+**Major Feature** - Point-and-click element selector enabling agencies to visually select DOM elements from GHL pages for tour steps without requiring Chrome extensions.
+
+**Dashboard Components**:
+- `element-selector-field.tsx` - Input field with 🎯 button that triggers selection flow
+- `use-element-selector.ts` - React hook managing BroadcastChannel, session state, selection callbacks
+
+**Embed Script - Builder Mode** (in `app/embed.js/route.ts`):
+- `detectBuilderMode()` - Detects `at_builder_mode` param in URL hash or query
+- Draggable floating toolbar with two-stage flow:
+  - **Stage 1 (Navigate):** Browse GHL normally, toolbar shows "Agency Toolkit"
+  - **Stage 2 (Select):** Toggle ON, toolbar shows "Select an element", clicks intercepted
+- Hover highlighting with blue outline on elements
+- Click interception in capture phase (preventDefault + stopPropagation)
+- Selector generation prioritizing: ID → data-attributes → unique class → path
+- Cross-tab communication via BroadcastChannel + localStorage fallback
+- Keyboard shortcut (Ctrl+Shift+B or Cmd+Shift+B) to toggle builder mode
+- Auto-close tab after selection (configurable)
+- Position persistence via localStorage
+
+**Selector Generation**:
+- Prefers stable selectors: `#id`, `[data-*]` attributes, unique classes
+- Falls back to path-based selectors with "fragile" warning badge
+- Extracts friendly display name from element text/aria-label
+
+**Settings Page Updates**:
+- GHL Domain input field for white-label URL
+- Auto-close toggle for builder behavior
+
+**Files Created/Modified**:
+- `app/(dashboard)/tours/[id]/_components/element-selector-field.tsx`
+- `app/(dashboard)/tours/[id]/_hooks/use-element-selector.ts`
+- `app/embed.js/route.ts` (builder mode ~800 lines added)
+- `app/(dashboard)/settings/page.tsx` (GHL domain field)
+
+---
+
+### Embed Script Fixes (Session 6-7)
+**Completed:** 2026-01-19
+
+**Critical Bug Fixes**:
+
+1. **Brand Colors Not Saving**
+   - Root cause: `handleSave` in Theme Builder was a stub
+   - Fix: Implemented `saveAllTabs()` with registered save handlers
+
+2. **Menu CSS Not Working**
+   - Root cause: Wrong GHL IDs (`sb_ai-employee-promo` → `sb_AI Agents`)
+   - Fix: Updated `lib/constants.ts` with correct IDs
+
+3. **Menu Rename Truncation ("Image Uploa")**
+   - Root cause: Debounced save cleared on unmount instead of executed
+   - Fix: Save immediately on component unmount
+
+4. **Background Color Bleeding**
+   - Root cause: `.lead-connector` wraps entire layout, not just sidebar
+   - Fix: Use only `#sidebar-v2` for sidebar background
+
+5. **Top Nav Bleeding Below Header**
+   - Root cause: `.hl_topbar-tabs` matched sub-navigation tabs
+   - Fix: Removed that selector
+
+6. **CSS Escape for Menu IDs with Spaces**
+   - Root cause: `sb_AI Agents` has a space, invalid CSS
+   - Fix: Added `CSS.escape()` for all menu item IDs
+
+7. **`.hl-header` vs `.hl_header` Confusion**
+   - Root cause: `.hl-header` (hyphen) is a tiny box around page title text
+   - Fix: Removed `.hl-header`, kept `.hl_header` (underscore) for actual header
+
+8. **Loading Animation Too Small**
+   - Root cause: Base pixel sizes were small (10-40px)
+   - Fix: Increased all base sizes ~1.6-2x (now 18-64px)
+
+**Key Learning**: GHL uses inconsistent class naming across pages. Always test on multiple pages (Dashboard, Contacts, Media Storage, Reputation).

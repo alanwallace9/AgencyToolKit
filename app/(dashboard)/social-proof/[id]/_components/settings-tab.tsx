@@ -336,10 +336,10 @@ export function SettingsTab({ widget, onChange, savedThemes = [] }: SettingsTabP
               <Label>Saved Presets</Label>
               <div className="grid grid-cols-3 gap-3">
                 {savedThemes.map((savedTheme) => (
-                  <button
+                  <div
                     key={savedTheme.id}
                     onClick={() => handleApplySavedTheme(savedTheme)}
-                    className="group relative p-3 rounded-lg border-2 transition-all text-center border-gray-200 hover:border-gray-300"
+                    className="group relative p-3 rounded-lg border-2 transition-all text-center border-gray-200 hover:border-gray-300 cursor-pointer"
                   >
                     {/* Action buttons */}
                     <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -394,7 +394,7 @@ export function SettingsTab({ widget, onChange, savedThemes = [] }: SettingsTabP
                       />
                     </div>
                     <span className="text-sm block font-medium truncate">{savedTheme.name}</span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
