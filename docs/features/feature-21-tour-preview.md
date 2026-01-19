@@ -364,22 +364,22 @@ pnpm add driver.js
 
 ## Known Issues (To Investigate)
 
-### 1. Re-select Button Race Condition (2026-01-19)
+### 1. Re-select Button Race Condition (FIXED 2026-01-19)
 **Symptoms:**
 - Clicking "Re-select" from the tour editor sometimes doesn't show the builder toolbar
 - Instead, it just redirects to the agency dashboard with no toolbar
-- Occurs intermittently - works on 4th attempt after 3 failures
+- Occurred intermittently - worked on 4th attempt after 3 failures
 
-**Suspected cause:** Race condition between:
-- GHL SPA router stripping URL params before script runs
-- sessionStorage capture timing
-- Possible redirect chain losing hash params
+**Root cause:** Race condition between GHL's SPA router stripping hash params and embed script capturing them. GHL's router was faster than our script ~75% of the time.
 
-**Investigation steps:**
-1. Add console logging to trace param capture timing
-2. Check if hash params are present when page loads
-3. Verify sessionStorage is written before any redirect
-4. Test with network throttling to expose timing issues
+**Fix:** Added postMessage as reliable backup for passing builder params:
+- `use-element-selector.ts`: Sends builder params via postMessage with retries (every 100ms for 5 sec)
+- `embed.js`: Listens for postMessage and stores params in sessionStorage
+- Hash params still work as bonus if they survive the router
+
+**Files changed:**
+- `app/(dashboard)/tours/[id]/_hooks/use-element-selector.ts`
+- `app/embed.js/route.ts`
 
 ### 2. Builder Mode Was Skipping Customizations (FIXED 2026-01-19)
 **Issue:** When builder mode was detected, the embed script returned early and skipped applying theme/menu/color customizations.
