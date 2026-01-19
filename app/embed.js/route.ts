@@ -213,6 +213,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         css += '#' + escapedId + ' span {\\n';
         css += '  visibility: hidden !important;\\n';
         css += '  position: relative !important;\\n';
+        css += '  overflow: visible !important;\\n';
+        css += '}\\n';
+        // Also target the parent menu item to prevent clipping
+        css += '#' + escapedId + ' {\\n';
+        css += '  overflow: visible !important;\\n';
         css += '}\\n';
         // Show new text via ::after with position:absolute
         css += '#' + escapedId + ' span::after {\\n';
@@ -222,6 +227,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         css += '  top: 0 !important;\\n';
         css += '  left: 0 !important;\\n';
         css += '  white-space: nowrap !important;\\n';
+        css += '  overflow: visible !important;\\n';
         css += '}\\n';
       });
     }
