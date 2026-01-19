@@ -45,13 +45,18 @@ import {
   Megaphone,
   ChevronDown,
   ChevronRight,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TourStep } from '@/types/database';
+import type { ValidationResult } from './element-validator';
 
 interface StepListProps {
   steps: TourStep[];
   selectedStepId: string | null;
+  validationResults?: ValidationResult[];
   onSelectStep: (id: string) => void;
   onAddStep: (type?: TourStep['type']) => void;
   onDuplicateStep: (id: string) => void;
@@ -70,6 +75,7 @@ const stepTypeConfig = {
 export function StepList({
   steps,
   selectedStepId,
+  validationResults,
   onSelectStep,
   onAddStep,
   onDuplicateStep,
@@ -170,6 +176,7 @@ export function StepList({
                   index={index}
                   isSelected={step.id === selectedStepId}
                   isCollapsed={collapsedSteps.has(step.id)}
+                  validationResult={validationResults?.find((r) => r.stepId === step.id)}
                   onSelect={() => onSelectStep(step.id)}
                   onDuplicate={() => onDuplicateStep(step.id)}
                   onDelete={() => onDeleteStep(step.id)}
@@ -195,6 +202,7 @@ interface SortableStepItemProps {
   index: number;
   isSelected: boolean;
   isCollapsed: boolean;
+  validationResult?: ValidationResult;
   onSelect: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -206,6 +214,7 @@ function SortableStepItem({
   index,
   isSelected,
   isCollapsed,
+  validationResult,
   onSelect,
   onDuplicate,
   onDelete,
@@ -286,8 +295,31 @@ function SortableStepItem({
 
               {/* Step title */}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">
+                <div className="text-sm font-medium truncate flex items-center gap-1.5">
                   {truncatedTitle}
+                  {/* Validation status badge */}
+                  {validationResult && validationResult.status !== 'pending' && validationResult.status !== 'no_selector' && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex-shrink-0">
+                          {validationResult.status === 'found' && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                          )}
+                          {validationResult.status === 'not_found' && (
+                            <XCircle className="h-3.5 w-3.5 text-red-500" />
+                          )}
+                          {validationResult.status === 'error' && (
+                            <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                          )}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs">
+                        {validationResult.status === 'found' && 'Element found on page'}
+                        {validationResult.status === 'not_found' && 'Element not found on page'}
+                        {validationResult.status === 'error' && 'Validation error - try again'}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
 

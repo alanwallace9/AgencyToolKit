@@ -1887,9 +1887,1156 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     return true; // Builder mode is active
   }
 
+  // ============================================
+  // PREVIEW MODE - Tour Preview from Dashboard
+  // ============================================
+
+  var PREVIEW_SESSION_KEY_PREFIX = 'at_preview_';
+
+  function initPreviewMode() {
+    // Check hash fragment for preview mode
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var isPreviewMode = hashParams.get('at_preview_mode') === 'true';
+    var sessionId = hashParams.get('at_preview_session');
+
+    if (!isPreviewMode || !sessionId) {
+      return false;
+    }
+
+    // Try to get preview data from sessionStorage
+    var previewDataStr = null;
+    try {
+      previewDataStr = sessionStorage.getItem(PREVIEW_SESSION_KEY_PREFIX + sessionId);
+      // Clear after reading
+      sessionStorage.removeItem(PREVIEW_SESSION_KEY_PREFIX + sessionId);
+    } catch (e) {
+      logError('Failed to read preview data from sessionStorage', e);
+    }
+
+    if (!previewDataStr) {
+      logWarn('Preview session not found:', sessionId);
+      return false;
+    }
+
+    var previewData;
+    try {
+      previewData = JSON.parse(previewDataStr);
+    } catch (e) {
+      logError('Failed to parse preview data', e);
+      return false;
+    }
+
+    // Verify timestamp (expire after 1 hour)
+    if (previewData.timestamp && Date.now() - previewData.timestamp > 60 * 60 * 1000) {
+      logWarn('Preview session expired');
+      return false;
+    }
+
+    console.log('[AgencyToolkit] 🔍 PREVIEW MODE ACTIVATED', {
+      tourName: previewData.tour?.name,
+      stepCount: previewData.tour?.steps?.length || 0
+    });
+
+    // Create preview toolbar
+    createPreviewToolbar(previewData);
+
+    // Load Driver.js and render the tour
+    loadDriverJSAndRenderTour(previewData);
+
+    return true;
+  }
+
+  function createPreviewToolbar(previewData) {
+    var tour = previewData.tour || {};
+    var steps = tour.steps || [];
+    var currentStepIndex = 0;
+
+    var toolbar = document.createElement('div');
+    toolbar.id = 'at-preview-toolbar';
+    toolbar.innerHTML = \`
+      <div class="at-preview-drag" title="Drag to reposition">
+        <svg viewBox="0 0 10 18" fill="currentColor">
+          <circle cx="2" cy="2" r="1.5"/>
+          <circle cx="8" cy="2" r="1.5"/>
+          <circle cx="2" cy="9" r="1.5"/>
+          <circle cx="8" cy="9" r="1.5"/>
+          <circle cx="2" cy="16" r="1.5"/>
+          <circle cx="8" cy="16" r="1.5"/>
+        </svg>
+      </div>
+
+      <div class="at-preview-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+
+      <span class="at-preview-label">PREVIEW MODE</span>
+
+      <div class="at-preview-divider"></div>
+
+      <span class="at-preview-tour-name">\${escapeHtmlPreview(tour.name || 'Untitled Tour')}</span>
+
+      <div class="at-preview-divider"></div>
+
+      <div class="at-preview-nav">
+        <button class="at-preview-nav-btn at-prev" title="Previous step" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <span class="at-preview-step-counter">Step <span class="at-current-step">1</span> of <span class="at-total-steps">\${steps.length}</span></span>
+        <button class="at-preview-nav-btn at-next" title="Next step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="at-preview-divider"></div>
+
+      <button class="at-preview-restart" title="Restart tour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M8 16H3v5"/>
+        </svg>
+      </button>
+
+      <button class="at-preview-exit" title="Exit preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 6 6 18"/>
+          <path d="m6 6 12 12"/>
+        </svg>
+      </button>
+    \`;
+
+    function escapeHtmlPreview(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Preview toolbar styles - amber/orange theme
+    var styles = document.createElement('style');
+    styles.id = 'at-preview-styles';
+    styles.textContent = \`
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
+
+      #at-preview-toolbar {
+        --at-amber-50: #fffbeb;
+        --at-amber-100: #fef3c7;
+        --at-amber-200: #fde68a;
+        --at-amber-500: #f59e0b;
+        --at-amber-600: #d97706;
+        --at-amber-700: #b45309;
+        --at-slate-600: #475569;
+        --at-slate-700: #334155;
+        --at-slate-800: #1e293b;
+
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: linear-gradient(135deg, rgba(254,243,199,0.97) 0%, rgba(253,230,138,0.97) 50%, rgba(254,249,195,0.97) 100%);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(245,158,11,0.3);
+        border-radius: 14px;
+        padding: 6px 8px;
+        box-shadow: 0 0 0 1px rgba(245,158,11,0.1), 0 2px 4px rgba(245,158,11,0.05), 0 8px 16px rgba(245,158,11,0.1), 0 24px 48px rgba(245,158,11,0.15);
+        z-index: 2147483647;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+        user-select: none;
+        animation: at-preview-appear 0.4s cubic-bezier(0.16,1,0.3,1);
+      }
+
+      @keyframes at-preview-appear {
+        from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+
+      #at-preview-toolbar.at-dragging {
+        transform: translateX(0) !important;
+        left: auto !important;
+        cursor: grabbing;
+      }
+
+      .at-preview-drag {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 32px;
+        cursor: grab;
+        color: var(--at-amber-500);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+      }
+      .at-preview-drag:hover { color: var(--at-amber-600); background: rgba(245,158,11,0.1); }
+      .at-preview-drag svg { width: 10px; height: 18px; }
+
+      .at-preview-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, var(--at-amber-500), var(--at-amber-600));
+        border-radius: 8px;
+        color: white;
+        box-shadow: 0 2px 8px rgba(245,158,11,0.4);
+      }
+      .at-preview-icon svg { width: 16px; height: 16px; }
+
+      .at-preview-label {
+        font-weight: 700;
+        font-size: 11px;
+        color: var(--at-amber-700);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 0 8px;
+      }
+
+      .at-preview-tour-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--at-slate-700);
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 8px;
+      }
+
+      .at-preview-divider {
+        width: 1px;
+        height: 20px;
+        background: rgba(245,158,11,0.3);
+        margin: 0 2px;
+      }
+
+      .at-preview-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 4px;
+      }
+
+      .at-preview-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: white;
+        border: 1px solid rgba(245,158,11,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--at-amber-600);
+        transition: all 0.2s ease;
+      }
+      .at-preview-nav-btn:hover:not(:disabled) {
+        background: var(--at-amber-50);
+        border-color: var(--at-amber-500);
+      }
+      .at-preview-nav-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .at-preview-nav-btn svg { width: 16px; height: 16px; }
+
+      .at-preview-step-counter {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--at-slate-600);
+        white-space: nowrap;
+      }
+
+      .at-preview-restart,
+      .at-preview-exit {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+      }
+
+      .at-preview-restart {
+        color: var(--at-amber-600);
+      }
+      .at-preview-restart:hover {
+        color: var(--at-amber-700);
+        background: rgba(245,158,11,0.1);
+      }
+      .at-preview-restart svg { width: 18px; height: 18px; }
+
+      .at-preview-exit {
+        color: var(--at-slate-600);
+      }
+      .at-preview-exit:hover {
+        color: #ef4444;
+        background: rgba(239,68,68,0.08);
+      }
+      .at-preview-exit svg { width: 16px; height: 16px; }
+    \`;
+
+    document.head.appendChild(styles);
+    document.body.appendChild(toolbar);
+
+    // Drag functionality
+    var isDragging = false;
+    var dragStartX, dragStartY, toolbarStartX, toolbarStartY;
+    var dragHandle = toolbar.querySelector('.at-preview-drag');
+
+    dragHandle.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      toolbar.classList.add('at-dragging');
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      toolbarStartX = toolbar.offsetLeft;
+      toolbarStartY = toolbar.offsetTop;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      var newX = toolbarStartX + (e.clientX - dragStartX);
+      var newY = toolbarStartY + (e.clientY - dragStartY);
+      newX = Math.max(10, Math.min(window.innerWidth - toolbar.offsetWidth - 10, newX));
+      newY = Math.max(10, Math.min(window.innerHeight - toolbar.offsetHeight - 10, newY));
+      toolbar.style.left = newX + 'px';
+      toolbar.style.top = newY + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false;
+        toolbar.classList.remove('at-dragging');
+      }
+    });
+
+    // Exit button
+    toolbar.querySelector('.at-preview-exit').addEventListener('click', function() {
+      // Clean up and close
+      window.close();
+    });
+
+    // Store reference for Driver.js integration
+    window.__AT_PREVIEW_TOOLBAR__ = toolbar;
+  }
+
+  function loadDriverJSAndRenderTour(previewData) {
+    var tour = previewData.tour || {};
+    var theme = previewData.theme || null;
+    var steps = tour.steps || [];
+
+    if (steps.length === 0) {
+      logWarn('No steps in tour to preview');
+      return;
+    }
+
+    // Load Driver.js CSS
+    var cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css';
+    document.head.appendChild(cssLink);
+
+    // Load Driver.js script
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js';
+    script.onload = function() {
+      log('Driver.js loaded for preview');
+      renderTourWithDriverJS(steps, tour.settings || {}, theme);
+    };
+    script.onerror = function() {
+      logError('Failed to load Driver.js');
+    };
+    document.head.appendChild(script);
+  }
+
+  function renderTourWithDriverJS(steps, settings, theme) {
+    if (!window.driver) {
+      logError('Driver.js not available');
+      return;
+    }
+
+    // Apply theme CSS
+    if (theme) {
+      injectTourThemeStyles(theme);
+    }
+
+    // Map steps to Driver.js format
+    var driverSteps = steps.map(function(step, index) {
+      var driverStep = {
+        popover: {
+          title: step.title || 'Step ' + (index + 1),
+          description: step.content || '',
+          showButtons: ['next', 'previous', 'close'],
+          nextBtnText: index === steps.length - 1 ? 'Finish' : (step.buttons?.primary?.text || 'Next'),
+          prevBtnText: step.buttons?.secondary?.text || 'Previous',
+          doneBtnText: 'Finish',
+        }
+      };
+
+      // Handle element targeting
+      if (step.element?.selector && step.type !== 'modal') {
+        driverStep.element = step.element.selector;
+        if (step.position) {
+          driverStep.popover.side = mapPositionToDriverJS(step.position);
+        }
+      }
+
+      return driverStep;
+    });
+
+    // Create Driver instance
+    var driverInstance = window.driver.driver({
+      showProgress: settings.show_progress !== false,
+      showButtons: true,
+      animate: true,
+      allowClose: settings.allow_skip !== false,
+      overlayOpacity: 0.5,
+      stagePadding: 10,
+      stageRadius: 8,
+      popoverClass: 'at-tour-popover',
+      steps: driverSteps,
+      onHighlightStarted: function(element, step, options) {
+        updatePreviewToolbarStep(options.state.activeIndex + 1, steps.length);
+      },
+      onDestroyStarted: function() {
+        log('Preview tour ended');
+      }
+    });
+
+    // Store instance for toolbar controls
+    window.__AT_DRIVER_INSTANCE__ = driverInstance;
+
+    // Wire up toolbar navigation
+    var toolbar = window.__AT_PREVIEW_TOOLBAR__;
+    if (toolbar) {
+      var prevBtn = toolbar.querySelector('.at-prev');
+      var nextBtn = toolbar.querySelector('.at-next');
+      var restartBtn = toolbar.querySelector('.at-preview-restart');
+
+      prevBtn.addEventListener('click', function() {
+        if (driverInstance.hasNextStep()) {
+          driverInstance.movePrevious();
+        }
+      });
+
+      nextBtn.addEventListener('click', function() {
+        if (driverInstance.hasNextStep()) {
+          driverInstance.moveNext();
+        }
+      });
+
+      restartBtn.addEventListener('click', function() {
+        driverInstance.drive(0);
+      });
+    }
+
+    // Start the tour after a short delay to let page settle
+    setTimeout(function() {
+      driverInstance.drive();
+    }, 500);
+  }
+
+  function mapPositionToDriverJS(position) {
+    var positionMap = {
+      'top': 'top',
+      'bottom': 'bottom',
+      'left': 'left',
+      'right': 'right',
+      'center': 'over',
+      'top-left': 'top-start',
+      'top-right': 'top-end',
+      'bottom-left': 'bottom-start',
+      'bottom-right': 'bottom-end',
+    };
+    return positionMap[position] || 'bottom';
+  }
+
+  function updatePreviewToolbarStep(current, total) {
+    var toolbar = window.__AT_PREVIEW_TOOLBAR__;
+    if (!toolbar) return;
+
+    var currentSpan = toolbar.querySelector('.at-current-step');
+    var prevBtn = toolbar.querySelector('.at-prev');
+    var nextBtn = toolbar.querySelector('.at-next');
+
+    if (currentSpan) currentSpan.textContent = current;
+    if (prevBtn) prevBtn.disabled = current === 1;
+    if (nextBtn) nextBtn.disabled = current === total;
+  }
+
+  function injectTourThemeStyles(theme) {
+    var existing = document.getElementById('at-tour-theme-styles');
+    if (existing) existing.remove();
+
+    var colors = theme.colors || {};
+    var typography = theme.typography || {};
+    var borders = theme.borders || {};
+
+    var css = \`
+      .at-tour-popover .driver-popover {
+        background-color: \${colors.background || '#ffffff'} !important;
+        color: \${colors.text || '#1f2937'} !important;
+        border: 1px solid \${colors.border || '#e5e7eb'} !important;
+        border-radius: \${borders.radius || '12'}px !important;
+        font-family: \${typography.font_family || 'system-ui, sans-serif'} !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1), 0 20px 25px -5px rgba(0,0,0,0.1) !important;
+      }
+
+      .at-tour-popover .driver-popover-title {
+        color: \${colors.text || '#1f2937'} !important;
+        font-size: \${typography.title_size || '18'}px !important;
+        font-weight: 600 !important;
+      }
+
+      .at-tour-popover .driver-popover-description {
+        color: \${colors.text_secondary || '#6b7280'} !important;
+        font-size: \${typography.body_size || '14'}px !important;
+        line-height: 1.5 !important;
+      }
+
+      .at-tour-popover .driver-popover-next-btn,
+      .at-tour-popover .driver-popover-done-btn {
+        background-color: \${colors.primary || '#3b82f6'} !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+      }
+
+      .at-tour-popover .driver-popover-next-btn:hover,
+      .at-tour-popover .driver-popover-done-btn:hover {
+        filter: brightness(1.1) !important;
+      }
+
+      .at-tour-popover .driver-popover-prev-btn {
+        background-color: transparent !important;
+        color: \${colors.secondary || '#64748b'} !important;
+        border: 1px solid \${colors.border || '#e5e7eb'} !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        font-weight: 500 !important;
+      }
+
+      .at-tour-popover .driver-popover-close-btn {
+        color: \${colors.text_secondary || '#6b7280'} !important;
+      }
+
+      .at-tour-popover .driver-popover-progress-text {
+        color: \${colors.text_secondary || '#6b7280'} !important;
+        font-size: 12px !important;
+      }
+
+      .driver-active-element {
+        box-shadow: 0 0 0 4px \${colors.primary || '#3b82f6'}40 !important;
+      }
+    \`;
+
+    var style = document.createElement('style');
+    style.id = 'at-tour-theme-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  // ============================================
+  // PRODUCTION TOUR RUNTIME - Live Tours
+  // ============================================
+
+  var TOUR_STATE_KEY_PREFIX = 'at_tour_';
+
+  // Get tour state from localStorage
+  function getTourState(tourId) {
+    try {
+      var stateStr = localStorage.getItem(TOUR_STATE_KEY_PREFIX + tourId);
+      if (stateStr) {
+        return JSON.parse(stateStr);
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+    return null;
+  }
+
+  // Save tour state to localStorage
+  function saveTourState(tourId, state) {
+    try {
+      localStorage.setItem(TOUR_STATE_KEY_PREFIX + tourId, JSON.stringify(state));
+    } catch (e) {
+      logWarn('Failed to save tour state', e);
+    }
+  }
+
+  // Track tour analytics event
+  function trackTourEvent(event, tourId, extra) {
+    if (!CONFIG_KEY) return;
+
+    var payload = {
+      event: event,
+      tour_id: tourId,
+      agency_token: CONFIG_KEY,
+      url: window.location.href,
+      timestamp: Date.now()
+    };
+
+    // Merge extra data
+    if (extra) {
+      for (var key in extra) {
+        if (extra.hasOwnProperty(key)) {
+          payload[key] = extra[key];
+        }
+      }
+    }
+
+    // Send analytics (fire and forget)
+    fetch(API_BASE + '/api/tours/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function(e) {
+      // Silently fail - analytics shouldn't break the tour
+      log('Analytics tracking failed', e);
+    });
+  }
+
+  // Check if tour should be shown based on targeting rules
+  function shouldShowTour(tour) {
+    var targeting = tour.targeting || {};
+    var settings = tour.settings || {};
+
+    // Check if tour was completed
+    var state = getTourState(tour.id);
+    if (state && state.completed) {
+      var repeatAfter = settings.repeat_after_days;
+      if (!repeatAfter) {
+        log('Tour already completed, not repeating:', tour.name);
+        return false;
+      }
+      // Check if enough days have passed
+      var daysSinceCompletion = (Date.now() - state.completedAt) / (1000 * 60 * 60 * 24);
+      if (daysSinceCompletion < repeatAfter) {
+        log('Tour completed recently, waiting ' + Math.ceil(repeatAfter - daysSinceCompletion) + ' more days:', tour.name);
+        return false;
+      }
+    }
+
+    // Check if tour was dismissed
+    if (state && state.dismissed && !settings.can_restart) {
+      log('Tour dismissed by user:', tour.name);
+      return false;
+    }
+
+    // Check URL targeting
+    if (targeting.url_patterns && targeting.url_patterns.length > 0) {
+      var currentUrl = window.location.href;
+      var currentPath = window.location.pathname;
+      var matchesUrl = targeting.url_patterns.some(function(pattern) {
+        // Support wildcards: * matches any sequence
+        var regex = new RegExp('^' + pattern.replace(/\\*/g, '.*') + '$');
+        return regex.test(currentUrl) || regex.test(currentPath);
+      });
+      if (!matchesUrl) {
+        log('URL does not match targeting:', tour.name, targeting.url_patterns);
+        return false;
+      }
+    }
+
+    // Check device targeting
+    if (targeting.devices && targeting.devices.length > 0) {
+      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      var deviceType = isMobile ? 'mobile' : 'desktop';
+      if (!targeting.devices.includes(deviceType)) {
+        log('Device does not match targeting:', tour.name, targeting.devices);
+        return false;
+      }
+    }
+
+    // Check element targeting (if specified)
+    if (targeting.element_selector) {
+      try {
+        var element = document.querySelector(targeting.element_selector);
+        if (!element) {
+          log('Target element not found:', tour.name, targeting.element_selector);
+          return false;
+        }
+      } catch (e) {
+        log('Invalid element selector:', targeting.element_selector);
+        return false;
+      }
+    }
+
+    // All checks passed
+    return true;
+  }
+
+  // Find the best tour to show based on priority and targeting
+  function selectTourToShow(tours, themes) {
+    // Sort by priority (higher first)
+    var sortedTours = tours.slice().sort(function(a, b) {
+      return (b.priority || 0) - (a.priority || 0);
+    });
+
+    // Find first matching tour
+    for (var i = 0; i < sortedTours.length; i++) {
+      var tour = sortedTours[i];
+      if (shouldShowTour(tour)) {
+        var theme = themes.find(function(t) { return t.id === tour.theme_id; });
+        return { tour: tour, theme: theme };
+      }
+    }
+
+    return null;
+  }
+
+  // Run a production tour
+  function runProductionTour(tourData, themeData) {
+    var tour = tourData;
+    var steps = tour.steps || [];
+    var settings = tour.settings || {};
+
+    if (steps.length === 0) {
+      log('Tour has no steps:', tour.name);
+      return;
+    }
+
+    console.log('[AgencyToolkit] 🚀 Starting tour:', tour.name);
+
+    // Load Driver.js if not already loaded
+    if (!window.driver) {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js';
+      script.onload = function() {
+        runProductionTourWithDriver(tour, steps, settings, themeData);
+      };
+      script.onerror = function() {
+        logError('Failed to load Driver.js for tour');
+      };
+      document.head.appendChild(script);
+
+      // Also add Driver.js CSS
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css';
+      document.head.appendChild(link);
+    } else {
+      runProductionTourWithDriver(tour, steps, settings, themeData);
+    }
+  }
+
+  function runProductionTourWithDriver(tour, steps, settings, theme) {
+    // Inject theme styles if theme provided
+    if (theme) {
+      injectTourThemeStyles(theme);
+    }
+
+    // Convert steps to Driver.js format
+    var driverSteps = steps.map(function(step, index) {
+      var driverStep = {
+        popover: {
+          title: step.title || '',
+          description: step.content || '',
+          showButtons: ['next', 'previous', 'close'],
+          showProgress: settings.show_progress !== false,
+        }
+      };
+
+      // Add element targeting for tooltips/hotspots
+      if (step.type !== 'modal' && step.element && step.element.selector) {
+        driverStep.element = step.element.selector;
+        driverStep.popover.side = mapPositionToDriverJS(step.position);
+      }
+
+      // Customize buttons
+      if (step.buttons) {
+        if (step.buttons.primary) {
+          driverStep.popover.nextBtnText = step.buttons.primary.text || 'Next';
+        }
+        if (step.buttons.secondary) {
+          driverStep.popover.prevBtnText = step.buttons.secondary.text || 'Previous';
+        }
+      }
+
+      // First step hides previous button
+      if (index === 0) {
+        driverStep.popover.showButtons = ['next', 'close'];
+      }
+
+      // Last step shows done button
+      if (index === steps.length - 1) {
+        driverStep.popover.showButtons = ['previous', 'close'];
+        driverStep.popover.doneBtnText = step.buttons?.primary?.text || 'Done';
+        driverStep.popover.showButtons.push('done');
+        driverStep.popover.showButtons = driverStep.popover.showButtons.filter(function(b) { return b !== 'next'; });
+      }
+
+      return driverStep;
+    });
+
+    // Create Driver instance
+    var driverInstance = window.driver.driver({
+      showProgress: settings.show_progress !== false,
+      showButtons: true,
+      animate: true,
+      allowClose: settings.allow_skip !== false,
+      overlayOpacity: 0.5,
+      stagePadding: 10,
+      stageRadius: 8,
+      popoverClass: 'at-tour-popover at-production-tour',
+      steps: driverSteps,
+      onHighlightStarted: function(element, step, options) {
+        var stepIndex = options.state.activeIndex;
+
+        // Track tour started on first step
+        if (stepIndex === 0) {
+          trackTourEvent('tour_started', tour.id, {
+            total_steps: steps.length
+          });
+        }
+
+        // Track step viewed
+        trackTourEvent('step_viewed', tour.id, {
+          step_index: stepIndex,
+          total_steps: steps.length
+        });
+
+        // Save progress
+        saveTourState(tour.id, {
+          inProgress: true,
+          currentStep: stepIndex,
+          startedAt: getTourState(tour.id)?.startedAt || Date.now()
+        });
+      },
+      onDestroyStarted: function() {
+        log('Tour ended:', tour.name);
+      },
+      onDestroyed: function(element, step, options) {
+        // Check if tour was completed (reached last step)
+        var wasCompleted = options.state.activeIndex === steps.length - 1;
+
+        if (wasCompleted) {
+          saveTourState(tour.id, {
+            completed: true,
+            completedAt: Date.now(),
+            stepCount: steps.length
+          });
+          trackTourEvent('tour_completed', tour.id, {
+            total_steps: steps.length
+          });
+          console.log('[AgencyToolkit] ✅ Tour completed:', tour.name);
+        } else {
+          // User dismissed the tour
+          saveTourState(tour.id, {
+            dismissed: true,
+            dismissedAt: Date.now(),
+            dismissedAtStep: options.state.activeIndex
+          });
+          trackTourEvent('tour_dismissed', tour.id, {
+            step_index: options.state.activeIndex,
+            total_steps: steps.length
+          });
+          log('Tour dismissed at step', options.state.activeIndex + 1);
+        }
+      }
+    });
+
+    // Start the tour after page settles
+    setTimeout(function() {
+      driverInstance.drive();
+    }, settings.delay_ms || 1000);
+  }
+
+  // Initialize production tours from config
+  function initProductionTours(config) {
+    var tours = config.tours || [];
+    var themes = config.tour_themes || [];
+
+    if (tours.length === 0) {
+      log('No live tours configured');
+      return;
+    }
+
+    log('Checking ' + tours.length + ' live tour(s)');
+
+    // Wait for page to be ready, then check tours
+    function checkAndRunTour() {
+      var selected = selectTourToShow(tours, themes);
+      if (selected) {
+        runProductionTour(selected.tour, selected.theme);
+      } else {
+        log('No tours matched targeting conditions');
+      }
+    }
+
+    // Delay tour check to let page content load
+    setTimeout(checkAndRunTour, 2000);
+  }
+
+  // ============================================
+  // VALIDATION MODE - Test Element Selectors
+  // ============================================
+
+  var VALIDATE_SESSION_KEY_PREFIX = 'at_validate_';
+
+  function initValidationMode() {
+    // Check hash fragment for validation mode
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var isValidateMode = hashParams.get('at_validate_mode') === 'true';
+    var sessionId = hashParams.get('at_validate_session');
+
+    if (!isValidateMode || !sessionId) {
+      return false;
+    }
+
+    // Try to get validation data from sessionStorage
+    var validateDataStr = null;
+    try {
+      validateDataStr = sessionStorage.getItem(VALIDATE_SESSION_KEY_PREFIX + sessionId);
+      // Clear after reading
+      sessionStorage.removeItem(VALIDATE_SESSION_KEY_PREFIX + sessionId);
+    } catch (e) {
+      logError('Failed to read validation data from sessionStorage', e);
+    }
+
+    if (!validateDataStr) {
+      logWarn('Validation session not found:', sessionId);
+      return false;
+    }
+
+    var validateData;
+    try {
+      validateData = JSON.parse(validateDataStr);
+    } catch (e) {
+      logError('Failed to parse validation data', e);
+      return false;
+    }
+
+    // Verify timestamp (expire after 5 minutes)
+    if (validateData.timestamp && Date.now() - validateData.timestamp > 5 * 60 * 1000) {
+      logWarn('Validation session expired');
+      return false;
+    }
+
+    console.log('[AgencyToolkit] 🧪 VALIDATION MODE ACTIVATED', {
+      selectorCount: validateData.selectors?.length || 0
+    });
+
+    // Run validation after page is ready
+    function runValidation() {
+      var selectors = validateData.selectors || [];
+      var results = [];
+
+      selectors.forEach(function(item) {
+        var found = false;
+        try {
+          var element = document.querySelector(item.selector);
+          found = !!element;
+        } catch (e) {
+          logWarn('Invalid selector:', item.selector, e.message);
+        }
+
+        results.push({
+          stepId: item.stepId,
+          selector: item.selector,
+          found: found,
+          url: window.location.href
+        });
+
+        // Post each result back to opener
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'at_element_validation_result',
+            payload: {
+              stepId: item.stepId,
+              selector: item.selector,
+              found: found,
+              url: window.location.href
+            }
+          }, '*');
+        }
+
+        console.log('[AgencyToolkit] Element check:', {
+          selector: item.selector.substring(0, 50),
+          found: found
+        });
+      });
+
+      // Send completion message
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'at_element_validation_complete',
+          payload: {
+            results: results,
+            url: window.location.href,
+            timestamp: Date.now()
+          }
+        }, '*');
+      }
+
+      // Show validation result overlay
+      showValidationOverlay(results);
+    }
+
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', runValidation);
+    } else {
+      // Add small delay to let dynamic content load
+      setTimeout(runValidation, 1000);
+    }
+
+    return true;
+  }
+
+  function showValidationOverlay(results) {
+    var foundCount = results.filter(function(r) { return r.found; }).length;
+    var notFoundCount = results.filter(function(r) { return !r.found; }).length;
+
+    var overlay = document.createElement('div');
+    overlay.id = 'at-validation-overlay';
+    overlay.innerHTML = \`
+      <div class="at-validation-card">
+        <div class="at-validation-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="at-validation-icon">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+          <span>Validation Complete</span>
+        </div>
+        <div class="at-validation-results">
+          <div class="at-validation-stat at-stat-found">
+            <span class="at-stat-number">\${foundCount}</span>
+            <span class="at-stat-label">Found</span>
+          </div>
+          <div class="at-validation-stat at-stat-not-found">
+            <span class="at-stat-number">\${notFoundCount}</span>
+            <span class="at-stat-label">Not Found</span>
+          </div>
+        </div>
+        <p class="at-validation-note">Results sent to Agency Toolkit</p>
+        <button class="at-validation-close" onclick="window.close()">Close Window</button>
+      </div>
+    \`;
+
+    var style = document.createElement('style');
+    style.textContent = \`
+      #at-validation-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .at-validation-card {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        min-width: 300px;
+      }
+      .at-validation-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 24px;
+      }
+      .at-validation-icon {
+        width: 24px;
+        height: 24px;
+        color: #22c55e;
+      }
+      .at-validation-results {
+        display: flex;
+        gap: 24px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      .at-validation-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .at-stat-number {
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .at-stat-label {
+        font-size: 14px;
+        color: #6b7280;
+        margin-top: 4px;
+      }
+      .at-stat-found .at-stat-number {
+        color: #22c55e;
+      }
+      .at-stat-not-found .at-stat-number {
+        color: #ef4444;
+      }
+      .at-validation-note {
+        font-size: 13px;
+        color: #9ca3af;
+        margin-bottom: 20px;
+      }
+      .at-validation-close {
+        background: #1f2937;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .at-validation-close:hover {
+        background: #374151;
+      }
+    \`;
+
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+  }
+
   // Main initialization
   function init() {
-    // Check for builder mode first
+    // Check for preview mode first (takes priority)
+    if (initPreviewMode()) {
+      logInfo('Preview mode active - showing tour preview');
+      return; // Don't apply customizations in preview mode
+    }
+
+    // Check for validation mode (element selector testing)
+    if (initValidationMode()) {
+      logInfo('Validation mode active - testing selectors');
+      return; // Don't apply customizations in validation mode
+    }
+
+    // Check for builder mode
     if (initBuilderMode()) {
       logInfo('Builder mode active - skipping customizations');
       return; // Don't apply customizations in builder mode
@@ -1990,6 +3137,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           childList: true,
           subtree: true
         });
+
+        // Initialize production tours (only if not in special modes)
+        initProductionTours(config);
       })
       .catch(function(error) {
         logError('Failed to load config', error);

@@ -8,8 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
-  Play,
   Send,
   Check,
   Loader2,
@@ -26,6 +35,8 @@ import { SettingsTab } from './settings-tab';
 import { TargetingTab } from './targeting-tab';
 import { ThemeTab } from './theme-tab';
 import { StepPreviewModal } from './step-preview-modal';
+import { PreviewDropdown } from './preview-dropdown';
+import { ElementValidator, type ValidationResult } from './element-validator';
 import { updateTour, publishTour, unpublishTour } from '../../_actions/tour-actions';
 import type { Tour, TourStep, TourSettings, TourTargeting, TourTheme, Customer } from '@/types/database';
 
@@ -77,6 +88,9 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [isPublishing, setIsPublishing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showValidator, setShowValidator] = useState(false);
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [tourName, setTourName] = useState(tour.name);
 
   // Undo/Redo history
@@ -311,15 +325,23 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
   };
 
   // Publish/Unpublish
-  const handlePublish = async () => {
+  const handlePublishClick = () => {
+    setShowPublishDialog(true);
+  };
+
+  const handlePublishConfirm = async () => {
+    setShowPublishDialog(false);
     setIsPublishing(true);
     try {
       // Save first
       await updateTour(tour.id, { name: tourName, steps, settings, targeting });
       await publishTour(tour.id);
       setTour({ ...tour, status: 'live' });
-      toast.success('Tour published!', {
-        description: 'Your tour is now live.',
+
+      // Show celebratory toast
+      toast.success('Tour is now live!', {
+        description: `"${tourName}" is ready to guide your users.`,
+        duration: 5000,
       });
     } catch (error) {
       toast.error('Failed to publish', {
@@ -425,11 +447,16 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
             <Copy className="h-4 w-4" />
           </Button>
 
-          {/* Preview */}
-          <Button variant="outline" onClick={() => setShowPreview(true)}>
-            <Play className="h-4 w-4 mr-2" />
-            Preview
-          </Button>
+          {/* Preview dropdown with Quick/Live/Test options */}
+          <PreviewDropdown
+            tour={tour}
+            steps={steps}
+            settings={settings}
+            theme={themes.find((t) => t.id === tour.theme_id)}
+            ghlDomain={ghlDomain}
+            onQuickPreview={() => setShowPreview(true)}
+            onTestElements={() => setShowValidator(true)}
+          />
 
           {/* Publish/Unpublish */}
           {tour.status === 'live' ? (
@@ -444,7 +471,7 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
               Unpublish
             </Button>
           ) : (
-            <Button onClick={handlePublish} disabled={isPublishing || steps.length === 0}>
+            <Button onClick={handlePublishClick} disabled={isPublishing || steps.length === 0}>
               {isPublishing ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
@@ -483,6 +510,7 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
                 <StepList
                   steps={steps}
                   selectedStepId={selectedStepId}
+                  validationResults={validationResults}
                   onSelectStep={setSelectedStepId}
                   onAddStep={handleAddStep}
                   onDuplicateStep={handleDuplicateStep}
@@ -553,6 +581,57 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
         settings={settings}
         theme={themes.find((t) => t.id === tour.theme_id)}
       />
+
+      {/* Element validator modal */}
+      <ElementValidator
+        open={showValidator}
+        onOpenChange={setShowValidator}
+        steps={steps}
+        ghlDomain={ghlDomain}
+        onValidationComplete={(results) => setValidationResults(results)}
+      />
+
+      {/* Publish confirmation dialog */}
+      <AlertDialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish Tour</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will make &quot;{tourName}&quot; live. Users matching your targeting rules will see this tour
+              on your GHL pages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <div className="text-sm space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Steps</span>
+                <span className="font-medium">{steps.length}</span>
+              </div>
+              {targeting.url_targeting?.patterns && targeting.url_targeting.patterns.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">URL targeting</span>
+                  <span className="font-medium">{targeting.url_targeting.patterns.length} pattern(s)</span>
+                </div>
+              )}
+              {validationResults.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Element validation</span>
+                  <span className="font-medium">
+                    {validationResults.filter((r) => r.status === 'found').length} of{' '}
+                    {validationResults.filter((r) => r.selector).length} found
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePublishConfirm}>
+              Publish Tour
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

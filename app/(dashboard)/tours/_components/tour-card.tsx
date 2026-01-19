@@ -179,7 +179,7 @@ export function TourCard({ tour }: TourCardProps) {
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleEdit}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -204,7 +204,12 @@ export function TourCard({ tour }: TourCardProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreHorizontal className="h-4 w-4" />
                   <span className="sr-only">Actions</span>
                 </Button>
@@ -284,7 +289,7 @@ export function TourCard({ tour }: TourCardProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <Button variant="outline" size="sm" onClick={handleEdit}>
                 Edit
               </Button>

@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Get agency by token with active tours, default menu preset, and login designs
+    // Get agency by token with live tours (DAP), default menu preset, and login designs
     const { data: agency, error } = await supabase
       .from('agencies')
       .select(
@@ -46,10 +46,19 @@ export async function GET(request: Request) {
         tours (
           id,
           name,
-          page,
-          trigger,
+          status,
+          priority,
           steps,
-          is_active
+          settings,
+          targeting,
+          theme_id
+        ),
+        tour_themes (
+          id,
+          name,
+          colors,
+          typography,
+          borders
         ),
         menu_presets (
           id,
@@ -81,9 +90,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Filter to only active tours
-    const activeTours = (agency.tours || []).filter(
-      (tour: { is_active: boolean }) => tour.is_active
+    // Filter to only live tours (DAP status)
+    const liveTours = (agency.tours || []).filter(
+      (tour: { status: string }) => tour.status === 'live'
     );
 
     // Get the default menu preset config
@@ -208,12 +217,37 @@ export async function GET(request: Request) {
       loading: loadingPayload,
       colors: resolvedColors,
       whitelisted_locations: agency.settings?.whitelisted_locations || [],
-      tours: activeTours.map((tour: { id: string; name: string; page: string; trigger: string; steps: unknown[] }) => ({
+      // DAP Tours - only live tours with full targeting/settings
+      tours: liveTours.map((tour: {
+        id: string;
+        name: string;
+        priority: number;
+        steps: unknown[];
+        settings: unknown;
+        targeting: unknown;
+        theme_id: string | null;
+      }) => ({
         id: tour.id,
         name: tour.name,
-        page: tour.page,
-        trigger: tour.trigger,
-        steps: tour.steps,
+        priority: tour.priority || 0,
+        steps: tour.steps || [],
+        settings: tour.settings || {},
+        targeting: tour.targeting || {},
+        theme_id: tour.theme_id,
+      })),
+      // Tour themes for styling
+      tour_themes: (agency.tour_themes || []).map((theme: {
+        id: string;
+        name: string;
+        colors: unknown;
+        typography: unknown;
+        borders: unknown;
+      }) => ({
+        id: theme.id,
+        name: theme.name,
+        colors: theme.colors || {},
+        typography: theme.typography || {},
+        borders: theme.borders || {},
       })),
     };
 
@@ -226,7 +260,8 @@ export async function GET(request: Request) {
       hasColors: !!config.colors,
       colorsSidebarBg: config.colors?.sidebar_bg || 'none',
       hasLoading: !!config.loading,
-      toursCount: config.tours.length,
+      liveToursCount: config.tours.length,
+      tourThemesCount: config.tour_themes.length,
     });
 
     return NextResponse.json(config, {
