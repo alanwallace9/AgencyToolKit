@@ -310,22 +310,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       css += '#sidebar-v2 .hl_nav-settings a { color: ' + colorConfig.sidebar_text + ' !important; }\\n';
     }
 
-    // ============================================
-    // DEFENSIVE: Ensure main content is NOT affected by sidebar styles
-    // 1. Reset background-color inheritance on main content containers
-    // 2. Ensure main content visibility (prevent accidental hiding)
-    // ============================================
-    css += '/* Defensive: Isolate main content from sidebar styles */\\n';
-    css += '#sidebar-v2 ~ *,\\n';  // Siblings of sidebar
-    css += '.hl-right-pane,\\n';
-    css += '.location-layout__content {\\n';
-    css += '  background-color: inherit;\\n';  // Don't force a color, just prevent sidebar bleed
-    css += '}\\n';
-    css += '/* Defensive: Ensure main content stays visible */\\n';
-    css += '.hl-right-pane > *,\\n';  // Direct children of main content
-    css += '.location-layout__content > * {\\n';
-    css += '  visibility: visible;\\n';  // No !important - just a default
-    css += '}\\n';
+    // NOTE: Removed defensive CSS that was interfering with GHL rendering
+    // The sidebar-only selectors (#sidebar-v2) should prevent bleed without
+    // needing defensive rules that could break GHL's Vue rendering
 
     // ============================================
     // EXTENDED ELEMENTS (from Theme Builder)
@@ -333,20 +320,19 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var ext = colorConfig.extended_elements || {};
 
     // Top Navigation / Header
-    // GHL uses: .hl_header, .hl-header-container
+    // ONLY target the main header bar, NOT sub-navigation tabs
+    // .hl_topbar-tabs was matching content below header (bleeding)
     if (ext.top_nav_bg) {
-      css += '/* Top Navigation Background */\\n';
+      css += '/* Top Navigation Background - header bar only */\\n';
       css += '.hl_header,\\n';
-      css += '.hl-header-container,\\n';
-      css += '.hl_topbar-tabs { background-color: ' + ext.top_nav_bg + ' !important; }\\n';
+      css += '.hl-header-container { background-color: ' + ext.top_nav_bg + ' !important; }\\n';
     }
     if (ext.top_nav_text) {
-      css += '/* Top Navigation Text */\\n';
+      css += '/* Top Navigation Text - header bar only */\\n';
       css += '.hl_header,\\n';
-      css += '.hl_header a,\\n';
-      css += '.hl_header span,\\n';
-      css += '.hl-header-container,\\n';
-      css += '.hl_topbar-tabs a { color: ' + ext.top_nav_text + ' !important; }\\n';
+      css += '.hl_header > a,\\n';  // Direct children only
+      css += '.hl_header > span,\\n';  // Direct children only
+      css += '.hl-header-container { color: ' + ext.top_nav_text + ' !important; }\\n';
     }
 
     // Main Area Background
