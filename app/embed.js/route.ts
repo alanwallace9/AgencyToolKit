@@ -506,8 +506,13 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       '[class*="loading-indicator"], .spinner-border,',
       '.hr-skeleton, .n-skeleton,',
       '.hl-loading-overlay .hl-loading-spinner { display: none !important; }',
-      '/* Ensure our loader container shows */',
-      '.hl-loading-overlay, .hl-loader-container, .app-loader-container { background: var(--loading-bg, transparent) !important; }'
+      '/* Ensure ALL loader containers have transparent background */',
+      '/* This removes any dark/colored square behind the animation */',
+      '.hl-loading-overlay,',
+      '.hl-loader-container,',
+      '.app-loader-container,',
+      '.agency-toolkit-loader-instance,',
+      '#agency-toolkit-loader { background: transparent !important; }'
     ].join('\\n');
     document.head.appendChild(hideGHLLoader);
 
