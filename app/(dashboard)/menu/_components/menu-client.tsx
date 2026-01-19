@@ -192,14 +192,18 @@ export function MenuClient({ initialConfig, colors }: MenuClientProps) {
     }, 500);
   }, [buildConfig]);
 
-  // Cleanup timeout on unmount
+  // On unmount: save immediately if there are pending changes
+  // This fixes the bug where navigating away loses unsaved changes
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        // Save immediately instead of discarding
+        const config = buildConfig();
+        saveMenuSettings(config);
       }
     };
-  }, []);
+  }, [buildConfig]);
 
   // Fetch user templates on mount
   useEffect(() => {
