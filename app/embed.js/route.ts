@@ -320,13 +320,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var ext = colorConfig.extended_elements || {};
 
     // Top Navigation / Header
-    // Multiple selectors to catch different GHL page layouts
-    // Some pages (like Media Storage) may use different header structures
+    // IMPORTANT: .hl-header (hyphen) is NOT a header - it's a tiny box around just the page title text
+    // Only use .hl_header (underscore) and .hl-header-container for actual header bars
     if (ext.top_nav_bg) {
       css += '/* Top Navigation Background */\\n';
       css += '.hl_header,\\n';
       css += '.hl-header-container,\\n';
-      css += '.hl-header,\\n';
       css += '.location-header,\\n';
       css += 'header.flex.items-center { background-color: ' + ext.top_nav_bg + ' !important; }\\n';
     }
@@ -336,7 +335,6 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       css += '.hl_header a,\\n';
       css += '.hl_header span,\\n';
       css += '.hl-header-container,\\n';
-      css += '.hl-header,\\n';
       css += '.location-header { color: ' + ext.top_nav_text + ' !important; }\\n';
     }
 
