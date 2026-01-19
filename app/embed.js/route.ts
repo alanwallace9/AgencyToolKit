@@ -1096,7 +1096,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         </div>
         <span class="at-toolbar-label">Agency Toolkit</span>
         <div class="at-toolbar-status at-status-inactive">
-          <span class="at-status-text">Navigate to subaccount</span>
+          <span class="at-status-text">Navigate to subaccount → Toggle ON</span>
         </div>
         <div class="at-toolbar-status at-status-active">
           <span class="at-status-dot"></span>
