@@ -149,7 +149,7 @@ export async function GET(request: Request) {
           css: css,
           html: animation.html,
           speed: loadingSettings.animation_speed || 1,
-          size: loadingSettings.animation_size || 1.5,  // Default to 150% for better visibility
+          size: loadingSettings.animation_size || 1,  // Base sizes are now larger (doubled)
         };
       }
     }
