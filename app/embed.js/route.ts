@@ -256,6 +256,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       style.textContent = css;
       document.head.appendChild(style);
       log('Menu CSS injected');
+
+      // Debug: Log the full CSS for troubleshooting
+      if (DEBUG || window.AGENCY_TOOLKIT_DEBUG) {
+        console.log('[AgencyToolkit] Full Menu CSS:\\n', css);
+      }
     }
   }
 
@@ -284,24 +289,44 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // ============================================
     // SIDEBAR COLORS
-    // GHL uses: .lead-connector, #sidebar-v2, .sidebar-v2-location
+    // IMPORTANT: .lead-connector is a wrapper for the ENTIRE layout in GHL
+    // We must be specific to target only the sidebar nav elements, not the whole page
     // ============================================
     if (colorConfig.sidebar_bg) {
-      css += '/* Sidebar Background */\\n';
-      css += '.lead-connector,\\n';
+      css += '/* Sidebar Background - target nav containers only */\\n';
       css += '#sidebar-v2,\\n';
       css += '.sidebar-v2-location,\\n';
-      css += '.hl_nav-location { background-color: ' + colorConfig.sidebar_bg + ' !important; }\\n';
+      css += '.hl_nav-location,\\n';
+      css += '.hl_nav-sidebar,\\n';
+      css += '.location-sidebar,\\n';
+      css += 'nav.lead-connector { background-color: ' + colorConfig.sidebar_bg + ' !important; }\\n';
     }
     if (colorConfig.sidebar_text) {
-      css += '/* Sidebar Text */\\n';
-      css += '.lead-connector a,\\n';
+      css += '/* Sidebar Text - target nav elements only */\\n';
       css += '#sidebar-v2 a,\\n';
+      css += '#sidebar-v2 span,\\n';
       css += '[id^="sb_"],\\n';
       css += '[id^="sb_"] span.nav-title,\\n';
       css += '[id^="sb_"] span.hl_text-overflow,\\n';
       css += '.hl_nav-settings a { color: ' + colorConfig.sidebar_text + ' !important; }\\n';
     }
+
+    // ============================================
+    // SAFEGUARD: Ensure main content area stays visible
+    // Prevents our sidebar/nav styles from accidentally hiding content
+    // ============================================
+    css += '/* Safeguard: Main content visibility */\\n';
+    css += '.hl_main-content,\\n';
+    css += '.hl-main-content,\\n';
+    css += '.hl-right-pane,\\n';
+    css += '.location-layout__content,\\n';
+    css += '.hl-location-body,\\n';
+    css += '[class*="dashboard"],\\n';
+    css += '.v2-location-layout {\\n';
+    css += '  visibility: visible !important;\\n';
+    css += '  opacity: 1 !important;\\n';
+    css += '  display: block !important;\\n';
+    css += '}\\n';
 
     // ============================================
     // EXTENDED ELEMENTS (from Theme Builder)
@@ -427,6 +452,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     style.textContent = css;
     document.head.appendChild(style);
     log('Color CSS injected with extended elements');
+
+    // Debug: Log the full CSS for troubleshooting
+    // Enable by setting window.AGENCY_TOOLKIT_DEBUG = true in console
+    if (DEBUG || window.AGENCY_TOOLKIT_DEBUG) {
+      console.log('[AgencyToolkit] Full Color CSS:\\n', css);
+    }
   }
 
   // Apply loading animation
