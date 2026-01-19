@@ -159,20 +159,24 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
   // RELIABLE BACKUP: Listen for builder params via postMessage from opener
   // This is more reliable than hash params because it doesn't depend on URL timing
+  var __builderParamsReceived = false;
   (function listenForBuilderParams() {
     window.addEventListener('message', function(event) {
       // Check if this is a builder params message
       if (event.data?.type === 'at_builder_params' && event.data?.payload) {
+        // IMPORTANT: Only process ONCE to prevent reload loops from retry messages
+        if (__builderParamsReceived) {
+          return;
+        }
+        __builderParamsReceived = true;
+
         var payload = event.data.payload;
-        console.log('[AgencyToolkit] 📩 Builder params received via postMessage:', {
-          sessionId: payload.sessionId ? payload.sessionId.substring(0, 10) + '...' : null,
-          builderMode: payload.builderMode
-        });
+        console.log('[AgencyToolkit] 📩 Builder params received via postMessage');
 
         // Store in sessionStorage (same as the hash param capture does)
         if (payload.builderMode === 'true' && payload.sessionId) {
           try {
-            // Check if we already have params stored (from hash capture)
+            // Check if we already have params stored (from hash capture or previous message)
             var existing = sessionStorage.getItem(BUILDER_SESSION_KEY);
             if (!existing) {
               sessionStorage.setItem(BUILDER_SESSION_KEY, JSON.stringify({
@@ -183,26 +187,18 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
               }));
               console.log('[AgencyToolkit] ✅ Builder params saved via postMessage');
 
-              // Trigger init if it hasn't run yet, or reinit builder mode
-              if (!window.__AT_INIT_COMPLETE__) {
-                console.log('[AgencyToolkit] Will use postMessage params on init');
-              } else {
-                // Init already ran without builder mode - try to reinitialize
-                console.log('[AgencyToolkit] Init already complete, reinitializing builder mode');
-                if (typeof window.__AT_INIT_BUILDER_MODE__ === 'function') {
-                  window.__AT_INIT_BUILDER_MODE__();
-                }
+              // Trigger builder mode if init already completed without it
+              if (window.__AT_INIT_COMPLETE__ && typeof window.__AT_INIT_BUILDER_MODE__ === 'function') {
+                console.log('[AgencyToolkit] Init already complete, initializing builder mode now');
+                window.__AT_INIT_BUILDER_MODE__();
               }
-            } else {
-              console.log('[AgencyToolkit] Builder params already stored (from hash), skipping postMessage params');
             }
           } catch (e) {
-            console.error('[AgencyToolkit] Failed to store builder params from postMessage:', e);
+            console.error('[AgencyToolkit] Failed to store builder params:', e);
           }
         }
       }
     });
-    console.log('[AgencyToolkit] 👂 Listening for builder params via postMessage');
   })();
 
   // Check if we should skip customizations
@@ -1028,6 +1024,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // ============================================
 
   function initBuilderMode() {
+    // Prevent multiple toolbars from being created
+    if (document.getElementById('at-builder-toolbar')) {
+      log('Builder toolbar already exists, skipping');
+      return true; // Return true since builder mode IS active
+    }
+
     // PRIMARY: Check hash fragment (recommended - survives all redirects)
     var hashParams = new URLSearchParams(window.location.hash.substring(1));
     var isBuilderMode = hashParams.get('at_builder_mode') === 'true';
