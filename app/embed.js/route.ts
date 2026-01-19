@@ -157,6 +157,54 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
   })();
 
+  // RELIABLE BACKUP: Listen for builder params via postMessage from opener
+  // This is more reliable than hash params because it doesn't depend on URL timing
+  (function listenForBuilderParams() {
+    window.addEventListener('message', function(event) {
+      // Check if this is a builder params message
+      if (event.data?.type === 'at_builder_params' && event.data?.payload) {
+        var payload = event.data.payload;
+        console.log('[AgencyToolkit] 📩 Builder params received via postMessage:', {
+          sessionId: payload.sessionId ? payload.sessionId.substring(0, 10) + '...' : null,
+          builderMode: payload.builderMode
+        });
+
+        // Store in sessionStorage (same as the hash param capture does)
+        if (payload.builderMode === 'true' && payload.sessionId) {
+          try {
+            // Check if we already have params stored (from hash capture)
+            var existing = sessionStorage.getItem(BUILDER_SESSION_KEY);
+            if (!existing) {
+              sessionStorage.setItem(BUILDER_SESSION_KEY, JSON.stringify({
+                builderMode: payload.builderMode,
+                sessionId: payload.sessionId,
+                autoClose: payload.autoClose,
+                timestamp: payload.timestamp || Date.now()
+              }));
+              console.log('[AgencyToolkit] ✅ Builder params saved via postMessage');
+
+              // Trigger init if it hasn't run yet, or reinit builder mode
+              if (!window.__AT_INIT_COMPLETE__) {
+                console.log('[AgencyToolkit] Will use postMessage params on init');
+              } else {
+                // Init already ran without builder mode - try to reinitialize
+                console.log('[AgencyToolkit] Init already complete, reinitializing builder mode');
+                if (typeof window.__AT_INIT_BUILDER_MODE__ === 'function') {
+                  window.__AT_INIT_BUILDER_MODE__();
+                }
+              }
+            } else {
+              console.log('[AgencyToolkit] Builder params already stored (from hash), skipping postMessage params');
+            }
+          } catch (e) {
+            console.error('[AgencyToolkit] Failed to store builder params from postMessage:', e);
+          }
+        }
+      }
+    });
+    console.log('[AgencyToolkit] 👂 Listening for builder params via postMessage');
+  })();
+
   // Check if we should skip customizations
   function shouldSkipCustomizations(config) {
     // Check whitelisted locations
@@ -3031,17 +3079,25 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     document.body.appendChild(overlay);
   }
 
+  // Expose initBuilderMode for late postMessage arrivals
+  window.__AT_INIT_BUILDER_MODE__ = initBuilderMode;
+
   // Main initialization
   function init() {
+    // Mark init as started
+    window.__AT_INIT_STARTED__ = true;
+
     // Check for preview mode first (takes priority)
     if (initPreviewMode()) {
       logInfo('Preview mode active - showing tour preview');
+      window.__AT_INIT_COMPLETE__ = true;
       return; // Don't apply customizations in preview mode
     }
 
     // Check for validation mode (element selector testing)
     if (initValidationMode()) {
       logInfo('Validation mode active - testing selectors');
+      window.__AT_INIT_COMPLETE__ = true;
       return; // Don't apply customizations in validation mode
     }
 
@@ -3150,9 +3206,13 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
         // Initialize production tours (only if not in special modes)
         initProductionTours(config);
+
+        // Mark init as complete
+        window.__AT_INIT_COMPLETE__ = true;
       })
       .catch(function(error) {
         logError('Failed to load config', error);
+        window.__AT_INIT_COMPLETE__ = true;
         // Fail silently - don't break GHL
       });
   }

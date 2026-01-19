@@ -116,7 +116,38 @@ export function useElementSelector({
       if (!windowRef.current) {
         setError('Failed to open new tab. Please allow popups for this site.');
         setIsSelecting(false);
+        return;
       }
+
+      // Send builder params via postMessage as a RELIABLE backup
+      // (Hash params may be stripped by GHL's SPA router before embed.js captures them)
+      const builderParams = {
+        type: 'at_builder_params',
+        payload: {
+          builderMode: 'true',
+          sessionId: sessionId,
+          autoClose: autoClose ? 'true' : 'false',
+          timestamp: Date.now(),
+        },
+      };
+
+      // Retry sending postMessage until the window acknowledges or closes
+      // (The new window needs time to load before it can receive messages)
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds total (50 * 100ms)
+      const sendParams = setInterval(() => {
+        attempts++;
+        if (windowRef.current?.closed || attempts > maxAttempts) {
+          clearInterval(sendParams);
+          return;
+        }
+        try {
+          windowRef.current?.postMessage(builderParams, '*');
+          console.log(`[DEBUG] Sent builder params via postMessage (attempt ${attempts})`);
+        } catch (e) {
+          // Window might not be ready yet, will retry
+        }
+      }, 100);
     } catch (e) {
       setError('Invalid GHL domain URL');
       setIsSelecting(false);
