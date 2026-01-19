@@ -69,7 +69,7 @@ export function AddWidgetDialog({
   const handleQuickCreate = async () => {
     setIsCreating(true);
     try {
-      const widget = await createWidget('My Social Proof Widget');
+      const widget = await createWidget('My TrustSignal Widget');
       toast.success('Widget created! Your embed code is ready.');
       setOpen(false);
       router.push(`/social-proof/${widget.id}?tab=embed`);
@@ -113,9 +113,9 @@ export function AddWidgetDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create Social Proof Widget</DialogTitle>
+          <DialogTitle>Create TrustSignal Widget</DialogTitle>
           <DialogDescription>
-            Create a new widget to display social proof notifications on your website.
+            Create a new widget to display trust-building notifications on your website.
             Each widget has its own embed code and settings.
           </DialogDescription>
         </DialogHeader>

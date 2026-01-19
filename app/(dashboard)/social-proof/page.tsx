@@ -20,7 +20,7 @@ export default async function SocialProofPage() {
     return (
       <div className="py-8 px-8 lg:px-14 max-w-[1800px] mx-auto w-full">
         <PageHeader
-          title="Social Proof"
+          title="TrustSignal"
           description="Display real-time notifications to build trust and increase conversions"
         />
         <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -41,7 +41,7 @@ export default async function SocialProofPage() {
           </div>
           <h3 className="font-semibold text-lg mb-2">Upgrade Required</h3>
           <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-            Social Proof widgets are available on the Toolkit plan and above.
+            TrustSignal widgets are available on the Toolkit plan and above.
             Upgrade to start displaying trust-building notifications on your site.
           </p>
         </div>
@@ -52,7 +52,7 @@ export default async function SocialProofPage() {
   return (
     <div className="py-8 px-8 lg:px-14 max-w-[1800px] mx-auto w-full">
       <PageHeader
-        title="Social Proof"
+        title="TrustSignal"
         description="Display real-time notifications to build trust and increase conversions"
       />
       <SocialProofClient

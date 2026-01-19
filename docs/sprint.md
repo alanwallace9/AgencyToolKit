@@ -33,7 +33,7 @@
 #### Tours (Core)
 - [x] Feature 18: Tours List Page + DAP Foundation
 - [x] Feature 19: Tour Builder - Basic UI (Tabs, Steps, Settings, Targeting, Theme)
-- [ ] Feature 20: Visual Element Selector (GHL Builder Mode) **UP NEXT**
+- [x] Feature 20: Visual Element Selector (GHL Builder Mode)
 - [ ] Feature 21: Tour Preview (Live Preview in Iframe)
 - [ ] Feature 22: Apply Tours in Embed Script (Driver.js Integration)
 
@@ -95,18 +95,14 @@
 - ✅ 2026-01-16: Theme Builder Phase 1 - Tab navigation shell with manila folder tabs
 - ✅ 2026-01-16: Fixed Pro gate on Login page (removed - all plans can access)
 - ✅ 2026-01-16: Created dev agency record for localhost testing
+- ✅ 2026-01-18: Feature 20 - Visual Element Selector (GHL Builder Mode)
+- ✅ 2026-01-19: Embed Script Fixes - GHL selector corrections, CSS escaping, color bleed fixes
+- ✅ 2026-01-19: Loading Animation base sizes increased ~1.6-2x for better visibility
 
 ### In Progress
-- [ ] **CRITICAL: Embed Script Rebuild** - See `docs/EMBED_SCRIPT_REBUILD.md`
-  - 2026-01-18: Testing revealed broken CSS selectors, timing issues
-  - Planning systematic rebuild with proper GHL integration
-  - Researching alternative approaches (CSS-only vs JS)
+- [ ] Feature 42-43: Social Proof Widget (building in separate session)
 
-### Paused
-- [ ] **Theme Builder Consolidation** (Phase 2) - Paused for embed script fixes
-- [ ] Feature 20: Visual Element Selector (GHL Builder Mode) - Paused pending approach decision
-
-### Up Next (After Embed Script Stable)
+### Up Next
 - Feature 21: Tour Preview (Live Preview in Iframe)
 - Feature 22: Apply Tours in Embed Script (Driver.js Integration)
 - Feature 23: Tour Themes Builder

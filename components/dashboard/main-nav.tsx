@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Palette, LogIn, Loader2, Paintbrush, Map, ImageIcon, Sparkles, Layers, Bell } from "lucide-react"
+import { Palette, LogIn, Loader2, Paintbrush, Map, ImageIcon, Sparkles, Layers, BadgeCheck } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -124,7 +124,7 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
           </NavigationMenuLink>
         </NavigationMenuItem>
 
-        {/* Social Proof - direct link */}
+        {/* TrustSignal - direct link */}
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
             <Link
@@ -137,8 +137,8 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Bell className="h-3.5 w-3.5" />
-              Social Proof
+              <BadgeCheck className="h-3.5 w-3.5" />
+              TrustSignal
             </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
