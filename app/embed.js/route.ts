@@ -187,11 +187,19 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
               }));
               console.log('[AgencyToolkit] ✅ Builder params saved via postMessage');
 
-              // Trigger builder mode if init already completed without it
-              if (window.__AT_INIT_COMPLETE__ && typeof window.__AT_INIT_BUILDER_MODE__ === 'function') {
-                console.log('[AgencyToolkit] Init already complete, initializing builder mode now');
-                window.__AT_INIT_BUILDER_MODE__();
+              // Always try to initialize builder mode after storing params
+              // Use a small delay to ensure initBuilderMode function is defined
+              function tryInitBuilder(attempts) {
+                if (attempts > 20) return; // Give up after 2 seconds
+                if (typeof window.__AT_INIT_BUILDER_MODE__ === 'function') {
+                  console.log('[AgencyToolkit] Initializing builder mode from postMessage');
+                  window.__AT_INIT_BUILDER_MODE__();
+                } else {
+                  // Function not ready yet, retry
+                  setTimeout(function() { tryInitBuilder(attempts + 1); }, 100);
+                }
               }
+              tryInitBuilder(0);
             }
           } catch (e) {
             console.error('[AgencyToolkit] Failed to store builder params:', e);
