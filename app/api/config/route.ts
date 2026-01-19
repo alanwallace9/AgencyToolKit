@@ -53,6 +53,13 @@ export async function GET(request: Request) {
           targeting,
           theme_id
         ),
+        tour_themes (
+          id,
+          name,
+          colors,
+          typography,
+          borders
+        ),
         menu_presets (
           id,
           name,
@@ -228,6 +235,20 @@ export async function GET(request: Request) {
         targeting: tour.targeting || {},
         theme_id: tour.theme_id,
       })),
+      // Tour themes for styling
+      tour_themes: (agency.tour_themes || []).map((theme: {
+        id: string;
+        name: string;
+        colors: unknown;
+        typography: unknown;
+        borders: unknown;
+      }) => ({
+        id: theme.id,
+        name: theme.name,
+        colors: theme.colors || {},
+        typography: theme.typography || {},
+        borders: theme.borders || {},
+      })),
     };
 
     // DEBUG: Log full config summary
@@ -240,6 +261,7 @@ export async function GET(request: Request) {
       colorsSidebarBg: config.colors?.sidebar_bg || 'none',
       hasLoading: !!config.loading,
       liveToursCount: config.tours.length,
+      tourThemesCount: config.tour_themes.length,
     });
 
     return NextResponse.json(config, {
