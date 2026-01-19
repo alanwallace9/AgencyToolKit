@@ -295,43 +295,36 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // ============================================
     // SIDEBAR COLORS
-    // IMPORTANT: .lead-connector is a wrapper for the ENTIRE layout in GHL
-    // We must be specific to target only the sidebar nav elements, not the whole page
+    // CRITICAL: Only use #sidebar-v2 - the most specific selector
+    // .lead-connector and other classes can match parent containers
+    // that include the main content area, causing color bleed
     // ============================================
     if (colorConfig.sidebar_bg) {
-      css += '/* Sidebar Background - target nav containers only */\\n';
-      css += '#sidebar-v2,\\n';
-      css += '.sidebar-v2-location,\\n';
-      css += '.hl_nav-location,\\n';
-      css += '.hl_nav-sidebar,\\n';
-      css += '.location-sidebar,\\n';
-      css += 'nav.lead-connector { background-color: ' + colorConfig.sidebar_bg + ' !important; }\\n';
+      css += '/* Sidebar Background - #sidebar-v2 only (most specific) */\\n';
+      css += '#sidebar-v2 { background-color: ' + colorConfig.sidebar_bg + ' !important; }\\n';
     }
     if (colorConfig.sidebar_text) {
-      css += '/* Sidebar Text - target nav elements only */\\n';
-      css += '#sidebar-v2 a,\\n';
-      css += '#sidebar-v2 span,\\n';
+      css += '/* Sidebar Text - menu items only */\\n';
       css += '[id^="sb_"],\\n';
-      css += '[id^="sb_"] span.nav-title,\\n';
-      css += '[id^="sb_"] span.hl_text-overflow,\\n';
-      css += '.hl_nav-settings a { color: ' + colorConfig.sidebar_text + ' !important; }\\n';
+      css += '[id^="sb_"] span,\\n';
+      css += '#sidebar-v2 .hl_nav-settings a { color: ' + colorConfig.sidebar_text + ' !important; }\\n';
     }
 
     // ============================================
-    // SAFEGUARD: Ensure main content area stays visible
-    // Prevents our sidebar/nav styles from accidentally hiding content
+    // DEFENSIVE: Ensure main content is NOT affected by sidebar styles
+    // 1. Reset background-color inheritance on main content containers
+    // 2. Ensure main content visibility (prevent accidental hiding)
     // ============================================
-    css += '/* Safeguard: Main content visibility */\\n';
-    css += '.hl_main-content,\\n';
-    css += '.hl-main-content,\\n';
+    css += '/* Defensive: Isolate main content from sidebar styles */\\n';
+    css += '#sidebar-v2 ~ *,\\n';  // Siblings of sidebar
     css += '.hl-right-pane,\\n';
-    css += '.location-layout__content,\\n';
-    css += '.hl-location-body,\\n';
-    css += '[class*="dashboard"],\\n';
-    css += '.v2-location-layout {\\n';
-    css += '  visibility: visible !important;\\n';
-    css += '  opacity: 1 !important;\\n';
-    css += '  display: block !important;\\n';
+    css += '.location-layout__content {\\n';
+    css += '  background-color: inherit;\\n';  // Don't force a color, just prevent sidebar bleed
+    css += '}\\n';
+    css += '/* Defensive: Ensure main content stays visible */\\n';
+    css += '.hl-right-pane > *,\\n';  // Direct children of main content
+    css += '.location-layout__content > * {\\n';
+    css += '  visibility: visible;\\n';  // No !important - just a default
     css += '}\\n';
 
     // ============================================
