@@ -188,10 +188,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // Hide menu items using GHL sidebar item selectors
     // GHL uses ID selectors like #sb_calendars, #sb_opportunities (NOT data-sidebar-item)
+    // NOTE: Some IDs have spaces (e.g., "sb_AI Agents") - must escape for CSS
     if (menuConfig.hidden_items && menuConfig.hidden_items.length > 0) {
       var hiddenSelectors = menuConfig.hidden_items.map(function(item) {
         // GHL uses ID attribute on sidebar items: id="sb_calendars"
-        return '#' + item;
+        // CSS.escape handles special chars like spaces: "sb_AI Agents" -> "sb_AI\\ Agents"
+        return '#' + CSS.escape(item);
       }).join(',\\n');
 
       css += '/* Hidden Menu Items */\\n';
@@ -201,23 +203,25 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     // Rename menu items using CSS ::after trick
     // GHL uses span.nav-title and span.hl_text-overflow for menu text
     // Some items (like Conversations, Reputation) may have different structures
+    // NOTE: Some IDs have spaces - must escape for CSS
     if (menuConfig.renamed_items && Object.keys(menuConfig.renamed_items).length > 0) {
       css += '/* Renamed Menu Items */\\n';
       Object.keys(menuConfig.renamed_items).forEach(function(itemId) {
         var newName = menuConfig.renamed_items[itemId];
+        var escapedId = CSS.escape(itemId);
         // Hide original text using font-size:0 and color:transparent (visibility breaks ::after)
         // Target multiple possible text element classes
-        css += '#' + itemId + ' span.nav-title,\\n';
-        css += '#' + itemId + ' span.hl_text-overflow,\\n';
-        css += '#' + itemId + ' > span:not(.sr-only) { \\n';
+        css += '#' + escapedId + ' span.nav-title,\\n';
+        css += '#' + escapedId + ' span.hl_text-overflow,\\n';
+        css += '#' + escapedId + ' > span:not(.sr-only) { \\n';
         css += '  font-size: 0 !important; \\n';
         css += '  color: transparent !important; \\n';
         css += '  letter-spacing: -9999px !important; \\n';
         css += '}\\n';
         // Show new text via ::after pseudo-element
-        css += '#' + itemId + ' span.nav-title::after,\\n';
-        css += '#' + itemId + ' span.hl_text-overflow::after,\\n';
-        css += '#' + itemId + ' > span:not(.sr-only)::after { \\n';
+        css += '#' + escapedId + ' span.nav-title::after,\\n';
+        css += '#' + escapedId + ' span.hl_text-overflow::after,\\n';
+        css += '#' + escapedId + ' > span:not(.sr-only)::after { \\n';
         css += '  content: "' + newName + '"; \\n';
         css += '  font-size: 14px !important; \\n';
         css += '  color: inherit !important; \\n';

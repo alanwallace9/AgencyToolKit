@@ -154,6 +154,50 @@ export async function GET(request: Request) {
       }
     }
 
+    // Resolve extended color variations to actual hex values
+    // Extended colors can be "variation" type (derived from base colors) or "fixed" type (direct hex)
+    const resolvedColors = agency.settings?.colors ? { ...agency.settings.colors } : null;
+    if (resolvedColors?.extended) {
+      const baseColors = {
+        primary: resolvedColors.primary,
+        accent: resolvedColors.accent,
+        sidebar_bg: resolvedColors.sidebar_bg,
+        sidebar_text: resolvedColors.sidebar_text,
+      };
+
+      // Resolve each extended color option to a hex value
+      const resolvedExtended: Record<string, string> = {};
+      for (const [key, option] of Object.entries(resolvedColors.extended)) {
+        const opt = option as { enabled?: boolean; type?: string; color?: string; baseColor?: string; percentage?: number };
+        if (!opt || !opt.enabled) continue;
+
+        if (opt.type === 'fixed' && opt.color) {
+          resolvedExtended[key] = opt.color;
+        } else if (opt.type === 'variation' && opt.baseColor && opt.percentage !== undefined) {
+          const baseColor = baseColors[opt.baseColor as keyof typeof baseColors];
+          if (baseColor) {
+            if (opt.percentage === 100) {
+              resolvedExtended[key] = baseColor;
+            } else {
+              // Mix with white to create lighter tint
+              const r = parseInt(baseColor.slice(1, 3), 16);
+              const g = parseInt(baseColor.slice(3, 5), 16);
+              const b = parseInt(baseColor.slice(5, 7), 16);
+              const whiteFactor = (100 - opt.percentage) / 100;
+              const newR = Math.round(r + (255 - r) * whiteFactor);
+              const newG = Math.round(g + (255 - g) * whiteFactor);
+              const newB = Math.round(b + (255 - b) * whiteFactor);
+              resolvedExtended[key] = `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+            }
+          }
+        }
+      }
+
+      // Replace extended with resolved hex values for embed.js
+      resolvedColors.extended_elements = resolvedExtended;
+      // Keep original extended for debugging but embed.js uses extended_elements
+    }
+
     // Return configuration for embed script
     const config = {
       token: agency.token,
@@ -162,7 +206,7 @@ export async function GET(request: Request) {
       login: agency.settings?.login || null,
       login_design: defaultLoginDesign || null,
       loading: loadingPayload,
-      colors: agency.settings?.colors || null,
+      colors: resolvedColors,
       whitelisted_locations: agency.settings?.whitelisted_locations || [],
       tours: activeTours.map((tour: { id: string; name: string; page: string; trigger: string; steps: unknown[] }) => ({
         id: tour.id,
