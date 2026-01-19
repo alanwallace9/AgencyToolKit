@@ -13,7 +13,7 @@ export function ColorsTabContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [presets, setPresets] = useState<ColorPreset[]>([]);
   const [colors, setColors] = useState<ColorConfig | null>(null);
-  const { markSaved } = useThemeStatus();
+  const { markSaved, registerSaveHandler, setTabHasUnsavedChanges } = useThemeStatus();
 
   useEffect(() => {
     async function loadData() {
@@ -41,6 +41,22 @@ export function ColorsTabContent() {
     markSaved();
   }, [markSaved]);
 
+  // Register the colors save handler with the theme context
+  const handleRegisterSaveHandler = useCallback(
+    (handler: (() => Promise<boolean>) | null) => {
+      registerSaveHandler('colors', handler);
+    },
+    [registerSaveHandler]
+  );
+
+  // Track unsaved changes in the theme context
+  const handleUnsavedChangesChange = useCallback(
+    (hasChanges: boolean) => {
+      setTabHasUnsavedChanges('colors', hasChanges);
+    },
+    [setTabHasUnsavedChanges]
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
@@ -58,6 +74,8 @@ export function ColorsTabContent() {
         initialPresets={presets}
         initialColors={colors}
         onSaveComplete={handleSaveComplete}
+        onRegisterSaveHandler={handleRegisterSaveHandler}
+        onUnsavedChangesChange={handleUnsavedChangesChange}
       />
       <GlassStyles />
     </div>

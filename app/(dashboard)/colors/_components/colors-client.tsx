@@ -26,6 +26,10 @@ interface ColorsClientProps {
   initialColors: ColorConfig | null;
   /** Optional callback when save completes (for integrating with parent save status) */
   onSaveComplete?: () => void;
+  /** Optional: Register a save handler for external save triggers (e.g., tab change) */
+  onRegisterSaveHandler?: (handler: (() => Promise<boolean>) | null) => void;
+  /** Optional: Report unsaved changes state to parent */
+  onUnsavedChangesChange?: (hasChanges: boolean) => void;
 }
 
 // Default colors if none saved
@@ -36,7 +40,13 @@ const DEFAULT_COLORS: ColorConfig = {
   sidebar_text: '#f9fafb',
 };
 
-export function ColorsClient({ initialPresets, initialColors, onSaveComplete }: ColorsClientProps) {
+export function ColorsClient({
+  initialPresets,
+  initialColors,
+  onSaveComplete,
+  onRegisterSaveHandler,
+  onUnsavedChangesChange,
+}: ColorsClientProps) {
   // Resizable panels
   const {
     leftWidth,
@@ -72,8 +82,19 @@ export function ColorsClient({ initialPresets, initialColors, onSaveComplete }: 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Keep a ref to the current colors for the save handler
+  const colorsRef = useRef<ColorConfig>(colors);
+  useEffect(() => {
+    colorsRef.current = colors;
+  }, [colors]);
+
   // The colors to display in preview (hover preview takes priority)
   const displayColors = hoverPreviewColors || colors;
+
+  // Notify parent of unsaved changes state
+  useEffect(() => {
+    onUnsavedChangesChange?.(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onUnsavedChangesChange]);
 
   // ============================================
   // Auto-save with debounce
@@ -130,6 +151,68 @@ export function ColorsClient({ initialPresets, initialColors, onSaveComplete }: 
       }
     };
   }, []);
+
+  // ============================================
+  // External Save Handler (for tab change / Save button)
+  // ============================================
+  // This function saves the current colors immediately (no debounce)
+  // Used when user clicks Save button or switches tabs
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    // Clear any pending debounced save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    // If no unsaved changes, nothing to do
+    if (!hasUnsavedChanges) {
+      return true;
+    }
+
+    setIsSaving(true);
+    try {
+      const currentColors = colorsRef.current;
+
+      // If we have a selected custom preset, update it
+      if (selectedPresetId) {
+        const result = await updateColorPreset(selectedPresetId, { colors: currentColors });
+        if (result.success) {
+          setCustomPresets((prev) =>
+            prev.map((p) =>
+              p.id === selectedPresetId ? { ...p, colors: currentColors } : p
+            )
+          );
+          onSaveComplete?.();
+          setHasUnsavedChanges(false);
+          return true;
+        } else {
+          toast.error(result.error || 'Failed to save');
+          return false;
+        }
+      } else {
+        // Save directly to agency settings (built-in preset or custom edits)
+        const result = await saveAgencyColors(currentColors);
+        if (result.success) {
+          onSaveComplete?.();
+          setHasUnsavedChanges(false);
+          return true;
+        } else {
+          toast.error(result.error || 'Failed to save');
+          return false;
+        }
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }, [hasUnsavedChanges, selectedPresetId, onSaveComplete]);
+
+  // Register the save handler with parent on mount
+  useEffect(() => {
+    onRegisterSaveHandler?.(saveNow);
+    return () => {
+      onRegisterSaveHandler?.(null);
+    };
+  }, [saveNow, onRegisterSaveHandler]);
 
   // ============================================
   // Color Change Handlers

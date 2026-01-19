@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useCallback, useState, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useState, useRef, type ReactNode } from 'react';
 import type { TabId } from '../_components/theme-tabs';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -11,6 +11,9 @@ export interface TabActivationState {
   menu: boolean;
   colors: boolean;
 }
+
+/** Function that saves tab data, returns true on success */
+export type TabSaveHandler = () => Promise<boolean>;
 
 interface ThemeStatusContextValue {
   /** Save status for the current operation */
@@ -33,6 +36,16 @@ interface ThemeStatusContextValue {
   markSaved: () => void;
   /** Mark as having unsaved changes */
   markUnsaved: () => void;
+  /** Register a save handler for a tab (called by tab components) */
+  registerSaveHandler: (tabId: TabId, handler: TabSaveHandler | null) => void;
+  /** Save a specific tab's data */
+  saveTab: (tabId: TabId) => Promise<boolean>;
+  /** Save all tabs that have registered handlers */
+  saveAllTabs: () => Promise<boolean>;
+  /** Track if a tab has unsaved changes */
+  setTabHasUnsavedChanges: (tabId: TabId, hasChanges: boolean) => void;
+  /** Check if a tab has unsaved changes */
+  tabHasUnsavedChanges: (tabId: TabId) => boolean;
 }
 
 const ThemeStatusContext = createContext<ThemeStatusContextValue | null>(null);
@@ -64,6 +77,12 @@ export function ThemeStatusProvider({
     ...initialActiveTabs,
   });
 
+  // Store save handlers for each tab
+  const saveHandlersRef = useRef<Partial<Record<TabId, TabSaveHandler>>>({});
+
+  // Track which tabs have unsaved changes
+  const [unsavedChanges, setUnsavedChanges] = useState<Partial<Record<TabId, boolean>>>({});
+
   const isThemeLive = activeTabs.login || activeTabs.loading || activeTabs.menu || activeTabs.colors;
 
   const toggleTabActivation = useCallback((tabId: TabId, active: boolean) => {
@@ -86,6 +105,72 @@ export function ThemeStatusProvider({
     setSaveStatus('idle');
   }, []);
 
+  // Register a save handler for a tab
+  const registerSaveHandler = useCallback((tabId: TabId, handler: TabSaveHandler | null) => {
+    if (handler) {
+      saveHandlersRef.current[tabId] = handler;
+    } else {
+      delete saveHandlersRef.current[tabId];
+    }
+  }, []);
+
+  // Save a specific tab
+  const saveTab = useCallback(async (tabId: TabId): Promise<boolean> => {
+    const handler = saveHandlersRef.current[tabId];
+    if (!handler) return true; // No handler = nothing to save = success
+
+    try {
+      const success = await handler();
+      if (success) {
+        setUnsavedChanges((prev) => ({ ...prev, [tabId]: false }));
+      }
+      return success;
+    } catch (error) {
+      console.error(`Error saving tab ${tabId}:`, error);
+      return false;
+    }
+  }, []);
+
+  // Save all tabs that have registered handlers
+  const saveAllTabs = useCallback(async (): Promise<boolean> => {
+    const handlers = saveHandlersRef.current;
+    const tabIds = Object.keys(handlers) as TabId[];
+
+    if (tabIds.length === 0) return true;
+
+    setSaveStatus('saving');
+
+    try {
+      const results = await Promise.all(
+        tabIds.map((tabId) => saveTab(tabId))
+      );
+
+      const allSuccess = results.every(Boolean);
+
+      if (allSuccess) {
+        markSaved();
+      } else {
+        setSaveStatus('error');
+      }
+
+      return allSuccess;
+    } catch (error) {
+      console.error('Error saving all tabs:', error);
+      setSaveStatus('error');
+      return false;
+    }
+  }, [saveTab, markSaved]);
+
+  // Track unsaved changes for a tab
+  const setTabHasUnsavedChanges = useCallback((tabId: TabId, hasChanges: boolean) => {
+    setUnsavedChanges((prev) => ({ ...prev, [tabId]: hasChanges }));
+  }, []);
+
+  // Check if a tab has unsaved changes
+  const tabHasUnsavedChanges = useCallback((tabId: TabId): boolean => {
+    return unsavedChanges[tabId] ?? false;
+  }, [unsavedChanges]);
+
   return (
     <ThemeStatusContext.Provider
       value={{
@@ -99,6 +184,11 @@ export function ThemeStatusProvider({
         setActiveTabs,
         markSaved,
         markUnsaved,
+        registerSaveHandler,
+        saveTab,
+        saveAllTabs,
+        setTabHasUnsavedChanges,
+        tabHasUnsavedChanges,
       }}
     >
       {children}

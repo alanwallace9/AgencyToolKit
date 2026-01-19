@@ -11,3 +11,8 @@ export function generateCustomerToken(customerName: string): string {
   const random = randomBytes(8).toString('hex');
   return `${prefix}_${random}`;
 }
+
+export function generateSocialProofWidgetToken(): string {
+  const random = randomBytes(8).toString('hex');
+  return `sp_${random}`;
+}

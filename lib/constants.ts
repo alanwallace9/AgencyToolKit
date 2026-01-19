@@ -1,4 +1,6 @@
 // GHL Menu Items - matches sidebar IDs
+// Updated 2026-01-18: IDs verified against actual GHL DOM via discovery script
+// See docs/GHL_SELECTORS.md for reference
 export const GHL_MENU_ITEMS = [
   { id: 'sb_launchpad', label: 'Launchpad', icon: 'Rocket' },
   { id: 'sb_dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
@@ -7,15 +9,16 @@ export const GHL_MENU_ITEMS = [
   { id: 'sb_contacts', label: 'Contacts', icon: 'Users' },
   { id: 'sb_opportunities', label: 'Opportunities', icon: 'Target' },
   { id: 'sb_payments', label: 'Payments', icon: 'CreditCard' },
-  { id: 'sb_ai-employee-promo', label: 'AI Agents', icon: 'Bot' },
-  { id: 'sb_email-marketing', label: 'Email Marketing', icon: 'Mail' },
+  { id: 'sb_AI Agents', label: 'AI Agents', icon: 'Bot' }, // Note: GHL uses space in ID
+  { id: 'sb_email-marketing', label: 'Marketing', icon: 'Mail' },
   { id: 'sb_automation', label: 'Automation', icon: 'Zap' },
   { id: 'sb_sites', label: 'Sites', icon: 'Globe' },
   { id: 'sb_memberships', label: 'Memberships', icon: 'UserPlus' },
-  { id: 'sb_media-storage', label: 'Media Storage', icon: 'FolderOpen' },
+  { id: 'sb_app-media', label: 'Media Storage', icon: 'FolderOpen' }, // Was sb_media-storage
   { id: 'sb_reputation', label: 'Reputation', icon: 'Star' },
   { id: 'sb_reporting', label: 'Reporting', icon: 'BarChart3' },
   { id: 'sb_app-marketplace', label: 'App Marketplace', icon: 'Store' },
+  { id: 'sb_settings', label: 'Settings', icon: 'Settings' },
 ] as const;
 
 export type GHLMenuItemId = (typeof GHL_MENU_ITEMS)[number]['id'];
@@ -58,7 +61,7 @@ export const BUILT_IN_PRESETS: Record<
       'sb_contacts',
       'sb_email-marketing',
       'sb_reputation',
-      'sb_ai-employee-promo',
+      'sb_AI Agents',
       'sb_automation',
     ],
     renamed_items: {

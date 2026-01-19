@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Palette, LogIn, Loader2, Paintbrush, Map, ImageIcon, Sparkles, Layers } from "lucide-react"
+import { Palette, LogIn, Loader2, Paintbrush, Map, ImageIcon, Sparkles, Layers, Bell } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -120,6 +120,25 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
             >
               <Layers className="h-3.5 w-3.5" />
               Theme Builder
+            </Link>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+
+        {/* Social Proof - direct link */}
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild>
+            <Link
+              href="/social-proof"
+              className={cn(
+                navigationMenuTriggerStyle(),
+                "text-[14px] font-medium h-9 px-3 gap-1.5",
+                pathname.startsWith("/social-proof")
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Bell className="h-3.5 w-3.5" />
+              Social Proof
             </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>

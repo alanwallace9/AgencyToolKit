@@ -1,7 +1,8 @@
 'use client';
 
+import React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { ThemeTabs, type TabId } from './theme-tabs';
 import { ThemeHeader } from './theme-header';
 import { ThemeStatusProvider, useThemeStatus } from '../_context/theme-status-context';
@@ -47,7 +48,7 @@ function ThemeBuilderInner() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [isSaving, setIsSaving] = useState(false);
-  const { markSaved, setSaveStatus } = useThemeStatus();
+  const { setSaveStatus, saveAllTabs, saveTab, tabHasUnsavedChanges } = useThemeStatus();
 
   // Default to "login" if no tab or invalid tab
   const activeTab: TabId = validTabs.includes(tabParam as TabId)
@@ -56,6 +57,26 @@ function ThemeBuilderInner() {
 
   const activeTabIndex = validTabs.indexOf(activeTab);
 
+  // Track previous tab for auto-save on tab change
+  const previousTabRef = useRef<TabId>(activeTab);
+
+  // Auto-save when leaving a tab (if it has unsaved changes)
+  useEffect(() => {
+    const previousTab = previousTabRef.current;
+
+    // If we changed tabs and the previous tab has unsaved changes, save it
+    if (previousTab !== activeTab && tabHasUnsavedChanges(previousTab)) {
+      saveTab(previousTab).then((success) => {
+        if (success) {
+          toast.success(`${TAB_DISPLAY_NAMES[previousTab]} saved`);
+        }
+      });
+    }
+
+    // Update the ref for next tab change
+    previousTabRef.current = activeTab;
+  }, [activeTab, saveTab, tabHasUnsavedChanges]);
+
   const handlePreview = useCallback(() => {
     // TODO: Open preview modal
     toast.info('Preview coming soon');
@@ -63,12 +84,13 @@ function ThemeBuilderInner() {
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
-    setSaveStatus('saving');
     try {
-      // TODO: Save all settings
-      // For now, just mark as saved to update timestamp
-      markSaved();
-      toast.success('Settings saved');
+      const success = await saveAllTabs();
+      if (success) {
+        toast.success('Settings saved');
+      } else {
+        toast.error('Some settings failed to save');
+      }
     } catch (error) {
       console.error('Save error:', error);
       setSaveStatus('error');
@@ -76,7 +98,7 @@ function ThemeBuilderInner() {
     } finally {
       setIsSaving(false);
     }
-  }, [markSaved, setSaveStatus]);
+  }, [saveAllTabs, setSaveStatus]);
 
   // Navigate to a specific tab
   const navigateToTab = useCallback((tabId: TabId) => {

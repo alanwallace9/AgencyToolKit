@@ -815,16 +815,112 @@ export interface ImageTemplate {
   updated_at: string;
 }
 
+// ============================================
+// SOCIAL PROOF WIDGET TYPES
+// ============================================
+
+export type SocialProofTheme = 'minimal' | 'glass' | 'dark' | 'rounded' | 'custom';
+export type SocialProofPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
+export type SocialProofUrlMode = 'all' | 'include' | 'exclude';
+export type SocialProofEventType =
+  | 'signup'
+  | 'trial'
+  | 'demo'
+  | 'purchase'
+  | 'subscription'
+  | 'milestone'
+  | 'connected'
+  | 'review_milestone'
+  | 'lead_milestone'
+  | 'custom';
+export type SocialProofEventSource = 'auto' | 'manual' | 'csv' | 'webhook' | 'stripe';
+
+export interface SocialProofCustomColors {
+  background: string;
+  text: string;
+  accent: string;
+  border: string;
+}
+
+export interface SocialProofWidget {
+  id: string;
+  agency_id: string;
+  name: string;
+  token: string;
+  is_active: boolean;
+
+  // Display
+  theme: SocialProofTheme;
+  position: SocialProofPosition;
+  custom_colors: SocialProofCustomColors;
+
+  // Timing
+  display_duration: number;
+  gap_between: number;
+  initial_delay: number;
+
+  // Content
+  show_first_name: boolean;
+  show_city: boolean;
+  show_business_name: boolean;
+  show_time_ago: boolean;
+  time_ago_text: string;
+
+  // Targeting
+  url_mode: SocialProofUrlMode;
+  url_patterns: string[];
+
+  // Form Capture
+  form_selector: string | null;
+  capture_email: boolean;
+  capture_phone: boolean;
+  capture_business_name: boolean;
+
+  // Rotation
+  max_events_in_rotation: number;
+  randomize_order: boolean;
+
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SocialProofEvent {
   id: string;
   agency_id: string;
-  event_type: 'signup' | 'subscription' | 'milestone' | 'connected';
+  widget_id: string | null;
+  event_type: SocialProofEventType;
+  source: SocialProofEventSource;
+  first_name: string | null;
   business_name: string;
-  location: string | null;
+  city: string | null;
+  location: string | null; // Legacy field
+  custom_text: string | null;
+  display_time_override: string | null;
   details: Record<string, unknown>;
   is_visible: boolean;
   created_at: string;
 }
+
+// Event type display text mapping
+export const SOCIAL_PROOF_EVENT_TYPE_TEXT: Record<SocialProofEventType, string> = {
+  signup: 'just signed up',
+  trial: 'just started their free trial',
+  demo: 'just requested a demo',
+  purchase: 'just subscribed',
+  subscription: 'just subscribed',
+  milestone: '',
+  connected: 'just connected',
+  review_milestone: '',
+  lead_milestone: '',
+  custom: '',
+};
+
+// Widget limits by plan
+export const SOCIAL_PROOF_WIDGET_LIMITS: Record<string, number> = {
+  free: 0,
+  toolkit: 5,
+  pro: 999, // Effectively unlimited
+};
 
 export interface AnalyticsEvent {
   id: string;
