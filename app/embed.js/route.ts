@@ -2566,10 +2566,29 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
   var TOUR_STATE_KEY_PREFIX = 'at_tour_';
 
-  // Get tour state from localStorage
+  // Extract GHL location ID from URL path
+  // URL format: /v2/location/LOCATION_ID/...
+  function getGHLLocationId() {
+    var path = window.location.pathname;
+    var match = path.match(/\/v2\/location\/([^\/]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+    // Fallback: use hostname to differentiate at minimum
+    return window.location.hostname;
+  }
+
+  // Build storage key that's unique per tour AND per subaccount
+  function getTourStorageKey(tourId) {
+    var locationId = getGHLLocationId();
+    return TOUR_STATE_KEY_PREFIX + tourId + '_' + locationId;
+  }
+
+  // Get tour state from localStorage (per subaccount)
   function getTourState(tourId) {
     try {
-      var stateStr = localStorage.getItem(TOUR_STATE_KEY_PREFIX + tourId);
+      var key = getTourStorageKey(tourId);
+      var stateStr = localStorage.getItem(key);
       if (stateStr) {
         return JSON.parse(stateStr);
       }
@@ -2579,10 +2598,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     return null;
   }
 
-  // Save tour state to localStorage
+  // Save tour state to localStorage (per subaccount)
   function saveTourState(tourId, state) {
     try {
-      localStorage.setItem(TOUR_STATE_KEY_PREFIX + tourId, JSON.stringify(state));
+      var key = getTourStorageKey(tourId);
+      localStorage.setItem(key, JSON.stringify(state));
+      log('Tour state saved for location:', getGHLLocationId());
     } catch (e) {
       logWarn('Failed to save tour state', e);
     }
