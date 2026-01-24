@@ -2389,19 +2389,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
 
     // Create Driver instance
-    // Driver.js IIFE exposes: window.driver = { driver: fn, ... }
+    // Driver.js IIFE exposes: window.driver = { js: { driver: fn, ... } }
     // Debug: Log what's available
     log('Driver.js loaded, window.driver:', typeof window.driver, window.driver);
-    if (window.driver && typeof window.driver.driver === 'function') {
-      log('Using window.driver.driver()');
-    } else if (typeof window.driver === 'function') {
-      log('Using window.driver() directly');
+    if (window.driver && window.driver.js && typeof window.driver.js.driver === 'function') {
+      log('Using window.driver.js.driver()');
     } else {
       logError('Driver.js not loaded correctly. window.driver:', window.driver);
       return;
     }
 
-    var driverFn = typeof window.driver.driver === 'function' ? window.driver.driver : window.driver;
+    var driverFn = window.driver.js.driver;
     var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
       showButtons: true,
@@ -2790,19 +2788,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
 
     // Create Driver instance
-    // Driver.js IIFE exposes: window.driver = { driver: fn, ... }
+    // Driver.js IIFE exposes: window.driver = { js: { driver: fn, ... } }
     // Debug: Log what's available
     log('Driver.js loaded, window.driver:', typeof window.driver, window.driver);
-    if (window.driver && typeof window.driver.driver === 'function') {
-      log('Using window.driver.driver()');
-    } else if (typeof window.driver === 'function') {
-      log('Using window.driver() directly');
+    if (window.driver && window.driver.js && typeof window.driver.js.driver === 'function') {
+      log('Using window.driver.js.driver()');
     } else {
       logError('Driver.js not loaded correctly. window.driver:', window.driver);
       return;
     }
 
-    var driverFn = typeof window.driver.driver === 'function' ? window.driver.driver : window.driver;
+    var driverFn = window.driver.js.driver;
     var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
       showButtons: true,
