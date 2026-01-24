@@ -2744,6 +2744,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       injectTourThemeStyles(theme);
     }
 
+    // Reference to driver instance for use in step callbacks
+    // (callbacks execute after driverRef is assigned)
+    var driverRef = null;
+
     // Convert steps to Driver.js format
     var driverSteps = steps.map(function(step, index) {
       var driverStep = {
@@ -2765,6 +2769,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       if (step.buttons) {
         if (step.buttons.primary) {
           driverStep.popover.nextBtnText = step.buttons.primary.text || 'Next';
+
+          // Handle button actions: complete or dismiss should close the tour
+          var primaryAction = step.buttons.primary.action;
+          if (primaryAction === 'complete' || primaryAction === 'dismiss') {
+            driverStep.popover.onNextClick = function() {
+              log('Button action: ' + primaryAction + ' - closing tour');
+              if (driverRef) {
+                driverRef.destroy();
+              }
+            };
+          }
         }
         if (step.buttons.secondary) {
           driverStep.popover.prevBtnText = step.buttons.secondary.text || 'Previous';
@@ -2866,6 +2881,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         }
       }
     });
+
+    // Store reference for use in step callbacks (e.g., onNextClick for "complete" action)
+    driverRef = driverInstance;
 
     // Start the tour after page settles
     setTimeout(function() {
