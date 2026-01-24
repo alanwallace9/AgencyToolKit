@@ -2570,7 +2570,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // URL format: /v2/location/LOCATION_ID/...
   function getGHLLocationId() {
     var path = window.location.pathname;
-    var match = path.match(/\/v2\/location\/([^\/]+)/);
+    var match = path.match(/\\/v2\\/location\\/([^\\/]+)/);
     if (match && match[1]) {
       return match[1];
     }
