@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { generateCustomerToken } from '@/lib/tokens';
 
 interface CreateCustomerData {
@@ -24,7 +24,7 @@ export async function createCustomer(data: CreateCustomerData): Promise<ActionRe
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Check plan limits
     const { count } = await supabase
@@ -90,7 +90,7 @@ export async function updateCustomer(
       return { success: false, error: 'Name is required' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: customer, error } = await supabase
       .from('customers')
@@ -125,7 +125,7 @@ export async function deleteCustomer(customerId: string): Promise<ActionResult> 
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('customers')

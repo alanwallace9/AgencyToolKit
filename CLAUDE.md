@@ -21,6 +21,17 @@ This repository contains **specification documents only** - no implementation co
 - **Drag & Drop**: @dnd-kit/sortable (menu reordering)
 - **Hosting**: Vercel
 
+## Critical: Do NOT Modify proxy.ts
+
+**The file `proxy.ts` is the Clerk middleware configuration for Next.js 15.5+.**
+
+- Next.js renamed middleware.ts → proxy.ts (see: https://nextjs.org/docs/messages/middleware-to-proxy)
+- **DO NOT rename this file to middleware.ts**
+- **DO NOT delete this file**
+- **Only modify to add/remove public routes when explicitly approved**
+
+If you need to add a public API route (accessible without Clerk auth), add it to the `isPublicRoute` matcher array in proxy.ts.
+
 ## UI Components
 
 - Use shadcn/ui for ALL UI components

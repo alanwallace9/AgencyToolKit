@@ -2776,10 +2776,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         driverStep.popover.showButtons = ['next', 'close'];
       }
 
-      // Last step shows done button (Driver.js uses 'next' button with doneBtnText on last step)
+      // Last step - keep all buttons, Driver.js shows doneBtnText automatically
       if (index === steps.length - 1) {
         driverStep.popover.showButtons = ['previous', 'next', 'close'];
-        driverStep.popover.doneBtnText = step.buttons?.primary?.text || 'Done';
       }
 
       return driverStep;
@@ -2796,16 +2795,21 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       return;
     }
 
+    // Get the last step's primary button text for the Done button
+    var lastStep = steps[steps.length - 1];
+    var doneBtnText = lastStep?.buttons?.primary?.text || 'Done';
+
     var driverFn = window.driver.js.driver;
     var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
-      showButtons: true,
+      showButtons: ['next', 'previous', 'close'],
       animate: true,
       allowClose: settings.allow_skip !== false,
       overlayOpacity: 0.5,
       stagePadding: 10,
       stageRadius: 8,
       popoverClass: 'at-tour-popover at-production-tour',
+      doneBtnText: doneBtnText,
       steps: driverSteps,
       onHighlightStarted: function(element, step, options) {
         var stepIndex = options.state.activeIndex;
