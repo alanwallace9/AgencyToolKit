@@ -2776,12 +2776,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         driverStep.popover.showButtons = ['next', 'close'];
       }
 
-      // Last step shows done button
+      // Last step shows done button (Driver.js uses 'next' button with doneBtnText on last step)
       if (index === steps.length - 1) {
-        driverStep.popover.showButtons = ['previous', 'close'];
+        driverStep.popover.showButtons = ['previous', 'next', 'close'];
         driverStep.popover.doneBtnText = step.buttons?.primary?.text || 'Done';
-        driverStep.popover.showButtons.push('done');
-        driverStep.popover.showButtons = driverStep.popover.showButtons.filter(function(b) { return b !== 'next'; });
       }
 
       return driverStep;
