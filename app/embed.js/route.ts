@@ -2389,8 +2389,20 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
 
     // Create Driver instance
-    // Note: Driver.js IIFE exposes driver() directly on window.driver, not window.driver.driver()
-    var driverInstance = window.driver({
+    // Driver.js IIFE exposes: window.driver = { driver: fn, ... }
+    // Debug: Log what's available
+    log('Driver.js loaded, window.driver:', typeof window.driver, window.driver);
+    if (window.driver && typeof window.driver.driver === 'function') {
+      log('Using window.driver.driver()');
+    } else if (typeof window.driver === 'function') {
+      log('Using window.driver() directly');
+    } else {
+      logError('Driver.js not loaded correctly. window.driver:', window.driver);
+      return;
+    }
+
+    var driverFn = typeof window.driver.driver === 'function' ? window.driver.driver : window.driver;
+    var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
       showButtons: true,
       animate: true,
@@ -2778,8 +2790,20 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
 
     // Create Driver instance
-    // Note: Driver.js IIFE exposes driver() directly on window.driver, not window.driver.driver()
-    var driverInstance = window.driver({
+    // Driver.js IIFE exposes: window.driver = { driver: fn, ... }
+    // Debug: Log what's available
+    log('Driver.js loaded, window.driver:', typeof window.driver, window.driver);
+    if (window.driver && typeof window.driver.driver === 'function') {
+      log('Using window.driver.driver()');
+    } else if (typeof window.driver === 'function') {
+      log('Using window.driver() directly');
+    } else {
+      logError('Driver.js not loaded correctly. window.driver:', window.driver);
+      return;
+    }
+
+    var driverFn = typeof window.driver.driver === 'function' ? window.driver.driver : window.driver;
+    var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
       showButtons: true,
       animate: true,
