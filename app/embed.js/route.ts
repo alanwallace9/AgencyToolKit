@@ -2385,6 +2385,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         }
       }
 
+      // Allow interaction with highlighted element when enabled
+      if (step.settings?.allow_interaction) {
+        driverStep.disableActiveInteraction = false;
+        log('Step ' + (index + 1) + ': allow_interaction enabled');
+      }
+
       return driverStep;
     });
 
@@ -2794,6 +2800,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       // Last step - keep all buttons, Driver.js shows doneBtnText automatically
       if (index === steps.length - 1) {
         driverStep.popover.showButtons = ['previous', 'next', 'close'];
+      }
+
+      // Allow interaction with highlighted element when enabled
+      if (step.settings?.allow_interaction) {
+        driverStep.disableActiveInteraction = false;
+        log('Step ' + (index + 1) + ': allow_interaction enabled');
       }
 
       return driverStep;
