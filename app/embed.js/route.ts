@@ -2885,6 +2885,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // Wait for page to be ready, then check tours
     function checkAndRunTour() {
+      // Skip if builder toolbar is present (agency owner editing tours)
+      if (document.getElementById('at-builder-toolbar')) {
+        log('Builder toolbar detected, skipping production tour');
+        return;
+      }
+
       var selected = selectTourToShow(tours, themes);
       if (selected) {
         runProductionTour(selected.tour, selected.theme);
