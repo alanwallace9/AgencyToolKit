@@ -795,24 +795,59 @@ export interface UserChecklistState {
   completed_at?: string;
 }
 
+// Image Template text configuration
+export interface ImageTemplateTextConfig {
+  // Position (percentage of image dimensions for responsive positioning)
+  x: number;
+  y: number;
+
+  // Text box dimensions (percentage)
+  width?: number;
+  height?: number;
+
+  // Typography
+  font: string;
+  size: number;
+  font_weight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  text_align?: 'left' | 'center' | 'right';
+  text_transform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+  letter_spacing?: number;
+
+  // Colors
+  color: string;
+  background_color: string | null;
+  padding?: number;
+
+  // Content
+  fallback: string;
+  prefix?: string; // e.g., "Hi " for "Hi Sarah!"
+  suffix?: string; // e.g., "!" for "Hi Sarah!"
+}
+
 export interface ImageTemplate {
   id: string;
   agency_id: string;
   name: string;
+
+  // Image source
   base_image_url: string;
   base_image_width: number;
   base_image_height: number;
-  text_config: {
-    x: number;
-    y: number;
-    font: string;
-    size: number;
-    color: string;
-    background_color: string | null;
-    fallback: string;
-  };
+
+  // Text overlay configuration
+  text_config: ImageTemplateTextConfig;
+
+  // Optional customer association (for per-subaccount images)
+  customer_id?: string | null;
+
+  // A/B testing
+  ab_pair_id?: string | null;
+  ab_variant?: 'A' | 'B' | null;
+
+  // Usage stats
   render_count: number;
   last_rendered_at: string | null;
+
   created_at: string;
   updated_at: string;
 }

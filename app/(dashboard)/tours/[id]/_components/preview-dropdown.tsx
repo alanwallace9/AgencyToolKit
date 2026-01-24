@@ -34,7 +34,13 @@ export function PreviewDropdown({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLivePreview = () => {
-    if (!ghlDomain) {
+    // Find the best URL to preview on:
+    // 1. First try to use pageUrl from a step's element (the actual subaccount where element was selected)
+    // 2. Fall back to ghlDomain from Settings (agency-level domain)
+    const stepWithUrl = steps.find(s => s.element?.pageUrl);
+    const previewUrl = stepWithUrl?.element?.pageUrl || ghlDomain;
+
+    if (!previewUrl) {
       // TODO: Show toast asking user to set GHL domain in settings
       return;
     }
@@ -59,7 +65,7 @@ export function PreviewDropdown({
     sessionStorage.setItem(`at_preview_${sessionId}`, JSON.stringify(previewData));
 
     // Open GHL with preview params in hash (survives redirects)
-    const url = new URL(ghlDomain);
+    const url = new URL(previewUrl);
     url.hash = `at_preview_mode=true&at_preview_session=${sessionId}`;
 
     window.open(url.toString(), '_blank');
@@ -67,7 +73,9 @@ export function PreviewDropdown({
   };
 
   const hasSteps = steps.length > 0;
-  const hasGhlDomain = !!ghlDomain;
+  // Can do live preview if we have ghlDomain OR if any step has a pageUrl from element selection
+  const stepWithUrl = steps.find(s => s.element?.pageUrl);
+  const hasPreviewUrl = !!ghlDomain || !!stepWithUrl?.element?.pageUrl;
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -91,20 +99,20 @@ export function PreviewDropdown({
 
         <DropdownMenuItem
           onClick={handleLivePreview}
-          disabled={!hasGhlDomain}
+          disabled={!hasPreviewUrl}
           className="flex flex-col items-start py-3"
         >
           <div className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
             <span className="font-medium">Live Preview</span>
-            {hasGhlDomain && (
+            {hasPreviewUrl && (
               <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                 Recommended
               </span>
             )}
           </div>
           <span className="text-xs text-muted-foreground ml-6">
-            {hasGhlDomain
+            {hasPreviewUrl
               ? 'Test on real GHL page'
               : 'Set GHL domain in Settings first'}
           </span>
@@ -114,7 +122,7 @@ export function PreviewDropdown({
 
         <DropdownMenuItem
           onClick={onTestElements}
-          disabled={!hasGhlDomain}
+          disabled={!hasPreviewUrl}
           className="flex flex-col items-start py-3"
         >
           <div className="flex items-center gap-2">
@@ -122,7 +130,7 @@ export function PreviewDropdown({
             <span className="font-medium">Test All Elements</span>
           </div>
           <span className="text-xs text-muted-foreground ml-6">
-            {hasGhlDomain
+            {hasPreviewUrl
               ? 'Verify selectors work'
               : 'Set GHL domain in Settings first'}
           </span>

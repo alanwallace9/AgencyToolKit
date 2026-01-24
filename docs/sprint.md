@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 42% Complete (20 of 48 Features)
+## Progress: 48% Complete (23 of 48 Features)
 
 ---
 
@@ -62,9 +62,9 @@
 - [ ] Feature 34: URL Pattern Tester UI (Test URLs Against Patterns)
 
 ### Phase 4: Image Personalization
-- [ ] Feature 35: Image Templates List
-- [ ] Feature 36: Image Upload to R2
-- [ ] Feature 37: Image Editor - Canvas
+- [x] Feature 35: Image Templates List
+- [x] Feature 36: Image Upload to R2
+- [x] Feature 37: Image Editor - Canvas
 - [ ] Feature 38: Image Generation API
 - [ ] Feature 39: Image URL Generator
 
@@ -98,14 +98,63 @@
 - ✅ 2026-01-18: Feature 20 - Visual Element Selector (GHL Builder Mode)
 - ✅ 2026-01-19: Embed Script Fixes - GHL selector corrections, CSS escaping, color bleed fixes
 - ✅ 2026-01-19: Loading Animation base sizes increased ~1.6-2x for better visibility
+- ✅ 2026-01-19: Builder Mode reliability fixes (postMessage for params, theme applies in builder mode)
+- ✅ 2026-01-19: Created tour_themes table (for Feature 24)
+- ✅ 2026-01-21: Feature 35 - Image Templates List (CRUD, Pro plan gating)
+- ✅ 2026-01-21: Feature 36 - Image Upload to R2 (Cloudflare R2 storage integration)
+- ✅ 2026-01-21: Feature 37 - Image Editor Canvas (Canva-style contextual toolbars, drag/resize text box)
+- ✅ 2026-01-22: Feature 37 Polish - Crop, zoom, keyboard nav, snap-to-center, preview fixes
 
 ### In Progress
+- [ ] Feature 21: Tour Preview - Code complete, needs testing
+- [ ] Feature 22: Apply Tours in Embed Script - Code complete, needs testing
 - [ ] Feature 42-43: Social Proof Widget (building in separate session)
 
+### Known Issues
+- Builder mode element selector captures original GHL names instead of renamed names (e.g., "Launch Pad" instead of "Connect Google")
+
 ### Up Next
-- Feature 21: Tour Preview (Live Preview in Iframe)
-- Feature 22: Apply Tours in Embed Script (Driver.js Integration)
+- **Feature 38: Image Generation API (@vercel/og)** ← START HERE
+- Feature 39: Image URL Generator
+- Complete testing of Features 21 & 22
 - Feature 23: Tour Themes Builder
+
+---
+
+## Next Session Prompt
+
+**Copy this prompt to start the next session:**
+
+```
+Continue Phase 4: Image Personalization
+
+Feature 38: Image Generation API is next. This creates the @vercel/og edge function that generates personalized images with the customer's name overlaid on the template.
+
+What's been built so far:
+- Feature 35: Image Templates List (CRUD with Pro plan gating)
+- Feature 36: Image Upload to R2 (Cloudflare R2 storage)
+- Feature 37: Image Editor Canvas with:
+  - Text box positioning (drag, resize, 9-point presets)
+  - Text styling (font, size, bold, color)
+  - Box background (white default, color picker, corner radius)
+  - Image tools (crop with drag/resize, flip H/V)
+  - Zoom (Cmd/Ctrl + mouse wheel)
+  - Keyboard navigation (arrows = 1%, Shift+arrows = 10%)
+  - Snap-to-center guides (magnet toggle)
+  - Preview modal (desktop/mobile mockups with Nokia 855 easter egg)
+  - Auto-save with undo
+
+Feature 38 needs to:
+1. Create `/api/og/[templateId]/route.ts` edge function
+2. Accept `name` query parameter
+3. Fetch template from database (including text_config, crop, flip)
+4. Use @vercel/og to generate image with text overlay
+5. Apply all styling from text_config (font, size, color, background, position)
+6. Handle fallback name if none provided
+7. Return PNG image with proper caching headers
+
+Reference docs/features/phase-4-image-personalization.md for the full spec.
+```
 
 ---
 

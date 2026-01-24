@@ -1818,15 +1818,34 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
 
     function getDisplayName(element) {
-      // Try aria-label
+      // PRIORITY 1: Check if this element is a sidebar menu item with a custom rename
+      // This ensures we show the agency's custom name (e.g., "Connect Google")
+      // instead of GHL's original name (e.g., "Launchpad")
+      var config = window.__AGENCY_TOOLKIT_CONFIG__;
+      if (config && config.menu && config.menu.renamed_items) {
+        // Check if element or its ancestor has data-sidebar-item attribute
+        var sidebarItem = element.closest('[data-sidebar-item]');
+        if (sidebarItem) {
+          var itemId = sidebarItem.getAttribute('data-sidebar-item');
+          if (itemId && config.menu.renamed_items[itemId]) {
+            return config.menu.renamed_items[itemId]; // Return custom name
+          }
+        }
+        // Also check if element itself has an ID matching sidebar pattern (sb_*)
+        if (element.id && element.id.startsWith('sb_') && config.menu.renamed_items[element.id]) {
+          return config.menu.renamed_items[element.id];
+        }
+      }
+
+      // PRIORITY 2: Try aria-label
       if (element.getAttribute('aria-label')) {
         return element.getAttribute('aria-label');
       }
-      // Try title
+      // PRIORITY 3: Try title
       if (element.title) {
         return element.title;
       }
-      // Try text content
+      // PRIORITY 4: Try text content
       var text = element.textContent || '';
       text = text.trim().slice(0, 50);
       if (text && text.length > 0) {
@@ -2370,7 +2389,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
 
     // Create Driver instance
-    var driverInstance = window.driver.driver({
+    // Note: Driver.js IIFE exposes driver() directly on window.driver, not window.driver.driver()
+    var driverInstance = window.driver({
       showProgress: settings.show_progress !== false,
       showButtons: true,
       animate: true,
@@ -2758,7 +2778,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
 
     // Create Driver instance
-    var driverInstance = window.driver.driver({
+    // Note: Driver.js IIFE exposes driver() directly on window.driver, not window.driver.driver()
+    var driverInstance = window.driver({
       showProgress: settings.show_progress !== false,
       showButtons: true,
       animate: true,

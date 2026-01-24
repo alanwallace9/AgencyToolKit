@@ -106,8 +106,23 @@ export function ElementValidator({
     }
   }, [results, onValidationComplete]);
 
+  // Get the best URL for validation - prefer step's pageUrl over ghlDomain
+  const getValidationUrl = (stepId?: string) => {
+    // If specific step provided, try its pageUrl first
+    if (stepId) {
+      const step = steps.find(s => s.id === stepId);
+      if (step?.element?.pageUrl) return step.element.pageUrl;
+    }
+    // Try to find any step with a pageUrl
+    const stepWithUrl = steps.find(s => s.element?.pageUrl);
+    if (stepWithUrl?.element?.pageUrl) return stepWithUrl.element.pageUrl;
+    // Fall back to ghlDomain from Settings
+    return ghlDomain;
+  };
+
   const startValidation = () => {
-    if (!ghlDomain) return;
+    const validationUrl = getValidationUrl();
+    if (!validationUrl) return;
 
     setIsValidating(true);
 
@@ -140,8 +155,8 @@ export function ElementValidator({
       })
     );
 
-    // Open GHL with validation params
-    const url = new URL(ghlDomain);
+    // Open GHL with validation params - use step's pageUrl (subaccount) if available
+    const url = new URL(validationUrl);
     url.hash = `at_validate_mode=true&at_validate_session=${sessionId}`;
 
     const newWindow = window.open(url.toString(), '_blank');
@@ -157,7 +172,8 @@ export function ElementValidator({
   };
 
   const testSingleElement = (stepId: string, selector: string) => {
-    if (!ghlDomain || !selector) return;
+    const validationUrl = getValidationUrl(stepId);
+    if (!validationUrl || !selector) return;
 
     // Update status to pending
     setResults((prev) =>
@@ -176,8 +192,8 @@ export function ElementValidator({
       })
     );
 
-    // Open GHL with validation params
-    const url = new URL(ghlDomain);
+    // Open GHL with validation params - use step's pageUrl (subaccount) if available
+    const url = new URL(validationUrl);
     url.hash = `at_validate_mode=true&at_validate_session=${sessionId}`;
 
     window.open(url.toString(), '_blank');
@@ -187,6 +203,9 @@ export function ElementValidator({
   const notFoundCount = results.filter((r) => r.status === 'not_found').length;
   const noSelectorCount = results.filter((r) => r.status === 'no_selector').length;
   const pendingCount = results.filter((r) => r.status === 'pending').length;
+
+  // Check if we have any URL available for validation (step pageUrl or ghlDomain)
+  const hasValidationUrl = !!getValidationUrl();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,9 +221,9 @@ export function ElementValidator({
           </DialogTitle>
           <DialogDescription>
             Verify that tour step selectors can find elements on your GHL page.
-            {!ghlDomain && (
+            {!hasValidationUrl && (
               <span className="text-amber-600 block mt-1">
-                Set your GHL domain in Settings to enable testing.
+                Set your GHL domain in Settings or select an element from a GHL page to enable testing.
               </span>
             )}
           </DialogDescription>
@@ -267,7 +286,7 @@ export function ElementValidator({
                 </div>
 
                 {/* Test button */}
-                {result.selector && ghlDomain && (
+                {result.selector && hasValidationUrl && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -293,7 +312,7 @@ export function ElementValidator({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Close
             </Button>
-            <Button onClick={startValidation} disabled={!ghlDomain || isValidating}>
+            <Button onClick={startValidation} disabled={!hasValidationUrl || isValidating}>
               {isValidating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
