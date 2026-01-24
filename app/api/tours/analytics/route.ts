@@ -88,30 +88,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log the event (in future, we could store in a tour_analytics table)
-    console.log('[Tour Analytics]', {
-      event,
-      tour_id,
-      tour_name: tour.name,
-      agency_id: agency.id,
-      step_index,
-      total_steps,
-      url: url?.substring(0, 100),
-      timestamp: new Date().toISOString(),
-    });
+    // Map event types to database values
+    const eventTypeMap: Record<EventType, string> = {
+      'tour_started': 'view',
+      'step_viewed': 'step_view',
+      'tour_completed': 'complete',
+      'tour_dismissed': 'dismiss',
+    };
 
-    // For now, update tour stats directly on the tour record
-    // In a full implementation, you'd use a separate analytics table
-    if (event === 'tour_started') {
-      await supabase.rpc('increment_tour_stat', {
-        tour_id_param: tour_id,
-        stat_name: 'starts',
+    // Generate session ID if not provided (from timestamp + random)
+    const session_id = body.timestamp
+      ? `session_${body.timestamp}_${Math.random().toString(36).substring(2, 9)}`
+      : `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    // Insert into tour_analytics table
+    const { error: insertError } = await supabase
+      .from('tour_analytics')
+      .insert({
+        agency_id: agency.id,
+        tour_id: tour_id,
+        event_type: eventTypeMap[event],
+        step_order: step_index,
+        session_id: session_id,
+        url: url?.substring(0, 500),
+        metadata: {
+          total_steps,
+          user_agent: body.user_agent,
+        },
       });
-    } else if (event === 'tour_completed') {
-      await supabase.rpc('increment_tour_stat', {
-        tour_id_param: tour_id,
-        stat_name: 'completions',
-      });
+
+    if (insertError) {
+      console.error('[Tour Analytics] Insert error:', insertError);
+      // Don't fail the request, just log - analytics shouldn't break the tour
+    } else {
+      console.log('[Tour Analytics] Recorded:', event, 'for tour', tour.name);
     }
 
     return NextResponse.json(

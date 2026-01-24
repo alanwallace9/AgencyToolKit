@@ -2800,6 +2800,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var doneBtnText = lastStep?.buttons?.primary?.text || 'Done';
 
     var driverFn = window.driver.js.driver;
+    var totalSteps = steps.length;
     var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
       showButtons: ['next', 'previous', 'close'],
@@ -2811,6 +2812,19 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       popoverClass: 'at-tour-popover at-production-tour',
       doneBtnText: doneBtnText,
       steps: driverSteps,
+      // Handle Next/Done button click - destroy on last step
+      onNextClick: function(element, step, options) {
+        var currentIndex = options.state.activeIndex;
+        log('Next clicked at step', currentIndex + 1, 'of', totalSteps);
+        if (currentIndex === totalSteps - 1) {
+          // Last step - destroy the driver (triggers onDestroyed)
+          log('Last step - destroying driver');
+          options.driver.destroy();
+        } else {
+          // Not last step - move to next
+          options.driver.moveNext();
+        }
+      },
       onHighlightStarted: function(element, step, options) {
         var stepIndex = options.state.activeIndex;
 
