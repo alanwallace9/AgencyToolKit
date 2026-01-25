@@ -3367,6 +3367,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         z-index: 2147483647;
         opacity: 0;
         transition: opacity 0.2s ease;
+        pointer-events: auto !important;
       }
       .at-upload-overlay.at-visible {
         opacity: 1;
@@ -3384,6 +3385,13 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         transform: scale(0.9);
         transition: transform 0.2s ease;
         position: relative;
+        pointer-events: auto !important;
+      }
+      .at-upload-modal * {
+        pointer-events: auto !important;
+      }
+      .at-upload-modal input[type="file"] {
+        pointer-events: none !important;
       }
       .at-upload-overlay.at-visible .at-upload-modal {
         transform: scale(1);
@@ -3435,6 +3443,13 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         border-radius: 8px;
         font-size: 14px;
         box-sizing: border-box;
+        background: white !important;
+        color: #111827 !important;
+        cursor: text !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        -webkit-user-select: text !important;
+        user-select: text !important;
       }
       .at-upload-field input:focus {
         outline: none;
@@ -3446,7 +3461,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         border-radius: 8px;
         padding: 40px 20px;
         text-align: center;
-        cursor: pointer;
+        cursor: pointer !important;
+        position: relative;
         transition: border-color 0.2s, background 0.2s;
         margin-bottom: 16px;
       }
@@ -3748,6 +3764,18 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       uploadState.businessName = this.value;
       updatePhotoNames();
       updateSubmitButton();
+    });
+
+    // Debug: Log clicks on modal to verify events are received
+    modal.addEventListener('click', function(e) {
+      log('Modal click received on:', e.target.tagName, e.target.className);
+    }, true);
+
+    // Explicitly handle focus for business name input
+    businessNameInput.addEventListener('click', function(e) {
+      log('Business name input clicked');
+      e.stopPropagation();
+      this.focus();
     });
 
     // Suggestions
