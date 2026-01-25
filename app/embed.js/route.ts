@@ -3270,7 +3270,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     maxPhotos: 5,
     businessName: '',
     isUploading: false,
-    triggerElement: null
+    triggerElement: null,
+    preventDragHandler: null  // Store reference for cleanup
   };
 
   function getLocationId() {
@@ -3708,13 +3709,16 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       if (e.target === overlay) closeModal();
     });
 
-    // Document-level drag prevention (captures events before they reach GHL)
+    // Document-level drag prevention - only preventDefault, not stopPropagation
+    // stopPropagation would kill the event before dropzone handlers fire
     function preventDragDefault(e) {
       if (document.getElementById('at-upload-overlay')) {
         e.preventDefault();
-        e.stopPropagation();
+        // Don't stopPropagation - let the event reach the dropzone
       }
     }
+    // Store reference for cleanup in startGenieAnimation
+    uploadState.preventDragHandler = preventDragDefault;
     document.addEventListener('dragover', preventDragDefault, true);
     document.addEventListener('drop', preventDragDefault, true);
 
@@ -4034,6 +4038,19 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     // Start animation
     modal.classList.add('at-genie');
     overlay.style.opacity = '0';
+
+    // Restore Driver.js elements immediately so page is interactive
+    var driverOverlay = document.querySelector('.driver-overlay');
+    var driverPopover = document.querySelector('.driver-popover');
+    if (driverOverlay) driverOverlay.style.display = '';
+    if (driverPopover) driverPopover.style.display = '';
+
+    // Remove document-level drag prevention using stored reference
+    if (uploadState.preventDragHandler) {
+      document.removeEventListener('dragover', uploadState.preventDragHandler, true);
+      document.removeEventListener('drop', uploadState.preventDragHandler, true);
+      uploadState.preventDragHandler = null;
+    }
 
     // Cleanup and advance tour
     setTimeout(function() {

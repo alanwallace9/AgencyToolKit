@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { PageHeader } from '@/components/shared/page-header';
 import { CustomerEditForm } from './_components/customer-edit-form';
 import { CustomerPhotoGallery } from './_components/customer-photo-gallery';
@@ -17,7 +17,8 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
   }
 
   const { id } = await params;
-  const supabase = await createClient();
+  // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+  const supabase = createAdminClient();
 
   // Fetch customer and photos in parallel
   const [customerResult, photosResult] = await Promise.all([

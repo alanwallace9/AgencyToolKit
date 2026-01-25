@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // GET /api/notifications - List notifications for the authenticated agency
 export async function GET(request: NextRequest) {
@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unread_only') === 'true';
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+    const supabase = createAdminClient();
 
     // Build query
     let query = supabase

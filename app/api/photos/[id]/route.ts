@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // DELETE /api/photos/[id] - Delete a photo
 export async function DELETE(
@@ -15,7 +15,8 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+    const supabase = createAdminClient();
 
     // Get the photo to verify ownership and get blob URL
     const { data: photo, error: fetchError } = await supabase

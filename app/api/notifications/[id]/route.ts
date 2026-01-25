@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // PATCH /api/notifications/[id] - Update a notification (mark as read)
 export async function PATCH(
@@ -16,7 +16,8 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+    const supabase = createAdminClient();
 
     // Verify notification belongs to this agency
     const { data: existing } = await supabase
@@ -67,7 +68,8 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+    const supabase = createAdminClient();
 
     // Verify and delete
     const { error } = await supabase

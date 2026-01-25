@@ -1,5 +1,5 @@
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
 import { CustomersClient } from './_components/customers-client';
@@ -10,7 +10,8 @@ export default async function CustomersPage() {
     redirect('/sign-in');
   }
 
-  const supabase = await createClient();
+  // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+  const supabase = createAdminClient();
   const { data: customers } = await supabase
     .from('customers')
     .select('*')

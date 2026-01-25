@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentAgency } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // POST /api/notifications/mark-all-read - Mark all notifications as read
 export async function POST() {
@@ -10,7 +10,8 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (we use Clerk auth, not Supabase Auth)
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('notifications')
