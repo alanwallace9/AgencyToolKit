@@ -3292,6 +3292,13 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       return;
     }
 
+    // Hide Driver.js overlay and popover while modal is open
+    var driverOverlay = document.querySelector('.driver-overlay');
+    var driverPopover = document.querySelector('.driver-popover');
+    if (driverOverlay) driverOverlay.style.display = 'none';
+    if (driverPopover) driverPopover.style.display = 'none';
+    log('Hid driver.js elements for upload modal');
+
     // Inject modal HTML
     var overlay = document.createElement('div');
     overlay.id = 'at-upload-overlay';
@@ -3353,11 +3360,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.6);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 999999;
+        z-index: 2147483647;
         opacity: 0;
         transition: opacity 0.2s ease;
       }
@@ -3659,9 +3666,20 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var submitBtn = document.getElementById('at-upload-submit');
     var suggestions = document.querySelectorAll('.at-suggestion');
 
-    // Close modal
+    // Close modal and restore Driver.js
     function closeModal() {
       overlay.classList.remove('at-visible');
+
+      // Restore Driver.js elements
+      var driverOverlay = document.querySelector('.driver-overlay');
+      var driverPopover = document.querySelector('.driver-popover');
+      if (driverOverlay) driverOverlay.style.display = '';
+      if (driverPopover) driverPopover.style.display = '';
+
+      // Remove document-level drag prevention
+      document.removeEventListener('dragover', preventDragDefault, true);
+      document.removeEventListener('drop', preventDragDefault, true);
+
       setTimeout(function() {
         overlay.remove();
         var style = document.getElementById('at-upload-styles');
@@ -3674,7 +3692,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       if (e.target === overlay) closeModal();
     });
 
-    // Prevent defaults for drag events
+    // Document-level drag prevention (captures events before they reach GHL)
+    function preventDragDefault(e) {
+      if (document.getElementById('at-upload-overlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+    document.addEventListener('dragover', preventDragDefault, true);
+    document.addEventListener('drop', preventDragDefault, true);
+
+    // Prevent defaults for drag events on dropzone
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(event) {
       dropzone.addEventListener(event, function(e) {
         e.preventDefault();
