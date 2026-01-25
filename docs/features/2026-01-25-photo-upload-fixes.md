@@ -1,6 +1,6 @@
 # Session: Photo Upload Fixes - January 25, 2026
 
-**Status:** In Progress - Multiple Issues Remain
+**Status:** ✅ Complete
 **Priority:** P1
 
 ---
@@ -54,49 +54,40 @@
 
 ---
 
-## What's NOT Working
+## What Was Fixed (2026-01-25)
 
-### 1. DRAG-AND-DROP (BROKEN)
-**Symptom:** Dragging a file onto the dropzone opens it in a new browser tab instead of adding to upload list.
+### 1. DRAG-AND-DROP ✅ FIXED
+**Root cause:** Document-level drop handler was calling `stopPropagation()` in capture phase, killing the event before dropzone handler could receive it.
 
-**What we tried:**
-- Added `preventDefault()` and `stopPropagation()` on dropzone drag events
-- Added document-level drag event prevention with capture phase
-- Hid Driver.js overlay when modal opens
-- Set z-index to max (`2147483647`)
-- Added `pointer-events: auto !important` to modal and all children
+**Fix:** Removed `stopPropagation()` from document-level handler, kept only `preventDefault()`.
 
-**Current code location:** `app/embed.js/route.ts` lines ~3700-3720
+### 2. PHOTO NOT SAVING TO DATABASE ✅ FIXED
+**Root cause:** RLS policies check `auth.jwt() ->> 'sub'` but we use Clerk (not Supabase Auth), so the server client had no JWT claim.
 
-**Hypothesis:** GHL's page has aggressive event handlers that intercept drag events at the window/document level before our listeners fire, even with capture phase.
+**Fix:** Switched from `createClient()` to `createAdminClient()` for authenticated API routes (bypasses RLS). Proper fix would be Clerk→Supabase JWT integration.
 
-### 2. PHOTO NOT SAVING TO DATABASE (BROKEN)
-**Symptom:** After clicking "Upload & Finish" and seeing success message, no photo appears in:
-- Notifications (bell shows "No notifications yet")
-- Customer detail page (no photo gallery)
-- customer_photos table (not verified)
+### 3. PAGE UNCLICKABLE AFTER MODAL ✅ FIXED
+**Root cause:** `startGenieAnimation()` didn't restore Driver.js elements or remove document listeners after upload success.
 
-**What we tried:** Nothing yet - just discovered this issue.
+**Fix:** Added cleanup code to restore Driver.js display and remove drag listeners.
 
-**Likely causes:**
-1. API endpoint `/api/photos/upload` may be failing silently
-2. Customer lookup by GHL location ID may not find matching customer
-3. Notification creation may be failing
-4. Customer record may not exist for that location ID
+### 4. TOUR NOT ADVANCING AFTER UPLOAD ✅ FIXED
+**Root cause:** `window.__atDriverInstance` was never set for production tours - only local `driverRef` was used.
 
-**Debug needed:**
-- Check browser Network tab when submitting upload
-- Check API response for errors
-- Verify customer exists with matching `ghl_location_id`
-- Check Supabase logs for errors
+**Fix:** Added `window.__atDriverInstance = driverInstance;` when production tour starts.
 
-### 3. CONSOLE LOGS NOT APPEARING
-**Symptom:** No `[AgencyToolkit]` logs in browser console during upload.
+### 5. IMAGES NOT DISPLAYING ON CUSTOMER PAGE ✅ FIXED
+**Root cause:** Next.js Image component requires external domains whitelisted. Vercel Blob domain wasn't in `next.config.ts`.
 
-**Possible causes:**
-- GHL clearing/filtering console
-- Embed script not loading properly
-- Log function not being called
+**Fix:** Added `images.remotePatterns` for `*.public.blob.vercel-storage.com`.
+
+### 6. NOTIFICATION LINK NOT SCROLLING TO PHOTOS ✅ FIXED
+**Fix:** Changed link from `/customers/{id}` to `/customers/{id}#photos` and added `id="photos"` to gallery card.
+
+### 7. DUPLICATE PHOTO NAMES ✅ FIXED
+**Root cause:** Auto-naming used batch index (Photo 1, Photo 2) instead of existing photo count.
+
+**Fix:** Changed to `customer.photo_count + batch_index + 1` for sequential naming.
 
 ---
 

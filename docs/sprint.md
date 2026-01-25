@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 48% Complete (23 of 48 Features)
+## Progress: 50% Complete (24 of 48 Features)
 
 ---
 
@@ -35,7 +35,7 @@
 - [x] Feature 19: Tour Builder - Basic UI (Tabs, Steps, Settings, Targeting, Theme)
 - [x] Feature 20: Visual Element Selector (GHL Builder Mode)
 - [ ] Feature 21: Tour Preview (Live Preview in Iframe)
-- [ ] Feature 22: Apply Tours in Embed Script (Driver.js Integration)
+- [x] Feature 22: Apply Tours in Embed Script (Driver.js Integration)
 
 #### Tour Enhancements
 - [ ] Feature 23: Tour Themes Builder (Custom Colors, Typography, Buttons)
@@ -104,20 +104,25 @@
 - ✅ 2026-01-21: Feature 36 - Image Upload to R2 (Cloudflare R2 storage integration)
 - ✅ 2026-01-21: Feature 37 - Image Editor Canvas (Canva-style contextual toolbars, drag/resize text box)
 - ✅ 2026-01-22: Feature 37 Polish - Crop, zoom, keyboard nav, snap-to-center, preview fixes
+- ✅ 2026-01-24: Customer Photo Upload system (modal, drag-drop, notifications, gallery)
+- ✅ 2026-01-25: Feature 22 - Apply Tours in Embed Script (Driver.js working, tour advance after upload)
+- ✅ 2026-01-25: Photo upload pipeline fixes (RLS bypass, drag-drop, modal cleanup)
+- ✅ 2026-01-25: Notification bell → scroll to #photos section
+- ✅ 2026-01-25: Auto-name photos using existing count (Photo 3, Photo 4, etc.)
 
 ### In Progress
 - [ ] Feature 21: Tour Preview - Code complete, needs testing
-- [ ] Feature 22: Apply Tours in Embed Script - Code complete, needs testing
-- [ ] Feature 42-43: Social Proof Widget (building in separate session)
+- [x] Feature 42-43: Social Proof Widget (TrustSignal) - Complete
 
 ### Known Issues
 - Builder mode element selector captures original GHL names instead of renamed names (e.g., "Launch Pad" instead of "Connect Google")
+- RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
 - **Feature 38: Image Generation API (@vercel/og)** ← START HERE
 - Feature 39: Image URL Generator
-- Complete testing of Features 21 & 22
 - Feature 23: Tour Themes Builder
+- Feature 24: Tour Templates UI
 
 ---
 
