@@ -177,8 +177,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Generate photo name
-      const photoName = photoNames[i] || `${businessName.trim()} - Photo ${i + 1}`;
+      // Generate photo name (use existing photo count so names don't repeat)
+      const photoName = photoNames[i] || `${businessName.trim()} - Photo ${(customer.photo_count || 0) + i + 1}`;
 
       // Upload to Vercel Blob
       const timestamp = Date.now();
