@@ -1,46 +1,41 @@
 import Link from "next/link"
 import { PageHeader } from "@/components/shared/page-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Palette, Map, Image, ArrowRight, Check, Circle } from "lucide-react"
+import { Users, Palette, Map, Image, ArrowRight } from "lucide-react"
+import { getCurrentAgency } from "@/lib/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
 
-const stats = [
-  {
-    title: "Customers",
-    value: "0",
-    description: "Active sub-accounts",
-    icon: Users,
-    href: "/customers",
-    gradient: "from-blue-500/10 to-cyan-500/10",
-    iconColor: "text-blue-500",
-  },
-  {
-    title: "Menu Presets",
-    value: "0",
-    description: "Custom configurations",
-    icon: Palette,
-    href: "/menu",
-    gradient: "from-violet-500/10 to-purple-500/10",
-    iconColor: "text-violet-500",
-  },
-  {
-    title: "Tours",
-    value: "0",
-    description: "Onboarding tours created",
-    icon: Map,
-    href: "/tours",
-    gradient: "from-emerald-500/10 to-teal-500/10",
-    iconColor: "text-emerald-500",
-  },
-  {
-    title: "Images",
-    value: "0",
-    description: "Personalized templates",
-    icon: Image,
-    href: "/images",
-    gradient: "from-amber-500/10 to-orange-500/10",
-    iconColor: "text-amber-500",
-  },
-]
+async function getDashboardStats(agencyId: string) {
+  const supabase = createAdminClient()
+
+  // Fetch all counts in parallel
+  const [customersResult, presetsResult, toursResult, imagesResult] = await Promise.all([
+    supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId)
+      .eq('is_active', true),
+    supabase
+      .from('menu_presets')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId),
+    supabase
+      .from('tours')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId),
+    supabase
+      .from('image_templates')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId),
+  ])
+
+  return {
+    customers: customersResult.count ?? 0,
+    presets: presetsResult.count ?? 0,
+    tours: toursResult.count ?? 0,
+    images: imagesResult.count ?? 0,
+  }
+}
 
 const steps = [
   { text: "Add your first customer in the Customers section", href: "/customers" },
@@ -49,7 +44,53 @@ const steps = [
   { text: "Your customizations will appear in your sub-accounts", href: null },
 ]
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const agency = await getCurrentAgency()
+
+  // Get real stats from database
+  const counts = agency
+    ? await getDashboardStats(agency.id)
+    : { customers: 0, presets: 0, tours: 0, images: 0 }
+
+  const stats = [
+    {
+      title: "Customers",
+      value: counts.customers.toString(),
+      description: "Active sub-accounts",
+      icon: Users,
+      href: "/customers",
+      gradient: "from-blue-500/10 to-cyan-500/10",
+      iconColor: "text-blue-500",
+    },
+    {
+      title: "Menu Presets",
+      value: counts.presets.toString(),
+      description: "Custom configurations",
+      icon: Palette,
+      href: "/menu",
+      gradient: "from-violet-500/10 to-purple-500/10",
+      iconColor: "text-violet-500",
+    },
+    {
+      title: "Tours",
+      value: counts.tours.toString(),
+      description: "Onboarding tours created",
+      icon: Map,
+      href: "/tours",
+      gradient: "from-emerald-500/10 to-teal-500/10",
+      iconColor: "text-emerald-500",
+    },
+    {
+      title: "Images",
+      value: counts.images.toString(),
+      description: "Personalized templates",
+      icon: Image,
+      href: "/images",
+      gradient: "from-amber-500/10 to-orange-500/10",
+      iconColor: "text-amber-500",
+    },
+  ]
+
   return (
     <>
       <PageHeader

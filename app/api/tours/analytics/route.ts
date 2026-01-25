@@ -102,10 +102,10 @@ export async function POST(request: NextRequest) {
       : `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     // Insert into tour_analytics table
+    // Note: agency_id is not stored in this table - we join via tour_id when needed
     const { error: insertError } = await supabase
       .from('tour_analytics')
       .insert({
-        agency_id: agency.id,
         tour_id: tour_id,
         event_type: eventTypeMap[event],
         step_order: step_index,
