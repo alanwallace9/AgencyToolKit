@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
             type: 'photo_upload',
             title: 'New photos uploaded',
             message: `${businessName.trim()} uploaded ${photoCountText}`,
-            link: `/customers/${customer.id}`,
+            link: `/customers/${customer.id}#photos`,
           });
 
         if (!notifError) {

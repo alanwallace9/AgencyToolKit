@@ -2986,6 +2986,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // Store reference for use in step callbacks (e.g., onNextClick for "complete" action)
     driverRef = driverInstance;
+    // Also store on window for upload modal to call moveNext after photo upload
+    window.__atDriverInstance = driverInstance;
 
     // Start the tour after page settles
     setTimeout(function() {

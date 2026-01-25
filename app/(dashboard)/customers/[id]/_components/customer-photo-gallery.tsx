@@ -55,7 +55,7 @@ export function CustomerPhotoGallery({ photos: initialPhotos, customerName }: Cu
   }
 
   return (
-    <Card>
+    <Card id="photos">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Camera className="h-5 w-5" />
