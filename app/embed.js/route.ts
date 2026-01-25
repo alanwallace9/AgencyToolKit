@@ -2552,6 +2552,16 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       .driver-active-element {
         box-shadow: 0 0 0 4px \${colors.primary || '#3b82f6'}40 !important;
       }
+
+      /* Auto-advance click feedback */
+      .at-clicked {
+        animation: at-pulse 0.3s ease-out !important;
+      }
+
+      @keyframes at-pulse {
+        0% { box-shadow: 0 0 0 0 \${colors.primary || '#3b82f6'}80; }
+        100% { box-shadow: 0 0 0 20px \${colors.primary || '#3b82f6'}00; }
+      }
     \`;
 
     var style = document.createElement('style');
@@ -2797,7 +2807,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         if (step.buttons.primary) {
           driverStep.popover.nextBtnText = step.buttons.primary.text || 'Next';
 
-          // Handle button actions: complete or dismiss should close the tour
+          // Handle button actions
           var primaryAction = step.buttons.primary.action;
           if (primaryAction === 'complete' || primaryAction === 'dismiss') {
             driverStep.popover.onNextClick = function() {
@@ -2805,6 +2815,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
               if (driverRef) {
                 driverRef.destroy();
               }
+            };
+          } else if (primaryAction === 'upload') {
+            driverStep.popover.onNextClick = function(element) {
+              log('Button action: upload - opening upload modal');
+              // Store reference to the button for genie animation
+              var btn = document.querySelector('.driver-popover-next-btn');
+              if (window.__AT_OPEN_UPLOAD_MODAL__) {
+                window.__AT_OPEN_UPLOAD_MODAL__(btn);
+              }
+              // Don't advance - modal will handle it after upload
+              return false;
             };
           }
         }
@@ -2861,6 +2882,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       steps: driverSteps,
       onHighlightStarted: function(element, step, options) {
         var stepIndex = options.state.activeIndex;
+        var stepConfig = steps[stepIndex];
 
         // Track tour started on first step
         if (stepIndex === 0) {
@@ -2881,8 +2903,55 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           currentStep: stepIndex,
           startedAt: getTourState(tour.id)?.startedAt || Date.now()
         });
+
+        // Auto-advance: when element is clicked, advance to next step
+        if (stepConfig.auto_advance && element) {
+          // Remove any existing auto-advance listener
+          if (window.__atAutoAdvanceListener) {
+            document.removeEventListener('click', window.__atAutoAdvanceListener, true);
+          }
+
+          window.__atAutoAdvanceListener = function(e) {
+            // Check if click was on the highlighted element or its children
+            if (!element.contains(e.target)) {
+              return;
+            }
+
+            // Debounce - prevent rapid double-clicks
+            if (window.__atLastAdvance && Date.now() - window.__atLastAdvance < 500) {
+              return;
+            }
+            window.__atLastAdvance = Date.now();
+
+            log('Auto-advance triggered on element click');
+
+            // Visual feedback - pulse animation
+            element.classList.add('at-clicked');
+            setTimeout(function() {
+              element.classList.remove('at-clicked');
+            }, 300);
+
+            // Advance to next step (or complete if last step)
+            setTimeout(function() {
+              if (stepIndex === steps.length - 1) {
+                driverRef.destroy();
+              } else {
+                driverRef.moveNext();
+              }
+            }, 100);
+          };
+
+          // Use capture phase to catch the click before other handlers
+          document.addEventListener('click', window.__atAutoAdvanceListener, true);
+          log('Auto-advance listener attached for step ' + (stepIndex + 1));
+        }
       },
       onDestroyStarted: function() {
+        // Clean up auto-advance listener
+        if (window.__atAutoAdvanceListener) {
+          document.removeEventListener('click', window.__atAutoAdvanceListener, true);
+          window.__atAutoAdvanceListener = null;
+        }
         log('Tour ended:', tour.name);
       },
       onDestroyed: function(element, step, options) {
@@ -3191,6 +3260,740 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
   // Expose initBuilderMode for late postMessage arrivals
   window.__AT_INIT_BUILDER_MODE__ = initBuilderMode;
+
+  // ============================================
+  // PHOTO UPLOAD MODAL
+  // ============================================
+
+  var uploadState = {
+    photos: [],  // { file: File, preview: string, name: string }
+    maxPhotos: 5,
+    businessName: '',
+    isUploading: false,
+    triggerElement: null
+  };
+
+  function getLocationId() {
+    // Extract location ID from GHL URL pattern: /v2/location/XXXXX/
+    var match = window.location.pathname.match(/\\/v2\\/location\\/([^\\/]+)/);
+    return match ? match[1] : null;
+  }
+
+  function openUploadModal(triggerEl) {
+    uploadState.triggerElement = triggerEl || null;
+    uploadState.photos = [];
+    uploadState.businessName = '';
+    uploadState.isUploading = false;
+
+    var locationId = getLocationId();
+    if (!locationId) {
+      logError('Could not detect location ID from URL');
+      alert('Unable to determine your location. Please try again.');
+      return;
+    }
+
+    // Inject modal HTML
+    var overlay = document.createElement('div');
+    overlay.id = 'at-upload-overlay';
+    overlay.className = 'at-upload-overlay';
+    overlay.innerHTML = \`
+      <div id="at-upload-modal" class="at-upload-modal">
+        <div class="at-upload-header">
+          <h2>Upload Your Photos</h2>
+          <button id="at-upload-close" class="at-upload-close">&times;</button>
+        </div>
+        <div class="at-upload-body">
+          <div class="at-upload-field">
+            <label for="at-business-name">Business Name *</label>
+            <input type="text" id="at-business-name" placeholder="e.g., Big Mike's Plumbing" autofocus />
+          </div>
+          <div id="at-dropzone" class="at-dropzone">
+            <div class="at-dropzone-content">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p>Drop photos here or <span class="at-dropzone-link">browse</span></p>
+              <p class="at-dropzone-hint">JPEG, PNG, or WebP up to 5MB each</p>
+            </div>
+            <input type="file" id="at-file-input" accept="image/jpeg,image/png,image/webp" multiple hidden />
+          </div>
+          <div id="at-photo-list" class="at-photo-list"></div>
+          <button id="at-add-more" class="at-add-more" style="display: none;">+ Add Another Photo</button>
+          <div class="at-suggestions">
+            <span class="at-suggestions-label">Suggestions:</span>
+            <button class="at-suggestion" data-name="Team Photo">Team Photo</button>
+            <button class="at-suggestion" data-name="Crew with Vans">Crew with Vans</button>
+            <button class="at-suggestion" data-name="Office Front">Office Front</button>
+          </div>
+          <div id="at-upload-error" class="at-upload-error" style="display: none;"></div>
+        </div>
+        <div class="at-upload-footer">
+          <button id="at-upload-submit" class="at-upload-submit" disabled>Upload & Finish</button>
+        </div>
+        <div id="at-upload-success" class="at-upload-success" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <h3>You're all set!</h3>
+          <p>Your photos have been uploaded.</p>
+        </div>
+      </div>
+    \`;
+
+    // Inject styles
+    var style = document.createElement('style');
+    style.id = 'at-upload-styles';
+    style.textContent = \`
+      .at-upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .at-upload-overlay.at-visible {
+        opacity: 1;
+      }
+      .at-upload-modal {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        transform: scale(0.9);
+        transition: transform 0.2s ease;
+        position: relative;
+      }
+      .at-upload-overlay.at-visible .at-upload-modal {
+        transform: scale(1);
+      }
+      .at-upload-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .at-upload-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+      }
+      .at-upload-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+      .at-upload-close:hover {
+        color: #111827;
+      }
+      .at-upload-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .at-upload-field {
+        margin-bottom: 16px;
+      }
+      .at-upload-field label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 6px;
+      }
+      .at-upload-field input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .at-upload-field input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      .at-dropzone {
+        border: 2px dashed #d1d5db;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+        margin-bottom: 16px;
+      }
+      .at-dropzone:hover {
+        border-color: #9ca3af;
+      }
+      .at-dropzone.at-dragover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+      }
+      .at-dropzone-content svg {
+        color: #9ca3af;
+        margin-bottom: 12px;
+      }
+      .at-dropzone-content p {
+        margin: 0 0 4px 0;
+        color: #6b7280;
+        font-size: 14px;
+      }
+      .at-dropzone-link {
+        color: #3b82f6;
+        cursor: pointer;
+      }
+      .at-dropzone-link:hover {
+        text-decoration: underline;
+      }
+      .at-dropzone-hint {
+        font-size: 12px !important;
+        color: #9ca3af !important;
+      }
+      .at-photo-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .at-photo-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px;
+        background: #f9fafb;
+        border-radius: 8px;
+      }
+      .at-photo-thumb {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
+      .at-photo-name {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 14px;
+        min-width: 0;
+      }
+      .at-photo-name:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
+      .at-photo-remove {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 20px;
+        padding: 4px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .at-photo-remove:hover {
+        color: #ef4444;
+      }
+      .at-add-more {
+        width: 100%;
+        padding: 10px;
+        background: #f3f4f6;
+        border: 1px dashed #d1d5db;
+        border-radius: 8px;
+        color: #6b7280;
+        font-size: 14px;
+        cursor: pointer;
+        margin-bottom: 16px;
+      }
+      .at-add-more:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+      .at-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .at-suggestions-label {
+        font-size: 12px;
+        color: #9ca3af;
+      }
+      .at-suggestion {
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        font-size: 12px;
+        color: #6b7280;
+        cursor: pointer;
+      }
+      .at-suggestion:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+      .at-upload-error {
+        padding: 12px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        color: #dc2626;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      .at-upload-footer {
+        padding: 16px 20px;
+        border-top: 1px solid #e5e7eb;
+      }
+      .at-upload-submit {
+        width: 100%;
+        padding: 12px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .at-upload-submit:hover:not(:disabled) {
+        background: #2563eb;
+      }
+      .at-upload-submit:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+      .at-upload-success {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        text-align: center;
+        padding: 40px;
+      }
+      .at-upload-success svg {
+        color: #22c55e;
+        margin-bottom: 16px;
+      }
+      .at-upload-success h3 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        color: #111827;
+      }
+      .at-upload-success p {
+        margin: 0;
+        color: #6b7280;
+      }
+      .at-upload-modal.at-genie {
+        animation: at-genie-out 0.5s ease-in forwards;
+      }
+      @keyframes at-genie-out {
+        0% {
+          transform: scale(1) translate(0, 0);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.1) translate(var(--at-genie-x, 0), var(--at-genie-y, 200px));
+          opacity: 0;
+        }
+      }
+    \`;
+
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+
+    // Trigger show animation
+    requestAnimationFrame(function() {
+      overlay.classList.add('at-visible');
+    });
+
+    // Focus business name input
+    setTimeout(function() {
+      var input = document.getElementById('at-business-name');
+      if (input) input.focus();
+    }, 100);
+
+    // Setup event listeners
+    setupUploadEventListeners(locationId);
+  }
+
+  function setupUploadEventListeners(locationId) {
+    var overlay = document.getElementById('at-upload-overlay');
+    var modal = document.getElementById('at-upload-modal');
+    var closeBtn = document.getElementById('at-upload-close');
+    var dropzone = document.getElementById('at-dropzone');
+    var fileInput = document.getElementById('at-file-input');
+    var businessNameInput = document.getElementById('at-business-name');
+    var addMoreBtn = document.getElementById('at-add-more');
+    var submitBtn = document.getElementById('at-upload-submit');
+    var suggestions = document.querySelectorAll('.at-suggestion');
+
+    // Close modal
+    function closeModal() {
+      overlay.classList.remove('at-visible');
+      setTimeout(function() {
+        overlay.remove();
+        var style = document.getElementById('at-upload-styles');
+        if (style) style.remove();
+      }, 200);
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeModal();
+    });
+
+    // Prevent defaults for drag events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(event) {
+      dropzone.addEventListener(event, function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    });
+
+    // Highlight on drag
+    ['dragenter', 'dragover'].forEach(function(event) {
+      dropzone.addEventListener(event, function() {
+        dropzone.classList.add('at-dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(function(event) {
+      dropzone.addEventListener(event, function() {
+        dropzone.classList.remove('at-dragover');
+      });
+    });
+
+    // Handle drop
+    dropzone.addEventListener('drop', function(e) {
+      handleFiles(e.dataTransfer.files);
+    });
+
+    // Handle click to browse
+    dropzone.addEventListener('click', function() {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function() {
+      handleFiles(this.files);
+      this.value = ''; // Reset for re-selecting same file
+    });
+
+    // Add more button
+    addMoreBtn.addEventListener('click', function() {
+      fileInput.click();
+    });
+
+    // Business name input
+    businessNameInput.addEventListener('input', function() {
+      uploadState.businessName = this.value;
+      updatePhotoNames();
+      updateSubmitButton();
+    });
+
+    // Suggestions
+    suggestions.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var name = this.getAttribute('data-name');
+        // Apply to first photo without custom name
+        var photoList = document.querySelectorAll('.at-photo-name');
+        for (var i = 0; i < photoList.length; i++) {
+          var input = photoList[i];
+          var defaultName = uploadState.businessName
+            ? uploadState.businessName + ' - Photo ' + (i + 1)
+            : 'Photo ' + (i + 1);
+          if (input.value === defaultName || input.value === '') {
+            input.value = name;
+            uploadState.photos[i].name = name;
+            break;
+          }
+        }
+      });
+    });
+
+    // Submit
+    submitBtn.addEventListener('click', function() {
+      submitPhotos(locationId);
+    });
+  }
+
+  function handleFiles(files) {
+    var remaining = uploadState.maxPhotos - uploadState.photos.length;
+    var filesToAdd = Array.from(files).slice(0, remaining);
+    var errorEl = document.getElementById('at-upload-error');
+
+    filesToAdd.forEach(function(file) {
+      // Validate type
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        showUploadError('Only JPEG, PNG, and WebP files are allowed');
+        return;
+      }
+
+      // Validate size
+      if (file.size > 5 * 1024 * 1024) {
+        showUploadError('File must be under 5MB');
+        return;
+      }
+
+      // Resize before storing
+      resizeImage(file, 2000).then(function(resizedFile) {
+        // Create preview
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var photoIndex = uploadState.photos.length + 1;
+          var defaultName = uploadState.businessName
+            ? uploadState.businessName + ' - Photo ' + photoIndex
+            : 'Photo ' + photoIndex;
+
+          uploadState.photos.push({
+            file: resizedFile,
+            preview: e.target.result,
+            name: defaultName
+          });
+
+          renderPhotoList();
+          updateSubmitButton();
+          hideUploadError();
+        };
+        reader.readAsDataURL(resizedFile);
+      });
+    });
+  }
+
+  function resizeImage(file, maxDimension) {
+    return new Promise(function(resolve) {
+      var img = new Image();
+      img.onload = function() {
+        // Check if resize needed
+        if (img.width <= maxDimension && img.height <= maxDimension) {
+          resolve(file);
+          return;
+        }
+
+        // Calculate new dimensions
+        var ratio = Math.min(maxDimension / img.width, maxDimension / img.height);
+        var newWidth = Math.round(img.width * ratio);
+        var newHeight = Math.round(img.height * ratio);
+
+        // Draw to canvas
+        var canvas = document.createElement('canvas');
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+        // Convert to blob
+        canvas.toBlob(function(blob) {
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.9);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function renderPhotoList() {
+    var dropzone = document.getElementById('at-dropzone');
+    var photoList = document.getElementById('at-photo-list');
+    var addMoreBtn = document.getElementById('at-add-more');
+
+    if (uploadState.photos.length === 0) {
+      dropzone.style.display = 'block';
+      photoList.innerHTML = '';
+      addMoreBtn.style.display = 'none';
+      return;
+    }
+
+    dropzone.style.display = 'none';
+    addMoreBtn.style.display = uploadState.photos.length < uploadState.maxPhotos ? 'block' : 'none';
+
+    photoList.innerHTML = uploadState.photos.map(function(photo, index) {
+      return \`
+        <div class="at-photo-item" data-index="\${index}">
+          <img src="\${photo.preview}" class="at-photo-thumb" />
+          <input type="text" class="at-photo-name" value="\${photo.name}" placeholder="Photo name" />
+          <button class="at-photo-remove" data-index="\${index}">&times;</button>
+        </div>
+      \`;
+    }).join('');
+
+    // Add event listeners to name inputs
+    photoList.querySelectorAll('.at-photo-name').forEach(function(input, index) {
+      input.addEventListener('input', function() {
+        uploadState.photos[index].name = this.value;
+      });
+    });
+
+    // Add event listeners to remove buttons
+    photoList.querySelectorAll('.at-photo-remove').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var index = parseInt(this.getAttribute('data-index'));
+        uploadState.photos.splice(index, 1);
+        renderPhotoList();
+        updateSubmitButton();
+      });
+    });
+  }
+
+  function updatePhotoNames() {
+    uploadState.photos.forEach(function(photo, index) {
+      // Only update if name follows the default pattern
+      var prevDefault = 'Photo ' + (index + 1);
+      var prevDefaultWithBiz = '.*? - Photo ' + (index + 1);
+      if (photo.name === prevDefault || new RegExp('^' + prevDefaultWithBiz + '$').test(photo.name)) {
+        photo.name = uploadState.businessName
+          ? uploadState.businessName + ' - Photo ' + (index + 1)
+          : 'Photo ' + (index + 1);
+      }
+    });
+    renderPhotoList();
+  }
+
+  function updateSubmitButton() {
+    var submitBtn = document.getElementById('at-upload-submit');
+    var businessName = uploadState.businessName.trim();
+    var hasPhotos = uploadState.photos.length > 0;
+    submitBtn.disabled = !businessName || !hasPhotos || uploadState.isUploading;
+
+    if (uploadState.isUploading) {
+      submitBtn.textContent = 'Uploading...';
+    } else {
+      submitBtn.textContent = 'Upload & Finish';
+    }
+  }
+
+  function showUploadError(message) {
+    var errorEl = document.getElementById('at-upload-error');
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+
+  function hideUploadError() {
+    var errorEl = document.getElementById('at-upload-error');
+    errorEl.style.display = 'none';
+  }
+
+  function submitPhotos(locationId) {
+    if (uploadState.isUploading) return;
+    uploadState.isUploading = true;
+    updateSubmitButton();
+
+    var formData = new FormData();
+    formData.append('key', CONFIG_KEY);
+    formData.append('location_id', locationId);
+    formData.append('business_name', uploadState.businessName.trim());
+    formData.append('photo_names', JSON.stringify(uploadState.photos.map(function(p) { return p.name; })));
+
+    uploadState.photos.forEach(function(photo) {
+      formData.append('photos', photo.file);
+    });
+
+    fetch(API_BASE + '/api/photos/upload', {
+      method: 'POST',
+      body: formData
+    })
+    .then(function(response) {
+      return response.json().then(function(data) {
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed');
+        }
+        return data;
+      });
+    })
+    .then(function(data) {
+      log('Upload successful:', data);
+      showUploadSuccess();
+    })
+    .catch(function(error) {
+      logError('Upload failed:', error);
+      showUploadError(error.message || 'Upload failed. Please try again.');
+      uploadState.isUploading = false;
+      updateSubmitButton();
+    });
+  }
+
+  function showUploadSuccess() {
+    var successEl = document.getElementById('at-upload-success');
+    successEl.style.display = 'flex';
+
+    // Start genie animation after 1.5 seconds
+    setTimeout(function() {
+      startGenieAnimation();
+    }, 1500);
+  }
+
+  function startGenieAnimation() {
+    var modal = document.getElementById('at-upload-modal');
+    var overlay = document.getElementById('at-upload-overlay');
+
+    // Calculate genie target
+    var targetX = 0;
+    var targetY = 200; // Default: animate downward
+
+    if (uploadState.triggerElement) {
+      try {
+        var rect = uploadState.triggerElement.getBoundingClientRect();
+        var modalRect = modal.getBoundingClientRect();
+        targetX = (rect.left + rect.width / 2) - (modalRect.left + modalRect.width / 2);
+        targetY = (rect.top + rect.height / 2) - (modalRect.top + modalRect.height / 2);
+      } catch (e) {
+        // Use defaults
+      }
+    }
+
+    // Set CSS variables
+    modal.style.setProperty('--at-genie-x', targetX + 'px');
+    modal.style.setProperty('--at-genie-y', targetY + 'px');
+
+    // Start animation
+    modal.classList.add('at-genie');
+    overlay.style.opacity = '0';
+
+    // Cleanup and advance tour
+    setTimeout(function() {
+      overlay.remove();
+      var style = document.getElementById('at-upload-styles');
+      if (style) style.remove();
+
+      // Advance tour if active
+      if (window.__atDriverInstance) {
+        window.__atDriverInstance.moveNext();
+      }
+    }, 500);
+  }
+
+  // Expose for tour integration
+  window.__AT_OPEN_UPLOAD_MODAL__ = openUploadModal;
 
   // Main initialization
   function init() {

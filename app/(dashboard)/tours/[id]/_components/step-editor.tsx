@@ -281,6 +281,24 @@ export function StepEditor({
               />
             </div>
           )}
+
+          {/* Auto-advance when clicked */}
+          {needsElement && step.settings?.allow_interaction && (
+            <div className="flex items-center justify-between pl-4 border-l-2 border-muted">
+              <div>
+                <div className="text-sm font-medium">Auto-advance when clicked</div>
+                <div className="text-xs text-muted-foreground">
+                  Tour moves to next step when user clicks this element
+                </div>
+              </div>
+              <Switch
+                checked={step.auto_advance ?? false}
+                onCheckedChange={(checked) =>
+                  onUpdateStep({ auto_advance: checked })
+                }
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -340,6 +358,7 @@ export function StepEditor({
                     <SelectItem value="complete">Complete tour</SelectItem>
                     <SelectItem value="dismiss">Dismiss tour</SelectItem>
                     <SelectItem value="url">Open URL</SelectItem>
+                    <SelectItem value="upload">Upload Photo</SelectItem>
                   </SelectContent>
                 </Select>
               </>

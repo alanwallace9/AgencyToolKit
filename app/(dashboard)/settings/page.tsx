@@ -7,6 +7,7 @@ import { Settings } from 'lucide-react';
 import { EmbedCodeDisplay } from './_components/embed-code-display';
 import { CssExportCard } from './_components/css-export-card';
 import { GhlIntegrationSettings } from './_components/ghl-integration-settings';
+import { PhotoUploadSettings } from './_components/photo-upload-settings';
 
 export default async function SettingsPage() {
   const agency = await getCurrentAgency();
@@ -74,6 +75,12 @@ export default async function SettingsPage() {
         <GhlIntegrationSettings
           ghlDomain={agency.ghl_domain}
           builderAutoClose={agency.builder_auto_close ?? true}
+        />
+
+        {/* Photo Upload Settings */}
+        <PhotoUploadSettings
+          initialSettings={agency.settings?.photo_uploads}
+          agencyId={agency.id}
         />
 
         {/* Additional Settings Placeholder */}

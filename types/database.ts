@@ -31,6 +31,8 @@ export interface AgencySettings {
   saved_colors?: string[];
   // Saved widget themes for Social Proof
   saved_widget_themes?: SavedWidgetTheme[];
+  // Photo upload settings
+  photo_uploads?: PhotoUploadSettings;
 }
 
 export interface MenuConfig {
@@ -248,6 +250,7 @@ export interface Customer {
   gbp_connected_at: string | null;
   settings: Record<string, unknown>;
   is_active: boolean;
+  photo_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -444,6 +447,7 @@ export interface TourStep {
   };
   progress_trigger?: ProgressTrigger;
   auto_skip?: boolean;
+  auto_advance?: boolean; // Auto-advance when highlighted element is clicked
   delay_ms?: number;
   settings?: {
     show_overlay?: boolean;
@@ -975,3 +979,47 @@ export interface AnalyticsEvent {
   event_data: Record<string, unknown>;
   created_at: string;
 }
+
+// ============================================
+// CUSTOMER PHOTO UPLOAD TYPES
+// ============================================
+
+export interface CustomerPhoto {
+  id: string;
+  customer_id: string;
+  agency_id: string;
+  blob_url: string;
+  name: string;
+  original_filename: string | null;
+  file_size: number | null;
+  uploaded_at: string;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  agency_id: string;
+  type: 'photo_upload' | 'tour_complete' | 'system' | string;
+  title: string;
+  message: string | null;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export type PhotoNotificationMethod = 'in_app' | 'webhook';
+
+export interface PhotoUploadSettings {
+  enabled: boolean;
+  allow_text_positioning: boolean;
+  notify_on_upload: boolean;
+  notification_method: PhotoNotificationMethod;
+  webhook_url?: string;
+}
+
+export const DEFAULT_PHOTO_UPLOAD_SETTINGS: PhotoUploadSettings = {
+  enabled: true,
+  allow_text_positioning: false,
+  notify_on_upload: true,
+  notification_method: 'in_app',
+};

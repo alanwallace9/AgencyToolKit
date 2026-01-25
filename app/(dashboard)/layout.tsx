@@ -5,6 +5,7 @@ import { UserButton } from "@clerk/nextjs"
 
 import { Badge } from "@/components/ui/badge"
 import { MainNav } from "@/components/dashboard/main-nav"
+import { NotificationBell } from "@/components/dashboard/notification-bell"
 import { getCurrentAgency } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
@@ -49,6 +50,7 @@ export default async function DashboardLayout({
             >
               {agency.plan === "pro" ? "Pro" : "Toolkit"}
             </Badge>
+            <NotificationBell />
             <div className="h-5 w-px bg-border/60" />
             <div suppressHydrationWarning>
               <UserButton
