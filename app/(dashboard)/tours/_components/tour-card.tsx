@@ -276,7 +276,15 @@ export function TourCard({ tour }: TourCardProps) {
 
         <CardFooter className="pt-3 border-t">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4 text-sm">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/customers?tour=${tour.id}`);
+              }}
+              className="flex items-center gap-4 text-sm hover:bg-muted/50 rounded-md px-2 py-1 -ml-2 transition-colors cursor-pointer"
+              title="View customer progress"
+            >
               <div className="flex items-center gap-1.5">
                 <Eye className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">{tour.stats.views}</span>
@@ -287,16 +295,21 @@ export function TourCard({ tour }: TourCardProps) {
                 <span className="font-medium">{completionRate}%</span>
                 <span className="text-muted-foreground">completion</span>
               </div>
-            </div>
+            </button>
 
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <Button variant="outline" size="sm" onClick={handleEdit}>
                 Edit
               </Button>
               {tour.stats.views > 0 && (
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => router.push(`/customers?tour=${tour.id}`)}
+                >
                   <BarChart3 className="h-4 w-4" />
-                  <span className="sr-only">View analytics</span>
+                  <span className="sr-only">View customer progress</span>
                 </Button>
               )}
             </div>

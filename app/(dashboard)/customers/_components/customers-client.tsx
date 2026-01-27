@@ -1,20 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, AlertCircle } from 'lucide-react';
-import { Customer } from '@/types/database';
+import { useRouter } from 'next/navigation';
+import { Plus, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CustomerTable } from './customer-table';
 import { AddCustomerDialog } from './add-customer-dialog';
 import { EmptyState } from './empty-state';
+import { CustomerFilterTabs } from './customer-filter-tabs';
+import { ProgressStatus, CustomerWithProgress } from '../page';
+
+interface StatusCounts {
+  all: number;
+  completed: number;
+  in_progress: number;
+  not_started: number;
+}
 
 interface CustomersClientProps {
-  customers: Customer[];
+  customers: CustomerWithProgress[];
   customerCount: number;
   customerLimit: number | null;
   isAtLimit: boolean;
   plan: string;
+  tourFilter?: { id: string; name: string } | null;
+  statusFilter?: ProgressStatus;
+  statusCounts?: StatusCounts;
 }
 
 export function CustomersClient({
@@ -22,14 +34,46 @@ export function CustomersClient({
   customerCount,
   customerLimit,
   isAtLimit,
-  plan,
+  tourFilter,
+  statusFilter = 'all',
+  statusCounts = { all: 0, completed: 0, in_progress: 0, not_started: 0 },
 }: CustomersClientProps) {
+  const router = useRouter();
   const [showAddDialog, setShowAddDialog] = useState(false);
+
+  const clearFilter = () => {
+    router.push('/customers');
+  };
 
   return (
     <>
+      {/* Tour filter banner */}
+      {tourFilter && (
+        <div className="flex items-center justify-between mb-4 p-3 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filtering by tour:</span>
+            <span className="font-medium">{tourFilter.name}</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={clearFilter}>
+            <X className="h-4 w-4 mr-1" />
+            Clear Filter
+          </Button>
+        </div>
+      )}
+
+      {/* Filter tabs (only when filtering by tour) */}
+      {tourFilter && (
+        <div className="mb-4">
+          <CustomerFilterTabs
+            tourId={tourFilter.id}
+            currentStatus={statusFilter}
+            statusCounts={statusCounts}
+          />
+        </div>
+      )}
+
       {/* Plan limit info */}
-      {customerLimit && (
+      {customerLimit && !tourFilter && (
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-muted-foreground">
             {customerCount} / {customerLimit} customers
@@ -49,8 +93,8 @@ export function CustomersClient({
         </div>
       )}
 
-      {/* Add button (when customers exist) */}
-      {customers.length > 0 && (
+      {/* Add button (when customers exist and not filtering) */}
+      {customers.length > 0 && !tourFilter && (
         <div className="flex justify-end mb-4">
           <Button onClick={() => setShowAddDialog(true)} disabled={isAtLimit}>
             <Plus className="h-4 w-4 mr-2" />
@@ -61,9 +105,15 @@ export function CustomersClient({
 
       {/* Content */}
       {customers.length === 0 ? (
-        <EmptyState onAddCustomer={() => setShowAddDialog(true)} />
+        tourFilter ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No customers match this filter.
+          </div>
+        ) : (
+          <EmptyState onAddCustomer={() => setShowAddDialog(true)} />
+        )
       ) : (
-        <CustomerTable customers={customers} />
+        <CustomerTable customers={customers} showProgress={!!tourFilter} />
       )}
 
       {/* Add dialog */}

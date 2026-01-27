@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Customer } from '@/types/database';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +15,7 @@ import {
 import { deleteCustomer } from '../_actions/customer-actions';
 
 interface DeleteCustomerDialogProps {
-  customer: Customer | null;
+  customer: { id: string; name: string } | null;
   onClose: () => void;
 }
 

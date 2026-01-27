@@ -2489,41 +2489,88 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var existing = document.getElementById('at-tour-theme-styles');
     if (existing) existing.remove();
 
-    var colors = theme.colors || {};
-    var typography = theme.typography || {};
-    var borders = theme.borders || {};
+    // Default theme values - matches the nice preview styling
+    var defaultColors = {
+      primary: '#3b82f6',
+      secondary: '#64748b',
+      background: '#ffffff',
+      text: '#1f2937',
+      text_secondary: '#6b7280',
+      border: '#e5e7eb',
+      overlay: 'rgba(0,0,0,0.5)'
+    };
+
+    var defaultTypography = {
+      font_family: 'system-ui, -apple-system, sans-serif',
+      title_size: '18px',
+      body_size: '14px'
+    };
+
+    var defaultBorders = {
+      radius: '12px'
+    };
+
+    // Use theme values or fall back to defaults
+    var colors = theme && theme.colors ? theme.colors : defaultColors;
+    var typography = theme && theme.typography ? theme.typography : defaultTypography;
+    var borders = theme && theme.borders ? theme.borders : defaultBorders;
+
+    // Ensure all values have fallbacks
+    var bg = colors.background || defaultColors.background;
+    var text = colors.text || defaultColors.text;
+    var textSec = colors.text_secondary || defaultColors.text_secondary;
+    var primary = colors.primary || defaultColors.primary;
+    var secondary = colors.secondary || defaultColors.secondary;
+    var border = colors.border || defaultColors.border;
+    var fontFamily = typography.font_family || defaultTypography.font_family;
+    var titleSize = typography.title_size || defaultTypography.title_size;
+    var bodySize = typography.body_size || defaultTypography.body_size;
+    var radius = borders.radius || defaultBorders.radius;
+
+    // Parse radius to ensure it's a valid number
+    var radiusNum = parseInt(radius) || 12;
 
     var css = \`
       .at-tour-popover .driver-popover {
-        background-color: \${colors.background || '#ffffff'} !important;
-        color: \${colors.text || '#1f2937'} !important;
-        border: 1px solid \${colors.border || '#e5e7eb'} !important;
-        border-radius: \${borders.radius || '12'}px !important;
-        font-family: \${typography.font_family || 'system-ui, sans-serif'} !important;
+        background-color: \${bg} !important;
+        color: \${text} !important;
+        border: 1px solid \${border} !important;
+        border-radius: \${radiusNum}px !important;
+        font-family: \${fontFamily} !important;
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1), 0 20px 25px -5px rgba(0,0,0,0.1) !important;
+        max-width: 340px !important;
+        padding: 16px !important;
       }
 
       .at-tour-popover .driver-popover-title {
-        color: \${colors.text || '#1f2937'} !important;
-        font-size: \${typography.title_size || '18'}px !important;
+        color: \${text} !important;
+        font-size: \${titleSize} !important;
         font-weight: 600 !important;
+        margin-bottom: 8px !important;
       }
 
       .at-tour-popover .driver-popover-description {
-        color: \${colors.text_secondary || '#6b7280'} !important;
-        font-size: \${typography.body_size || '14'}px !important;
+        color: \${textSec} !important;
+        font-size: \${bodySize} !important;
         line-height: 1.5 !important;
+        margin-bottom: 16px !important;
+      }
+
+      .at-tour-popover .driver-popover-footer {
+        margin-top: 12px !important;
       }
 
       .at-tour-popover .driver-popover-next-btn,
       .at-tour-popover .driver-popover-done-btn {
-        background-color: \${colors.primary || '#3b82f6'} !important;
+        background-color: \${primary} !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
         padding: 10px 20px !important;
         font-weight: 600 !important;
+        font-size: 14px !important;
         transition: all 0.2s ease !important;
+        cursor: pointer !important;
       }
 
       .at-tour-popover .driver-popover-next-btn:hover,
@@ -2533,24 +2580,57 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
       .at-tour-popover .driver-popover-prev-btn {
         background-color: transparent !important;
-        color: \${colors.secondary || '#64748b'} !important;
-        border: 1px solid \${colors.border || '#e5e7eb'} !important;
+        color: \${secondary} !important;
+        border: 1px solid \${border} !important;
         border-radius: 8px !important;
         padding: 10px 20px !important;
         font-weight: 500 !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+      }
+
+      .at-tour-popover .driver-popover-prev-btn:hover {
+        background-color: rgba(0,0,0,0.05) !important;
       }
 
       .at-tour-popover .driver-popover-close-btn {
-        color: \${colors.text_secondary || '#6b7280'} !important;
+        color: \${textSec} !important;
+        opacity: 0.7 !important;
+        transition: opacity 0.2s ease !important;
+      }
+
+      .at-tour-popover .driver-popover-close-btn:hover {
+        opacity: 1 !important;
       }
 
       .at-tour-popover .driver-popover-progress-text {
-        color: \${colors.text_secondary || '#6b7280'} !important;
-        font-size: 12px !important;
+        color: \${textSec} !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+      }
+
+      .at-tour-popover .driver-popover-arrow {
+        border-color: \${bg} !important;
+      }
+
+      .at-tour-popover .driver-popover-arrow-side-left {
+        border-left-color: \${bg} !important;
+      }
+
+      .at-tour-popover .driver-popover-arrow-side-right {
+        border-right-color: \${bg} !important;
+      }
+
+      .at-tour-popover .driver-popover-arrow-side-top {
+        border-top-color: \${bg} !important;
+      }
+
+      .at-tour-popover .driver-popover-arrow-side-bottom {
+        border-bottom-color: \${bg} !important;
       }
 
       .driver-active-element {
-        box-shadow: 0 0 0 4px \${colors.primary || '#3b82f6'}40 !important;
+        box-shadow: 0 0 0 4px \${primary}40 !important;
       }
 
       /* Auto-advance click feedback */
@@ -2559,8 +2639,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       }
 
       @keyframes at-pulse {
-        0% { box-shadow: 0 0 0 0 \${colors.primary || '#3b82f6'}80; }
-        100% { box-shadow: 0 0 0 20px \${colors.primary || '#3b82f6'}00; }
+        0% { box-shadow: 0 0 0 0 \${primary}80; }
+        100% { box-shadow: 0 0 0 20px \${primary}00; }
       }
     \`;
 
@@ -2648,6 +2728,44 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }).catch(function(e) {
       // Silently fail - analytics shouldn't break the tour
       log('Analytics tracking failed', e);
+    });
+  }
+
+  // Track customer-level tour progress (for Feature 25)
+  function trackCustomerProgress(eventType, tourId, stepData) {
+    if (!CONFIG_KEY) return;
+
+    var locationId = getGHLLocationId();
+    if (!locationId) {
+      log('No GHL location ID - skipping customer progress tracking');
+      return;
+    }
+
+    var payload = {
+      agency_token: CONFIG_KEY,
+      ghl_location_id: locationId,
+      tour_id: tourId,
+      event_type: eventType,
+      url: window.location.href,
+      timestamp: new Date().toISOString()
+    };
+
+    // Add step data if provided
+    if (stepData) {
+      if (stepData.step_id) payload.step_id = stepData.step_id;
+      if (stepData.step_order !== undefined) payload.step_order = stepData.step_order;
+      if (stepData.step_title) payload.step_title = stepData.step_title;
+      if (stepData.metadata) payload.metadata = stepData.metadata;
+    }
+
+    // Send to progress tracking API (fire and forget)
+    fetch(API_BASE + '/api/track/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function(e) {
+      // Silently fail - progress tracking shouldn't break the tour
+      log('Customer progress tracking failed', e);
     });
   }
 
@@ -2776,10 +2894,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   }
 
   function runProductionTourWithDriver(tour, steps, settings, theme) {
-    // Inject theme styles if theme provided
-    if (theme) {
-      injectTourThemeStyles(theme);
-    }
+    // Always inject theme styles - use provided theme or default baseline
+    // This ensures tours always look good even without an explicit theme
+    injectTourThemeStyles(theme || null);
 
     // Reference to driver instance for use in step callbacks
     // (callbacks execute after driverRef is assigned)
@@ -2883,11 +3000,24 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       onHighlightStarted: function(element, step, options) {
         var stepIndex = options.state.activeIndex;
         var stepConfig = steps[stepIndex];
+        var prevStepIndex = options.state.previousIndex;
 
         // Track tour started on first step
         if (stepIndex === 0) {
           trackTourEvent('tour_started', tour.id, {
             total_steps: steps.length
+          });
+          // Customer-level progress tracking
+          trackCustomerProgress('tour_start', tour.id, null);
+        }
+
+        // Track previous step as completed (if moving forward)
+        if (prevStepIndex !== undefined && prevStepIndex < stepIndex) {
+          var prevStepConfig = steps[prevStepIndex];
+          trackCustomerProgress('step_complete', tour.id, {
+            step_id: prevStepConfig.id,
+            step_order: prevStepIndex,
+            step_title: prevStepConfig.title
           });
         }
 
@@ -2895,6 +3025,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         trackTourEvent('step_viewed', tour.id, {
           step_index: stepIndex,
           total_steps: steps.length
+        });
+        // Customer-level progress tracking
+        trackCustomerProgress('step_view', tour.id, {
+          step_id: stepConfig.id,
+          step_order: stepIndex,
+          step_title: stepConfig.title
         });
 
         // Save progress
@@ -2967,6 +3103,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           trackTourEvent('tour_completed', tour.id, {
             total_steps: steps.length
           });
+          // Customer-level progress tracking
+          trackCustomerProgress('tour_complete', tour.id, {
+            step_order: steps.length - 1
+          });
           console.log('[AgencyToolkit] ✅ Tour completed:', tour.name);
         } else {
           // User dismissed the tour
@@ -2978,6 +3118,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           trackTourEvent('tour_dismissed', tour.id, {
             step_index: options.state.activeIndex,
             total_steps: steps.length
+          });
+          // Customer-level progress tracking
+          trackCustomerProgress('tour_dismiss', tour.id, {
+            step_order: options.state.activeIndex
           });
           log('Tour dismissed at step', options.state.activeIndex + 1);
         }

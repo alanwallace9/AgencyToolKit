@@ -11,10 +11,11 @@ const isPublicRoute = createRouteMatcher([
   '/api/trustsignal/config(.*)',  // TrustSignal widget config (public)
   '/api/trustsignal/capture(.*)',  // TrustSignal form capture (public)
   '/api/tours/analytics(.*)',  // Tour analytics from embed script (public)
+  '/api/track(.*)',  // Progress tracking from embed script (public)
   '/api/photos(.*)',  // Photo upload from embed script (public)
   '/embed.js(.*)',
   '/ts.js(.*)',  // TrustSignal embed script
-  '/api/og(.*)',
+  '/api/images(.*)',
   '/preview(.*)',
   '/test-widget(.*)',  // Test page for TrustSignal
 ]);

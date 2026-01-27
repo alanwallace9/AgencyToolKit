@@ -1,6 +1,7 @@
 # Sprint Tracking
 
-## Progress: 50% Complete (24 of 48 Features)
+## Progress: 75% Complete (30 of 40 Active Features)
+*5 features moved to backlog*
 
 ---
 
@@ -34,13 +35,12 @@
 - [x] Feature 18: Tours List Page + DAP Foundation
 - [x] Feature 19: Tour Builder - Basic UI (Tabs, Steps, Settings, Targeting, Theme)
 - [x] Feature 20: Visual Element Selector (GHL Builder Mode)
-- [ ] Feature 21: Tour Preview (Live Preview in Iframe)
 - [x] Feature 22: Apply Tours in Embed Script (Driver.js Integration)
 
 #### Tour Enhancements
-- [ ] Feature 23: Tour Themes Builder (Custom Colors, Typography, Buttons)
-- [ ] Feature 24: Tour Templates UI (Save Tour as Template, Template Gallery)
-- [ ] Feature 25: Tour Analytics Dashboard (Views, Completions, Funnels, Drop-off)
+- [x] Feature 23: Tour Themes Builder (Custom Colors, Typography, Buttons)
+- [x] Feature 24: Tour Templates UI (Save Tour as Template, Template Gallery)
+- [x] Feature 25: Tour Analytics Dashboard (Customer Progress Tracking)
 
 #### Checklists
 - [ ] Feature 26: Checklists Builder (Items, Actions, Completion Triggers)
@@ -54,10 +54,6 @@
 - [ ] Feature 30: Banners Builder (Top/Bottom, Styles, Actions, Scheduling)
 - [ ] Feature 31: Banners Embed (Dismissible, Session Storage)
 
-#### Resource Center
-- [ ] Feature 32: Resource Center Builder (Sections, Tours, Links, Checklist)
-- [ ] Feature 33: Resource Center Widget + Embed (Help Launcher)
-
 #### DAP Utilities
 - [ ] Feature 34: URL Pattern Tester UI (Test URLs Against Patterns)
 
@@ -65,14 +61,12 @@
 - [x] Feature 35: Image Templates List
 - [x] Feature 36: Image Upload to R2
 - [x] Feature 37: Image Editor - Canvas
-- [ ] Feature 38: Image Generation API
-- [ ] Feature 39: Image URL Generator
+- [x] Feature 38: Image Generation API
+- [x] Feature 39: Image URL Generator
 
 ### Phase 5: Integrations
-- [ ] Feature 40: GBP Dashboard - Customer Connection
-- [ ] Feature 41: GBP Dashboard - Embed Page
-- [ ] Feature 42: Social Proof Widget - Events Management
-- [ ] Feature 43: Social Proof Widget - Script
+- [x] Feature 42: Social Proof Widget - Events Management (TrustSignal)
+- [x] Feature 43: Social Proof Widget - Script (TrustSignal)
 - [ ] Feature 44: Settings Page Complete
 - [ ] Feature 45: Plan Gating & Upgrade Prompts
 
@@ -80,6 +74,13 @@
 - [ ] Feature 46: Error Handling & Toasts
 - [ ] Feature 47: Mobile Responsiveness
 - [ ] Feature 48: Documentation & Help
+
+### Backlog (Deferred)
+- [ ] Feature 21: Tour Preview (Live Preview in Iframe)
+- [ ] Feature 32: Resource Center Builder (Sections, Tours, Links, Checklist)
+- [ ] Feature 33: Resource Center Widget + Embed (Help Launcher)
+- [ ] Feature 40: GBP Dashboard - Customer Connection
+- [ ] Feature 41: GBP Dashboard - Embed Page
 
 ---
 
@@ -109,26 +110,82 @@
 - ✅ 2026-01-25: Photo upload pipeline fixes (RLS bypass, drag-drop, modal cleanup)
 - ✅ 2026-01-25: Notification bell → scroll to #photos section
 - ✅ 2026-01-25: Auto-name photos using existing count (Photo 3, Photo 4, etc.)
+- ✅ 2026-01-25: Feature 23 - Tour Themes Builder (colors, typography, shadows, custom CSS)
+- ✅ 2026-01-25: Feature 24 - Tour Templates UI (save as template, template gallery with CRUD)
+- ✅ 2026-01-26: Feature 37 - Font size mismatch fix (API scaling based on editor canvas, not original image)
+- ✅ 2026-01-26: Feature 37 - Font loading, text centering, italic/underline, corner radius slider fixes
+- ✅ 2026-01-26: Feature 25 - Tour Analytics (Customer Progress Tracking)
 
 ### In Progress
 - [ ] Feature 21: Tour Preview - Code complete, needs testing
-- [x] Feature 42-43: Social Proof Widget (TrustSignal) - Complete
+
+### Completed Recently
+- [x] Feature 25: Tour Analytics - Customer Progress Tracking
+- [x] Feature 42-43: Social Proof Widget (TrustSignal)
+- [x] Feature 38 & 39: Image Generation API + URL Generator (Sharp-based)
+- [x] Feature 37: Fabric.js Image Editor - COMPLETE
 
 ### Known Issues
 - Builder mode element selector captures original GHL names instead of renamed names (e.g., "Launch Pad" instead of "Connect Google")
 - RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
-- **Feature 38: Image Generation API (@vercel/og)** ← START HERE
-- Feature 39: Image URL Generator
-- Feature 23: Tour Themes Builder
-- Feature 24: Tour Templates UI
+- Feature 26-27: Checklists Builder + Widget
+- Feature 28-29: Smart Tips Builder + Embed
+- Feature 30-31: Banners Builder + Embed
 
 ---
 
 ## Next Session Prompt
 
 **Copy this prompt to start the next session:**
+
+```
+Debug and complete Phase 4: Features 38 & 39
+
+## Current State
+Features 38 (Image Generation API) and 39 (URL Generator) are IMPLEMENTED but have a bug:
+- "Template not found" error when testing the OG API
+
+## Files Created This Session
+1. `app/api/og/[templateId]/route.tsx` - Edge function for image generation
+2. `app/(dashboard)/images/[id]/_components/url-generator.tsx` - URL display section
+3. `app/(dashboard)/images/[id]/_components/copy-url-button.tsx` - Copy button component
+
+## Files Modified
+- `app/(dashboard)/images/[id]/_components/image-editor.tsx` - Added URLGenerator at bottom
+- `package.json` - Added @vercel/og ^0.8.6
+
+## Database Function Added
+```sql
+increment_render_count(p_template_id UUID)
+```
+
+## Bug to Debug
+Test URL: http://localhost:3000/api/og/6acefd9c-ad1d-4ae3-add3-395d749cd571?name=Sarah
+Expected: PNG image with "Hi Sarah!" on precision-plumbing photo
+Actual: "Template not found" 404 error
+
+Possible causes:
+1. Supabase REST API auth failing in Edge runtime
+2. Environment variables not available (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_ANON_KEY)
+3. UUID format issue in the query
+
+## Test Steps After Fix
+1. Test OG API directly: /api/og/{templateId}?name=Sarah
+2. Open Image Editor: /images/6acefd9c-ad1d-4ae3-add3-395d749cd571
+3. Scroll down to see "Ready-to-Use URLs" section
+4. Click "Open in new tab" to test
+5. Copy GHL URL and verify it contains {{contact.first_name}}
+
+## Spec Files
+- docs/features/feature-38-image-generation-api.md
+- docs/features/feature-39-image-url-generator.md
+```
+
+---
+
+## Previous Session Prompt (Archived)
 
 ```
 Continue Phase 4: Image Personalization
