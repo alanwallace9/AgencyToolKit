@@ -28,9 +28,10 @@ export default async function TourPage({ params }: TourPageProps) {
       .eq('agency_id', agency.id)
       .single(),
     supabase
-      .from('tour_themes')
+      .from('guidely_themes')
       .select('*')
-      .eq('agency_id', agency.id)
+      .or(`agency_id.eq.${agency.id},is_system.eq.true`)
+      .order('is_system', { ascending: false })
       .order('name'),
     supabase
       .from('customers')

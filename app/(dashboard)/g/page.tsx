@@ -45,15 +45,28 @@ async function getGuidelyStats(agencyId: string) {
     .eq("agency_id", agencyId)
     .eq("status", "live")
 
+  // Get smart tips count
+  const { count: tipsCount } = await supabase
+    .from("smart_tips")
+    .select("*", { count: "exact", head: true })
+    .eq("agency_id", agencyId)
+
+  const { count: tipsLive } = await supabase
+    .from("smart_tips")
+    .select("*", { count: "exact", head: true })
+    .eq("agency_id", agencyId)
+    .eq("status", "live")
+
   // Get themes count
   const { count: themesCount } = await supabase
-    .from("tour_themes")
+    .from("guidely_themes")
     .select("*", { count: "exact", head: true })
     .eq("agency_id", agencyId)
 
   return {
     tours: { total: toursCount || 0, live: toursLive || 0 },
     checklists: { total: checklistsCount || 0, live: checklistsLive || 0 },
+    tips: { total: tipsCount || 0, live: tipsLive || 0 },
     banners: { total: bannersCount || 0, live: bannersLive || 0 },
     themes: { total: themesCount || 0 },
   }
@@ -89,10 +102,9 @@ export default async function GuidelyDashboard() {
       description: "Contextual tooltips on hover",
       icon: Lightbulb,
       href: "/g/tips",
-      stats: "Coming soon",
+      stats: `${stats.tips.live} live · ${stats.tips.total - stats.tips.live} draft`,
       color: "text-yellow-500",
       bgColor: "bg-yellow-500/10",
-      comingSoon: true,
     },
     {
       title: "Banners",
@@ -139,16 +151,13 @@ export default async function GuidelyDashboard() {
       {/* Feature Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {featureCards.map((card) => (
-          <Link key={card.title} href={card.comingSoon ? "#" : card.href}>
-            <Card className={`hover:border-border transition-colors h-full ${card.comingSoon ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+          <Link key={card.title} href={card.href}>
+            <Card className="hover:border-border transition-colors h-full cursor-pointer">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className={`p-2 rounded-lg ${card.bgColor}`}>
                     <card.icon className={`h-5 w-5 ${card.color}`} />
                   </div>
-                  {card.comingSoon && (
-                    <Badge variant="secondary" className="text-xs">Soon</Badge>
-                  )}
                 </div>
                 <CardTitle className="text-lg mt-3">{card.title}</CardTitle>
                 <CardDescription className="text-sm">
@@ -203,6 +212,12 @@ export default async function GuidelyDashboard() {
             <Link href="/g/checklists?new=true">
               <CheckSquare className="h-4 w-4 mr-2" />
               New Checklist
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/g/tips?new=true">
+              <Lightbulb className="h-4 w-4 mr-2" />
+              New Tip
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">

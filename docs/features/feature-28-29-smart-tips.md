@@ -1,8 +1,54 @@
 # Features 28-29: Smart Tips Builder + Embed
 
-**Status:** Waiting on Left Nav Implementation (Guidely product structure)
+**Status:** Complete (Ready for Testing)
 **Product Name:** Guidely (DAP product suite)
-**Dependencies:** Feature 18 (DAP Schema), Feature 20 (Element Selector), Left Nav restructure
+**Dependencies:** Feature 18 (DAP Schema), Feature 20 (Element Selector)
+**Left Nav:** Complete - routes at `/g/tips/`
+
+---
+
+## Implementation Progress
+
+### Phase 1: Data Layer ✅ COMPLETE
+- [x] 1.1 Create `smart-tip-actions.ts` server actions
+- [x] 1.2 Created `smart_tips` table (migration applied)
+- [x] 1.3 SmartTip types already exist in database.ts
+
+### Phase 2: List Page ✅ COMPLETE
+- [x] 2.1 Create `/g/tips/page.tsx` (server component)
+- [x] 2.2 Create `/g/tips/_components/tips-list-client.tsx`
+- [x] 2.3 Update Guidely sidebar (remove "Coming Soon")
+- [x] 2.4 Update Guidely dashboard card (stats + quick action)
+
+### Phase 3: Builder Page ✅ COMPLETE
+- [x] 3.1 Create `/g/tips/[id]/page.tsx` (wrapper)
+- [x] 3.2 Create `smart-tips-builder.tsx` (main layout with drag-and-drop)
+- [x] 3.3 ~~Create `tips-list-panel.tsx`~~ (deferred - single tip per page)
+- [x] 3.4 Create `tip-settings-panel.tsx` (settings form with beacon config)
+- [x] 3.5 Create `tip-preview.tsx` (live preview with interactions & beacon)
+- [x] 3.6 Create `tip-global-settings.tsx` (sheet for targeting/theme)
+
+### Phase 4: Embed Script ✅ COMPLETE
+- [x] 4.1 Update `/api/config` to include smart_tips
+- [x] 4.2 Add tooltip rendering to embed.js
+- [x] 4.3 Add hover/click/focus/delay trigger handlers
+- [x] 4.4 Add positioning logic (auto/top/right/bottom/left)
+- [x] 4.5 Add beacon rendering with pulse animation
+
+### Phase 5: Polish & Test ✅ COMPLETE
+- [x] 5.1 ~~Add redirect in next.config.ts~~ (not needed - new feature, no legacy URLs)
+- [x] 5.2 Navigation: `/g/tips` list, `/g/tips/[id]` builder
+- [x] 5.3 `pnpm build` passes
+- [ ] 5.4 Manual testing in GHL (user to verify)
+
+### Phase 6: Enhancements ✅ COMPLETE (Session 2)
+- [x] 6.1 Drag-and-drop reordering for tips list
+- [x] 6.2 Adjustable tooltip size (small/medium/large)
+- [x] 6.3 Time delay trigger (show after X seconds)
+- [x] 6.4 Smart beacons (pulsing dot, question mark, info icon)
+- [x] 6.5 Beacon position and offset configuration
+- [x] 6.6 Preview shows beacon when enabled
+
 **Related:** Features 26-27 (Checklists), Features 30-31 (Banners)
 
 ---
@@ -22,50 +68,89 @@ Smart Tips are contextual tooltips that appear when users hover, click, or focus
 
 ## Feature 28: Smart Tips Builder
 
-### UI Structure (3-Column Layout)
+### UI Structure (Expandable Settings Panel)
 
-Following the established pattern from Checklists and Banners builders:
+**Inspired by Usetiful's tour builder.** Settings panel slides in when you click the ⚙ gear on a specific tip. When closed, preview expands to fill the space.
 
 ```
+DEFAULT STATE (no tip selected for editing, preview expanded):
 ┌────────────────────────────────────────────────────────────────────────────┐
-│  ← Back   [Smart Tip Name]   Draft ●   Saving...   [Settings] [Publish]   │
+│  ← Back   Smart Tips     ⚙ Settings                    [Saved] [Publish]   │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
-│  ┌─────────────────┬──────────────────────────────────┬─────────────────┐  │
-│  │                 │                                  │                 │  │
-│  │  TIPS LIST      │  TIP SETTINGS                    │  PREVIEW        │  │
-│  │                 │                                  │                 │  │
-│  │  ───────────    │  Target Element                  │  ┌───────────┐  │  │
-│  │                 │  ┌─────────────────────────┐     │  │           │  │  │
-│  │  ● Welcome Tip  │  │ .btn-submit         🎯 │     │  │  [Button] │  │  │
-│  │    Hover        │  └─────────────────────────┘     │  │     ↓     │  │  │
-│  │                 │                                  │  │ ┌───────┐ │  │  │
-│  │  ○ Pro Tip      │  Content                         │  │ │Tooltip│ │  │  │
-│  │    Click        │  ┌─────────────────────────┐     │  │ │ text  │ │  │  │
-│  │                 │  │ Click here to save      │     │  │ └───────┘ │  │  │
-│  │  ○ Form Help    │  │ your changes            │     │  │           │  │  │
-│  │    Focus        │  └─────────────────────────┘     │  └───────────┘  │  │
-│  │                 │                                  │                 │  │
-│  │  [+ Add Tip]    │  Trigger                         │  Position: Auto │  │
-│  │                 │  ○ Hover ● Click ○ Focus        │                 │  │
-│  │                 │                                  │                 │  │
-│  │                 │  Position                        │                 │  │
-│  │                 │  [Auto ▼]                        │                 │  │
-│  │                 │                                  │                 │  │
-│  └─────────────────┴──────────────────────────────────┴─────────────────┘  │
-│                                                                            │
+│  ┌─────────────────┬────────────────────────────────────────────────────┐  │
+│  │ TIPS            │                                                    │  │
+│  │ ─────           │                                                    │  │
+│  │                 │           ┌─────────────────────────┐              │  │
+│  │ ⋮⋮ Welcome Tip ⚙│           │                         │              │  │
+│  │    Hover        │           │      [  Button  ]       │              │  │
+│  │                 │           │           ↓             │              │  │
+│  │ ⋮⋮ Pro Tip    ⚙│           │     ┌───────────┐       │              │  │
+│  │    Click        │           │     │ Click to  │       │              │  │
+│  │                 │           │     │ save...   │       │              │  │
+│  │ ⋮⋮ Form Help  ⚙│           │     └───────────┘       │              │  │
+│  │    Focus        │           │                         │              │  │
+│  │                 │           └─────────────────────────┘              │  │
+│  │                 │                                                    │  │
+│  │ + Add Tip ▼     │                    PREVIEW                         │  │
+│  │                 │                                                    │  │
+│  └─────────────────┴────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────────┘
+
+CLICK ⚙ ON "WELCOME TIP" → SETTINGS PANEL FOR THAT TIP SLIDES IN:
+┌────────────────────────────────────────────────────────────────────────────┐
+│  ← Back   Smart Tips     ⚙ Settings                    [Saved] [Publish]   │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  ┌─────────────────┬──────────────────────────┬─────────────────────────┐  │
+│  │ TIPS            │ TIP SETTINGS          ✕  │       PREVIEW           │  │
+│  │ ─────           │ ──────────────           │                         │  │
+│  │                 │                          │                         │  │
+│  │ ⋮⋮ Welcome Tip ⚙│ Name                     │  ┌─────────────────┐    │  │
+│  │    Hover    [●] │ ┌──────────────────┐     │  │                 │    │  │
+│  │                 │ │ Welcome Tip      │     │  │   [Button]      │    │  │
+│  │ ⋮⋮ Pro Tip    ⚙│ └──────────────────┘     │  │       ↓         │    │  │
+│  │    Click        │                          │  │  ┌─────────┐    │    │  │
+│  │                 │ Target Element           │  │  │ Click   │    │    │  │
+│  │ ⋮⋮ Form Help  ⚙│ ┌──────────────────┐     │  │  │ to save │    │    │  │
+│  │    Focus        │ │ .btn-submit   🎯 │     │  │  └─────────┘    │    │  │
+│  │                 │ └──────────────────┘     │  │                 │    │  │
+│  │ + Add Tip ▼     │                          │  └─────────────────┘    │  │
+│  │                 │ Content (142/200)        │                         │  │
+│  │                 │ ┌──────────────────┐     │                         │  │
+│  │                 │ │ Click here to    │     │                         │  │
+│  │                 │ │ save your work   │     │                         │  │
+│  │                 │ └──────────────────┘     │                         │  │
+│  │                 │ [+ Add Link]             │                         │  │
+│  │                 │                          │                         │  │
+│  │                 │ Trigger                  │                         │  │
+│  │                 │ ○ Hover ● Click ○ Focus │                         │  │
+│  │                 │                          │                         │  │
+│  │                 │ Position                 │                         │  │
+│  │                 │ [Auto ▼]                 │                         │  │
+│  └─────────────────┴──────────────────────────┴─────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────┘
+
+SIMPLE "+ Add Tip" BUTTON (v1 - no dropdown, just creates blank tip)
+
+Interaction Flow:
+1. User sees tips list on left, large preview on right
+2. Click ⚙ gear on any tip → that tip's settings slide in from left
+3. Settings auto-save as user makes changes
+4. Click ✕ or ⚙ again → settings slide out, preview expands back
+5. Header "⚙ Settings" opens global settings sheet (targeting, theme)
+6. ⋮⋮ = drag handle for reordering tips
 ```
 
 ### Components to Build
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `smart-tips-builder.tsx` | `tours/tips/[id]/_components/` | Main 3-column layout orchestrator |
-| `tips-list-panel.tsx` | `tours/tips/[id]/_components/` | Left panel: list of tips with drag-reorder |
-| `tip-settings-panel.tsx` | `tours/tips/[id]/_components/` | Center panel: element target, content, trigger, position |
-| `tip-preview.tsx` | `tours/tips/[id]/_components/` | Right panel: interactive preview of tooltip |
-| `tip-full-settings.tsx` | `tours/tips/[id]/_components/` | Sheet: targeting, theme, advanced options |
+| `smart-tips-builder.tsx` | `tours/tips/[id]/_components/` | Main layout with collapsible settings panel |
+| `tips-list-panel.tsx` | `tours/tips/[id]/_components/` | Left panel: tips list with ⚙ gear icons |
+| `tip-settings-panel.tsx` | `tours/tips/[id]/_components/` | Collapsible center: element, content, trigger, position |
+| `tip-preview.tsx` | `tours/tips/[id]/_components/` | Right panel: expands when settings closed |
+| `tip-global-settings.tsx` | `tours/tips/[id]/_components/` | Sheet: targeting rules, theme selection |
 
 ### Smart Tip Data Model
 
@@ -92,8 +177,21 @@ interface SmartTip {
   content: string;  // Plain text or simple markdown
 
   // Behavior
-  trigger: 'hover' | 'click' | 'focus';
+  trigger: 'hover' | 'click' | 'focus' | 'delay';
+  delay_seconds?: number;  // Used when trigger is 'delay'
   position: 'top' | 'right' | 'bottom' | 'left' | 'auto';
+  size?: 'small' | 'medium' | 'large';  // Tooltip width (200/280/360px)
+
+  // Beacon indicator (visual attention grabber)
+  beacon?: {
+    enabled: boolean;
+    style: 'pulse' | 'question' | 'info';  // Pulsing dot, ?, or !
+    position: 'top' | 'right' | 'bottom' | 'left';
+    offset_x: number;
+    offset_y: number;
+    size: number;  // Beacon size in pixels (12-40px range)
+    target: 'element' | 'beacon';  // What triggers the tooltip
+  };
 
   // Targeting (same as tours)
   targeting: {
@@ -103,6 +201,7 @@ interface SmartTip {
   };
 
   theme_id: string | null;
+  sort_order?: number;  // For drag-and-drop ordering
   created_at: string;
   updated_at: string;
 }
@@ -125,20 +224,38 @@ interface SmartTip {
 - Link to open GHL in builder mode
 
 **Content Section:**
-- Rich text input (supports bold, italic, links)
-- Character limit indicator (recommended max 200 chars)
+- Plain text input with link support (no bold/italic for v1)
+- "Add Link" button to insert `[text](url)` format links
+- Character counter showing current/max (e.g., "142/200")
+- Use case: Link to Loom videos, help docs, courses for detailed explanations
 - Preview updates in real-time
 
 **Trigger Section:**
-- Radio buttons: Hover | Click | Focus
+- Radio buttons: Hover | Click | Focus | Time Delay
 - Hover: Tooltip appears on mouseover, disappears on mouseout
 - Click: Tooltip appears on click, stays until clicked elsewhere
 - Focus: Tooltip appears when element receives focus (for form fields)
+- Time Delay: Tooltip appears after X seconds on page (configurable 1-60s)
+
+**Size Section:**
+- Dropdown: Small | Medium | Large
+- Small: 200px wide
+- Medium: 280px wide (default)
+- Large: 360px wide
 
 **Position Section:**
 - Dropdown: Auto | Top | Right | Bottom | Left
 - Auto is recommended (adapts to viewport)
 - Preview shows position in real-time
+
+**Beacon Section:**
+- Toggle to enable/disable beacon indicator
+- Style options: Pulsing Dot, Question Mark (?), Info Icon (!)
+- Size slider: Adjustable 12-40px to fit different elements
+- Position: Top | Right | Bottom | Left of target element
+- Fine-tune offsets: Horizontal and Vertical pixel adjustments
+- **Tooltip Target**: Choose whether tooltip appears on Element or Beacon interaction
+- Beacon draws attention to the element before user interacts
 
 ### Right Panel: Preview
 
@@ -298,13 +415,17 @@ function calculatePosition(element, preferred) {
 
 ### Analytics Tracking
 
-Track the following events:
+**Deferred to Phase 3 Backlog** - Will implement in a later analytics sprint.
+
+Planned events to track:
 
 | Event | When | Data |
 |-------|------|------|
 | `smart_tip_shown` | Tooltip displayed | tip_id, trigger_type |
 | `smart_tip_dismissed` | Tooltip hidden | tip_id, duration_ms |
 | `smart_tip_link_clicked` | User clicks link in tooltip | tip_id, link_url |
+
+See `docs/features/phase-3-backlog.md` for tracking.
 
 ---
 
@@ -393,33 +514,30 @@ export async function duplicateSmartTip(id: string): Promise<SmartTip>
 
 ## File Structure
 
-**Note:** Route structure will be finalized after Left Nav implementation. Expected pattern:
+**Actual implementation (routes at `/g/tips/`):**
 
 ```
-app/(dashboard)/guidely/          # New Guidely product area (TBD)
-├── tips/
-│   ├── page.tsx                  # Tips list page
-│   └── [id]/
-│       ├── page.tsx              # Smart tip builder page
-│       └── _components/
-│           ├── smart-tips-builder.tsx
-│           ├── tips-list-panel.tsx
-│           ├── tip-settings-panel.tsx
-│           ├── tip-preview.tsx
-│           └── tip-full-settings.tsx
-├── _actions/
-│   └── smart-tip-actions.ts      # Or shared in parent _actions/
-└── _lib/
-    └── smart-tip-defaults.ts
-```
+app/(dashboard)/g/tips/
+├── page.tsx                       # Tips list page (server component)
+├── _components/
+│   └── tips-list-client.tsx       # Client list with filters, create dialog
+└── [id]/
+    ├── page.tsx                   # Smart tip builder page (server wrapper)
+    └── _components/
+        ├── smart-tips-builder.tsx # Main 3-column layout with drag-and-drop
+        ├── tip-settings-panel.tsx # Settings form with beacon config
+        ├── tip-preview.tsx        # Live preview with beacon rendering
+        └── tip-global-settings.tsx # Sheet for targeting/theme
 
-Routes will be provided before implementation begins.
+app/(dashboard)/tours/_actions/
+└── smart-tip-actions.ts           # All server actions (CRUD, status, reorder)
+```
 
 ---
 
 ## Database
 
-**Table: `smart_tips`** (already exists from Feature 18 migration)
+**Table: `smart_tips`** (Feature 18 migration + Phase 6 enhancements)
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -430,12 +548,23 @@ Routes will be provided before implementation begins.
 | status | TEXT | draft/live/archived |
 | element | JSONB | { selector, metadata } |
 | content | TEXT | Tooltip content |
-| trigger | TEXT | hover/click/focus |
+| trigger | TEXT | hover/click/focus/delay |
+| delay_seconds | INTEGER | Seconds to wait for delay trigger (default 3) |
+| size | TEXT | small/medium/large (default medium) |
+| beacon | JSONB | { enabled, style, position, offset_x, offset_y, size, target } |
 | position | TEXT | top/right/bottom/left/auto |
 | targeting | JSONB | URL, user, device targeting |
 | theme_id | UUID | FK to tour_themes (nullable) |
+| sort_order | INTEGER | For drag-and-drop ordering |
 | created_at | TIMESTAMPTZ | Created timestamp |
 | updated_at | TIMESTAMPTZ | Updated timestamp |
+
+### Database Migrations Applied
+
+1. **Feature 18** - Initial `smart_tips` table creation
+2. **add_smart_tips_sort_order** - Added `sort_order` column for drag-and-drop
+3. **add_smart_tips_delay_and_size** - Added `delay_seconds` and `size` columns
+4. **add_delay_trigger_and_beacon** - Updated trigger CHECK constraint, added `beacon` column
 
 ---
 
@@ -482,3 +611,142 @@ import { useElementSelector } from '@/app/(dashboard)/tours/[id]/_hooks/use-elem
 - ARIA attributes: `role="tooltip"`, `aria-describedby`
 - Escape key should dismiss click-triggered tooltips
 - Sufficient color contrast (meets WCAG AA)
+
+---
+
+## Quick Wins
+
+| Suggestion | Why It Helps | Effort |
+|------------|--------------|--------|
+| **"Try me" button** in preview | Users can trigger the actual tooltip animation | Low |
+| **Character counter** | Shows "142/200" to keep tips concise | Low |
+| **Position preview toggle** | Cycle through all 5 positions to see how it looks | Low |
+| **Keyboard shortcut hint template** | "Press ⌘S to save" style power-user tips | Low |
+| **Copy tip** | Duplicate a tip and change just the targeting | Low |
+
+### v1 Templates (Review Management Focus)
+
+Simple starter templates for review management agencies:
+- **Blank Tip** - Empty, user fills everything
+- **Button Explainer** - "Click here to..." for any button
+- **Form Field Help** - For input fields, focus trigger
+
+*Note: More templates (calendar, funnels, workflows) deferred to future versions.*
+
+---
+
+## Implementation Notes (Session 2)
+
+### What Was Added
+
+**1. Drag-and-Drop Reordering**
+- Uses `@dnd-kit/core` and `@dnd-kit/sortable` for smooth drag interactions
+- Added `sort_order` column to database
+- `reorderSmartTips` server action persists order
+- Grip handle icon on each tip in the list
+
+**2. Time Delay Trigger**
+- New trigger option: "Time Delay"
+- Configurable delay: 1-60 seconds
+- Embed script uses `setTimeout` to show tooltip after page load
+- Updated database CHECK constraint to allow 'delay' trigger
+
+**3. Adjustable Tooltip Size**
+- Three size options: Small (200px), Medium (280px), Large (360px)
+- Applied to both preview and embed script
+- Size persisted in database
+
+**4. Smart Beacons** (Inspired by Usetiful)
+- Visual indicators to draw attention to elements
+- Three styles:
+  - **Pulse**: Animated pulsing dot (default)
+  - **Question**: Question mark icon (?)
+  - **Info**: Exclamation/info icon (!)
+- **Adjustable size**: Slider from 12-40px to fit different elements
+- Position options: Top, Right, Bottom, Left of target element
+- Fine-tune with X/Y offset values
+- Beacon uses theme primary color
+- Pulse animation via CSS `@keyframes`
+- Beacon section moved above Target Element selector in settings panel
+
+**5. Beacon Target Mode**
+- Choose what triggers the tooltip: Element or Beacon
+- **Element mode** (default): Interacting with the target element shows the tooltip
+- **Beacon mode**: Only interacting with the beacon shows the tooltip
+- When beacon mode is enabled, tooltip positions itself relative to the beacon
+- Useful when you want the beacon to be the sole interaction point
+
+### Key Files Modified
+
+| File | Changes |
+|------|---------|
+| `types/database.ts` | Added `SmartTipSize`, `SmartTipBeaconStyle`, `SmartTipBeaconPosition`, `SmartTipBeaconTarget`, `SmartTipBeacon`, updated `SmartTip` interface |
+| `tip-settings-panel.tsx` | Added beacon config UI (style, size slider, position, offsets, target mode), tooltip size selector, delay seconds input |
+| `tip-preview.tsx` | Added beacon rendering with configurable size, target mode support, updates hint text based on target |
+| `smart-tips-builder.tsx` | Added `@dnd-kit` drag-and-drop for tips list |
+| `tips-list-client.tsx` | Added delay trigger icon |
+| `smart-tip-actions.ts` | Added `reorderSmartTips` action |
+| `embed.js/route.ts` | Added beacon rendering with configurable size, delay trigger, beacon target mode, tooltip positioning relative to beacon or element |
+
+### Embed Script Beacon Styles
+
+```css
+.at-smart-tip-beacon {
+  position: absolute;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 999998;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes at-beacon-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 8px transparent; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+```
+
+### User Feedback Incorporated
+- "Select Element" vs "Re-select Element" based on whether selector exists
+- Tooltip width fixed (was too skinny)
+- Drag-and-drop for organizing tips (user use case: sequential form field hints)
+- Size control for different content lengths
+- Time delay for passive onboarding without user interaction
+- Beacons for visual attention-grabbing (Usetiful-inspired)
+- **Beacon size slider** (12-40px) to fit nicely on different elements
+- **Beacon target mode**: Choose whether tooltip triggers on element or beacon interaction
+- **Removed position dropdown from preview** - Preview now uses settings directly
+
+---
+
+## Session 3 Fixes (Completed)
+
+### ✅ Bug Fix: Tooltip Position in Beacon Target Mode
+**Issue**: Tooltip anchored to wrong position when switching target modes.
+
+**Solution**: Moved tooltip rendering INSIDE the beacon container when beacon is the target. This makes the tooltip position relative to the beacon naturally, using the same `getTooltipStyles()` logic. Removed the buggy `getBeaconAbsolutePosition()` function.
+
+**Files Changed**: `tip-preview.tsx`
+
+### ✅ UX: Replaced Cards with Dropdown
+**Before**: Two large card buttons for Element/Beacon selection.
+
+**After**: Compact Select dropdown with three options:
+- **Automatic** - Uses beacon if enabled, else element (default when beacon enabled)
+- **Element** - Target element triggers tip
+- **Beacon** - Beacon triggers tip
+
+**Files Changed**: `tip-settings-panel.tsx`, `types/database.ts` (added 'automatic' to SmartTipBeaconTarget)
+
+### ✅ Default Behavior: Auto-switch to Automatic
+When beacon is toggled ON, target automatically switches from 'element' to 'automatic'.
+
+**Files Changed**: `tip-settings-panel.tsx` (handleBeaconChange function)
+
+### ✅ Embed Script Updated
+Updated embed.js to handle 'automatic' target - uses beacon if enabled, else element.
+
+**Files Changed**: `embed.js/route.ts` (two locations handling isBeaconTarget)

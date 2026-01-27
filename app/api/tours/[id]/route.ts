@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         `
         *,
         customer:customers(id, name, ghl_location_id, ghl_url),
-        theme:tour_themes(*)
+        theme:guidely_themes(*)
       `
       )
       .eq('id', id)

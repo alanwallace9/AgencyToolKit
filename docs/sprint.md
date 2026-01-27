@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 85% Complete (34 of 40 Active Features)
+## Progress: 90% Complete (36 of 40 Active Features)
 *5 features moved to backlog*
 
 ---
@@ -47,8 +47,8 @@
 - [x] Feature 27: Checklists Widget + Embed (Floating Widget, Progress Tracking)
 
 #### Smart Tips (Hover Tooltips)
-- [ ] Feature 28: Smart Tips Builder (Element Target, Trigger, Content)
-- [ ] Feature 29: Smart Tips Embed (Hover/Click/Focus Triggers)
+- [x] Feature 28: Smart Tips Builder (Element Target, Trigger, Content)
+- [x] Feature 29: Smart Tips Embed (Hover/Click/Focus Triggers)
 
 #### Banners
 - [x] Feature 30: Banners Builder (Top/Bottom, Styles, Actions, Scheduling)
@@ -117,11 +117,15 @@
 - ✅ 2026-01-26: Feature 25 - Tour Analytics (Customer Progress Tracking)
 - ✅ 2026-01-26: Features 26-27 - Checklists Builder + Widget (Full implementation)
 - ✅ 2026-01-26: Features 30-31 - Banners Builder + Embed (3-panel layout, 5 style presets, scheduling, targeting, analytics)
+- ✅ 2026-01-27: Features 28-29 - Smart Tips Builder + Embed (hover tooltips, beacons, element targeting)
+- ✅ 2026-01-27: Guidely Themes System - Full theme editor with component overrides, 5 system templates, per-feature defaults
 
 ### In Progress
-- Features 28-29: Smart Tips - Spec complete, waiting on Left Nav implementation (Guidely product structure)
+- Final UI polish and refinements
 
 ### Completed Recently
+- [x] Features 28-29: Smart Tips Builder + Embed (hover tooltips, beacons, element targeting)
+- [x] Guidely Themes System: Theme editor, component overrides, system templates, per-feature defaults
 - [x] Features 30-31: Banners Builder + Embed (3-panel layout, styles, scheduling, analytics)
 - [x] Features 26-27: Checklists Builder + Widget (Full system)
 - [x] Feature 25: Tour Analytics - Customer Progress Tracking
@@ -134,10 +138,11 @@
 - RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
-- Feature 28-29: Smart Tips Builder + Embed (hover tooltips)
 - Feature 34: URL Pattern Tester UI
 - Feature 44: Settings Page Complete
 - Feature 45: Plan Gating & Upgrade Prompts
+- Feature 46: Error Handling & Toasts
+- Feature 47: Mobile Responsiveness
 
 ---
 

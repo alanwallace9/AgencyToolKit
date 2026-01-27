@@ -539,6 +539,118 @@ export interface TourTheme {
 }
 
 // ============================================
+// GUIDELY THEME TYPES (Unified Themes System)
+// ============================================
+
+export interface GuidelyThemeColors {
+  primary: string;
+  primary_hover: string;
+  primary_text: string;
+  secondary: string;
+  secondary_hover: string;
+  secondary_text: string;
+  background: string;
+  text: string;
+  text_secondary: string;
+  border: string;
+}
+
+export interface GuidelyThemeTypography {
+  font_family: string;
+  title_size: string;
+  body_size: string;
+  line_height: string;
+}
+
+export interface GuidelyThemeShape {
+  radius: string;
+  width: string;
+  style: string;
+}
+
+export interface GuidelyThemeShadows {
+  tooltip: string;
+  modal: string;
+}
+
+export type GuidelyAvatarShape = 'circle' | 'rounded' | 'square';
+
+export interface GuidelyThemeAvatar {
+  enabled: boolean;
+  shape: GuidelyAvatarShape;
+  size: string;
+  default_image_url: string | null;
+}
+
+export type GuidelyButtonStyle = 'filled' | 'outline' | 'ghost';
+
+export interface GuidelyThemeButtonConfig {
+  style: GuidelyButtonStyle;
+  border_radius: string;
+  primary: TourThemeButtonStyle;
+  secondary: TourThemeButtonStyle;
+}
+
+export type GuidelyProgressStyle = 'dots' | 'numbers' | 'bar';
+
+export interface GuidelyTourOverrides {
+  progress_color: string | null;
+  progress_inactive: string | null;
+  close_icon_color: string | null;
+  backdrop_color: string;
+  progress_style: GuidelyProgressStyle;
+}
+
+export interface GuidelySmartTipOverrides {
+  tooltip_background: string | null;
+  beacon_color: string | null;
+  arrow_color: string | null;
+}
+
+export interface GuidelyBannerOverrides {
+  banner_background: string | null;
+  banner_text: string | null;
+  dismiss_icon_color: string | null;
+}
+
+export interface GuidelyChecklistOverrides {
+  header_background: string | null;
+  header_text: string | null;
+  completion_color: string | null;
+  item_text_color: string | null;
+  link_color: string | null;
+}
+
+export interface GuidelyTheme {
+  id: string;
+  agency_id: string | null;  // null = system template
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  is_default: boolean;
+  colors: GuidelyThemeColors;
+  typography: GuidelyThemeTypography;
+  borders: GuidelyThemeShape;  // Using 'borders' for DB compatibility
+  shadows: GuidelyThemeShadows;
+  buttons: GuidelyThemeButtonConfig;
+  avatar: GuidelyThemeAvatar;
+  tour_overrides: GuidelyTourOverrides;
+  smart_tip_overrides: GuidelySmartTipOverrides;
+  banner_overrides: GuidelyBannerOverrides;
+  checklist_overrides: GuidelyChecklistOverrides;
+  custom_css?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GuidelyDefaults {
+  tour_theme_id: string | null;
+  smart_tip_theme_id: string | null;
+  banner_theme_id: string | null;
+  checklist_theme_id: string | null;
+}
+
+// ============================================
 // TOUR ANALYTICS TYPES
 // ============================================
 
@@ -667,7 +779,21 @@ export interface CustomerChecklistProgress {
 // SMART TIP (TOOLTIP) TYPES
 // ============================================
 
-export type SmartTipTrigger = 'hover' | 'click' | 'focus';
+export type SmartTipTrigger = 'hover' | 'click' | 'focus' | 'delay';
+export type SmartTipSize = 'small' | 'medium' | 'large';
+export type SmartTipBeaconStyle = 'pulse' | 'question' | 'info';
+export type SmartTipBeaconPosition = 'top' | 'right' | 'bottom' | 'left';
+export type SmartTipBeaconTarget = 'element' | 'beacon' | 'automatic'; // Where tooltip appears (automatic = beacon if enabled, else element)
+
+export interface SmartTipBeacon {
+  enabled: boolean;
+  style: SmartTipBeaconStyle; // pulse = pulsating dot, question = ?, info = !
+  position: SmartTipBeaconPosition; // Where beacon appears relative to element
+  offset_x: number; // Horizontal offset in pixels
+  offset_y: number; // Vertical offset in pixels
+  size: number; // Beacon size in pixels (12-40px range)
+  target: SmartTipBeaconTarget; // Whether tooltip targets element or beacon
+}
 
 export interface SmartTip {
   id: string;
@@ -678,9 +804,13 @@ export interface SmartTip {
   element: ElementTarget;
   content: string;
   trigger: SmartTipTrigger;
+  delay_seconds?: number; // Used when trigger is 'delay'
   position: StepPosition;
+  size?: SmartTipSize; // Tooltip width: small=200px, medium=280px, large=360px
+  beacon?: SmartTipBeacon; // Optional beacon/hotspot indicator
   targeting: TourTargeting;
   theme_id: string | null;
+  sort_order?: number;
   created_at: string;
   updated_at: string;
 }

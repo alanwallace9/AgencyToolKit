@@ -41,7 +41,6 @@ const sidebarItems = [
     href: "/g/tips",
     icon: Lightbulb,
     description: "Contextual tooltips",
-    comingSoon: true,
   },
   {
     title: "Banners",
@@ -176,16 +175,14 @@ export function GuidelySidebar() {
 
             const linkContent = (
               <Link
-                href={item.comingSoon ? "#" : item.href!}
+                href={item.href!}
                 className={cn(
                   "flex items-center gap-3 rounded-md transition-colors relative",
                   showExpanded ? "px-3 py-2" : "px-0 py-2 justify-center",
                   isActive
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  item.comingSoon && "opacity-50 cursor-not-allowed"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
-                onClick={item.comingSoon ? (e) => e.preventDefault() : undefined}
               >
                 {/* Active indicator dot */}
                 {isActive && !showExpanded && (
@@ -202,12 +199,6 @@ export function GuidelySidebar() {
                     {item.title}
                   </span>
                 )}
-
-                {showExpanded && item.comingSoon && (
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                    Soon
-                  </span>
-                )}
               </Link>
             )
 
@@ -218,11 +209,8 @@ export function GuidelySidebar() {
                   <TooltipTrigger asChild>
                     {linkContent}
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="flex flex-col">
+                  <TooltipContent side="right">
                     <span className="font-medium">{item.title}</span>
-                    {item.comingSoon && (
-                      <span className="text-xs text-muted-foreground">Coming Soon</span>
-                    )}
                   </TooltipContent>
                 </Tooltip>
               )

@@ -66,7 +66,7 @@ export async function GET(request: Request) {
         `
         *,
         customer:customers(id, name),
-        theme:tour_themes(id, name)
+        theme:guidely_themes(id, name)
       `
       )
       .eq('agency_id', agency.id);

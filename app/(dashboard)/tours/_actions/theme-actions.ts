@@ -30,7 +30,7 @@ export async function getThemes(): Promise<TourTheme[]> {
   const supabase = createAdminClient();
 
   const { data: themes, error } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .select('*')
     .eq('agency_id', agency.id)
     .order('is_default', { ascending: false })
@@ -55,7 +55,7 @@ export async function getTheme(id: string): Promise<TourTheme | null> {
   const supabase = createAdminClient();
 
   const { data: theme, error } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .select('*')
     .eq('id', id)
     .eq('agency_id', agency.id)
@@ -107,7 +107,7 @@ export async function createTheme(data: {
   }
 
   const { data: theme, error } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .insert({
       agency_id: agency.id,
       name: data.name,
@@ -151,7 +151,7 @@ export async function createTheme(data: {
   }
 
   revalidatePath('/tours');
-  revalidatePath('/tours/themes');
+  revalidatePath('/g/themes');
   return theme as TourTheme;
 }
 
@@ -180,7 +180,7 @@ export async function updateTheme(
 
   // Get existing theme to merge values
   const { data: existing, error: fetchError } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .select('*')
     .eq('id', id)
     .eq('agency_id', agency.id)
@@ -244,7 +244,7 @@ export async function updateTheme(
   }
 
   const { data: theme, error } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .update(updateData)
     .eq('id', id)
     .eq('agency_id', agency.id)
@@ -256,7 +256,7 @@ export async function updateTheme(
   }
 
   revalidatePath('/tours');
-  revalidatePath('/tours/themes');
+  revalidatePath('/g/themes');
   revalidatePath(`/tours/themes/${id}`);
   return theme as TourTheme;
 }
@@ -285,7 +285,7 @@ export async function deleteTheme(id: string): Promise<void> {
   }
 
   const { error } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .delete()
     .eq('id', id)
     .eq('agency_id', agency.id);
@@ -295,7 +295,7 @@ export async function deleteTheme(id: string): Promise<void> {
   }
 
   revalidatePath('/tours');
-  revalidatePath('/tours/themes');
+  revalidatePath('/g/themes');
 }
 
 /**
@@ -311,7 +311,7 @@ export async function setDefaultTheme(id: string): Promise<TourTheme> {
 
   // The database trigger will handle unsetting other defaults
   const { data: theme, error } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .update({ is_default: true })
     .eq('id', id)
     .eq('agency_id', agency.id)
@@ -323,7 +323,7 @@ export async function setDefaultTheme(id: string): Promise<TourTheme> {
   }
 
   revalidatePath('/tours');
-  revalidatePath('/tours/themes');
+  revalidatePath('/g/themes');
   return theme as TourTheme;
 }
 
@@ -340,7 +340,7 @@ export async function duplicateTheme(id: string): Promise<TourTheme> {
 
   // Fetch original theme
   const { data: original, error: fetchError } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .select('*')
     .eq('id', id)
     .eq('agency_id', agency.id)
@@ -352,7 +352,7 @@ export async function duplicateTheme(id: string): Promise<TourTheme> {
 
   // Create copy
   const { data: duplicate, error: createError } = await supabase
-    .from('tour_themes')
+    .from('guidely_themes')
     .insert({
       agency_id: original.agency_id,
       name: `${original.name} (Copy)`,
@@ -372,7 +372,7 @@ export async function duplicateTheme(id: string): Promise<TourTheme> {
   }
 
   revalidatePath('/tours');
-  revalidatePath('/tours/themes');
+  revalidatePath('/g/themes');
   return duplicate as TourTheme;
 }
 

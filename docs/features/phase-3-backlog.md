@@ -4,6 +4,13 @@ Ideas and features to add after the core tour features (18-22) are complete.
 
 ## Future Feature Ideas
 
+### Smart Tips Analytics (Deferred from Features 28-29)
+- Track `smart_tip_shown` events (tip_id, trigger_type)
+- Track `smart_tip_dismissed` events (tip_id, duration_ms)
+- Track `smart_tip_link_clicked` events (tip_id, link_url)
+- Display views/clicks on tips list and builder
+- Add to Guidely analytics dashboard
+
 ### Share/Affiliate Links
 - Agencies can share tours they've built with other agencies
 - Shared link allows recipient to sign up and use the tour (limited uses)

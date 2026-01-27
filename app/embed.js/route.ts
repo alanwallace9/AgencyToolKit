@@ -3142,7 +3142,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // Initialize production tours from config
   function initProductionTours(config) {
     var tours = config.tours || [];
-    var themes = config.tour_themes || [];
+    var themes = config.guidely_themes || [];
 
     if (tours.length === 0) {
       log('No live tours configured');
@@ -3506,7 +3506,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // Initialize production checklists
   function initProductionChecklists(config) {
     var checklists = config.checklists || [];
-    var themes = config.tour_themes || [];
+    var themes = config.guidely_themes || [];
 
     if (checklists.length === 0) {
       log('No live checklists configured');
@@ -3791,7 +3791,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   // Initialize production banners
   function initProductionBanners(config) {
     var banners = config.banners || [];
-    var themes = config.tour_themes || [];
+    var themes = config.guidely_themes || [];
 
     if (banners.length === 0) {
       log('No active banners configured');
@@ -3830,6 +3830,454 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // Delay to let page load
     setTimeout(renderBanners, 1500);
+  }
+
+  // ============================================
+  // SMART TIPS - Contextual Tooltips
+  // ============================================
+
+  var activeSmartTips = [];
+  var smartTipContainer = null;
+
+  function initSmartTips(config) {
+    var tips = config.smart_tips || [];
+    var themes = config.guidely_themes || [];
+
+    if (tips.length === 0) {
+      log('No active smart tips configured');
+      return;
+    }
+
+    log('Initializing ' + tips.length + ' smart tip(s)');
+
+    // Create style element for smart tips
+    injectSmartTipStyles();
+
+    // Filter tips that match current URL
+    var matchingTips = tips.filter(function(tip) {
+      return shouldShowSmartTip(tip);
+    });
+
+    if (matchingTips.length === 0) {
+      log('No smart tips match current page');
+      return;
+    }
+
+    log('Setting up ' + matchingTips.length + ' matching smart tip(s)');
+
+    // Set up event listeners for each tip after page load
+    function setupTips() {
+      matchingTips.forEach(function(tip) {
+        setupSmartTip(tip, themes);
+      });
+    }
+
+    // Delay to let page elements load
+    setTimeout(setupTips, 2000);
+  }
+
+  function shouldShowSmartTip(tip) {
+    var targeting = tip.targeting || {};
+    var urlTargeting = targeting.url_targeting || { mode: 'all' };
+
+    if (urlTargeting.mode === 'all') {
+      return true;
+    }
+
+    if (urlTargeting.mode === 'specific' && urlTargeting.patterns) {
+      var currentPath = window.location.pathname;
+      return urlTargeting.patterns.some(function(pattern) {
+        var patternValue = pattern.value || '';
+        if (!patternValue) return false;
+        // Simple wildcard matching
+        var regex = new RegExp('^' + patternValue.replace(/\\*/g, '.*') + '$');
+        return regex.test(currentPath);
+      });
+    }
+
+    return true;
+  }
+
+  function setupSmartTip(tip, themes) {
+    var selector = tip.element && tip.element.selector;
+    if (!selector) {
+      log('Smart tip has no selector:', tip.name);
+      return;
+    }
+
+    var element = document.querySelector(selector);
+    if (!element) {
+      log('Smart tip element not found:', selector);
+      return;
+    }
+
+    log('Smart tip bound to element:', { name: tip.name, selector: selector });
+
+    var theme = themes.find(function(t) { return t.id === tip.theme_id; }) || null;
+    var tooltip = null;
+    var beacon = null;
+    var isVisible = false;
+
+    function showTooltip() {
+      if (isVisible) return;
+      isVisible = true;
+      tooltip = createSmartTipTooltip(tip, element, theme, beacon);
+      document.body.appendChild(tooltip);
+      log('Smart tip shown:', tip.name);
+    }
+
+    function hideTooltip() {
+      if (!isVisible) return;
+      isVisible = false;
+      if (tooltip && tooltip.parentNode) {
+        tooltip.parentNode.removeChild(tooltip);
+      }
+      tooltip = null;
+    }
+
+    // Create beacon if enabled
+    var beaconConfig = tip.beacon || {};
+    if (beaconConfig.enabled) {
+      beacon = createSmartTipBeacon(tip, element, theme, function() {
+        if (isVisible) {
+          hideTooltip();
+        } else {
+          showTooltip();
+        }
+      });
+      document.body.appendChild(beacon);
+      log('Smart tip beacon created:', tip.name);
+    }
+
+    // Determine trigger target (element or beacon)
+    // 'automatic' means use beacon if enabled, else element
+    var isBeaconTarget = beaconConfig.enabled && (beaconConfig.target === 'beacon' || beaconConfig.target === 'automatic');
+    var triggerTarget = isBeaconTarget && beacon ? beacon : element;
+
+    // Set up trigger handlers based on trigger type
+    if (tip.trigger === 'hover') {
+      if (isBeaconTarget && beacon) {
+        // Only beacon triggers tooltip
+        beacon.addEventListener('mouseenter', showTooltip);
+        beacon.addEventListener('mouseleave', hideTooltip);
+      } else {
+        // Element triggers tooltip
+        element.addEventListener('mouseenter', showTooltip);
+        element.addEventListener('mouseleave', hideTooltip);
+        // Also trigger on beacon hover if beacon exists
+        if (beacon) {
+          beacon.addEventListener('mouseenter', showTooltip);
+          beacon.addEventListener('mouseleave', hideTooltip);
+        }
+      }
+    } else if (tip.trigger === 'click') {
+      if (isBeaconTarget && beacon) {
+        // Beacon click already set up above, element click does nothing
+      } else {
+        // Element triggers tooltip
+        element.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (isVisible) {
+            hideTooltip();
+          } else {
+            showTooltip();
+          }
+        });
+      }
+      // Click outside to dismiss (but not on beacon)
+      document.addEventListener('click', function(e) {
+        if (isVisible && tooltip && !tooltip.contains(e.target) && !element.contains(e.target) && (!beacon || !beacon.contains(e.target))) {
+          hideTooltip();
+        }
+      });
+    } else if (tip.trigger === 'focus') {
+      element.addEventListener('focus', showTooltip);
+      element.addEventListener('blur', hideTooltip);
+    } else if (tip.trigger === 'delay') {
+      // Time delay trigger - show tooltip after specified seconds
+      var delaySeconds = tip.delay_seconds || 3;
+      setTimeout(function() {
+        showTooltip();
+        // Auto-dismiss after 10 seconds for delay triggers
+        setTimeout(function() {
+          hideTooltip();
+        }, 10000);
+      }, delaySeconds * 1000);
+      log('Smart tip delay scheduled:', { name: tip.name, delay: delaySeconds + 's' });
+    }
+
+    // Track for cleanup
+    activeSmartTips.push({
+      tip: tip,
+      element: element,
+      beacon: beacon,
+      showTooltip: showTooltip,
+      hideTooltip: hideTooltip
+    });
+  }
+
+  function createSmartTipBeacon(tip, targetElement, theme, onClick) {
+    var beaconConfig = tip.beacon || {};
+    var beaconEl = document.createElement('div');
+    beaconEl.className = 'at-smart-tip-beacon';
+
+    var primaryColor = (theme && theme.colors && theme.colors.primary) || '#3b82f6';
+    var style = beaconConfig.style || 'pulse';
+    var position = beaconConfig.position || 'right';
+    var offsetX = beaconConfig.offset_x || 0;
+    var offsetY = beaconConfig.offset_y || 0;
+    var beaconSize = beaconConfig.size || 20; // Configurable size (12-40px)
+    var fontSize = Math.max(10, beaconSize * 0.6);
+
+    // Beacon content based on style
+    var content = '';
+    if (style === 'pulse') {
+      content = '';
+    } else if (style === 'question') {
+      content = '?';
+    } else if (style === 'info') {
+      content = '!';
+    }
+
+    beaconEl.innerHTML = content;
+    beaconEl.style.cssText = [
+      'position: fixed',
+      'z-index: 999998',
+      'width: ' + beaconSize + 'px',
+      'height: ' + beaconSize + 'px',
+      'border-radius: 50%',
+      'background: ' + primaryColor,
+      'color: white',
+      'font-size: ' + fontSize + 'px',
+      'font-weight: bold',
+      'display: flex',
+      'align-items: center',
+      'justify-content: center',
+      'cursor: pointer',
+      'box-shadow: 0 2px 8px rgba(0,0,0,0.2)',
+      style === 'pulse' ? 'animation: at-beacon-pulse 2s infinite' : ''
+    ].join(';');
+
+    // Position the beacon relative to element
+    function positionBeacon() {
+      var rect = targetElement.getBoundingClientRect();
+      var x, y;
+
+      switch (position) {
+        case 'top':
+          x = rect.left + rect.width / 2 - beaconSize / 2;
+          y = rect.top - beaconSize - 4;
+          break;
+        case 'bottom':
+          x = rect.left + rect.width / 2 - beaconSize / 2;
+          y = rect.bottom + 4;
+          break;
+        case 'left':
+          x = rect.left - beaconSize - 4;
+          y = rect.top + rect.height / 2 - beaconSize / 2;
+          break;
+        case 'right':
+        default:
+          x = rect.right + 4;
+          y = rect.top + rect.height / 2 - beaconSize / 2;
+          break;
+      }
+
+      // Apply offsets
+      x += offsetX;
+      y -= offsetY; // Negative because positive should move up
+
+      beaconEl.style.left = x + 'px';
+      beaconEl.style.top = y + 'px';
+    }
+
+    positionBeacon();
+
+    // Reposition on scroll/resize
+    window.addEventListener('scroll', positionBeacon, true);
+    window.addEventListener('resize', positionBeacon);
+
+    // Click handler
+    beaconEl.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (onClick) onClick();
+    });
+
+    return beaconEl;
+  }
+
+  function createSmartTipTooltip(tip, targetElement, theme, beaconElement) {
+    var tooltip = document.createElement('div');
+    tooltip.className = 'at-smart-tip';
+
+    // Get theme colors or defaults
+    var bgColor = (theme && theme.colors && theme.colors.background) || '#1a1a1a';
+    var textColor = (theme && theme.colors && theme.colors.text) || '#ffffff';
+    var primaryColor = (theme && theme.colors && theme.colors.primary) || '#3b82f6';
+    var borderRadius = (theme && theme.borders && theme.borders.radius) || '8px';
+
+    // Get width based on size setting
+    var sizeWidths = { small: '200px', medium: '280px', large: '360px' };
+    var tooltipWidth = sizeWidths[tip.size] || '280px';
+
+    tooltip.style.cssText = [
+      'position: fixed',
+      'z-index: 999999',
+      'width: ' + tooltipWidth,
+      'max-width: 90vw',
+      'padding: 12px 16px',
+      'font-size: 14px',
+      'line-height: 1.5',
+      'background: ' + bgColor,
+      'color: ' + textColor,
+      'border-radius: ' + borderRadius,
+      'box-shadow: 0 4px 20px rgba(0,0,0,0.25)',
+      'animation: at-smart-tip-fade-in 0.15s ease-out'
+    ].join(';');
+
+    // Parse content for links
+    var content = tip.content || '';
+    var parsedContent = content.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, function(match, text, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color: ' + primaryColor + '; text-decoration: underline;">' + text + '</a>';
+    });
+    tooltip.innerHTML = parsedContent;
+
+    // Determine positioning target (beacon or element based on target setting)
+    // 'automatic' means use beacon if enabled, else element
+    var beaconConfig = tip.beacon || {};
+    var isBeaconTarget = beaconConfig.enabled && (beaconConfig.target === 'beacon' || beaconConfig.target === 'automatic') && beaconElement;
+    var positionTarget = isBeaconTarget ? beaconElement : targetElement;
+
+    // Position the tooltip
+    positionSmartTip(tooltip, positionTarget, tip.position);
+
+    // Create arrow
+    var arrow = document.createElement('div');
+    arrow.className = 'at-smart-tip-arrow';
+    arrow.style.cssText = [
+      'position: absolute',
+      'width: 10px',
+      'height: 10px',
+      'background: ' + bgColor,
+      'transform: rotate(45deg)'
+    ].join(';');
+    tooltip.appendChild(arrow);
+
+    // Position arrow based on tooltip position
+    positionSmartTipArrow(arrow, tip.position, tooltip);
+
+    return tooltip;
+  }
+
+  function positionSmartTip(tooltip, element, preferredPosition) {
+    var rect = element.getBoundingClientRect();
+    var position = preferredPosition || 'auto';
+
+    // Calculate best position if auto
+    if (position === 'auto') {
+      var spaceBelow = window.innerHeight - rect.bottom;
+      var spaceAbove = rect.top;
+      var spaceRight = window.innerWidth - rect.right;
+      var spaceLeft = rect.left;
+
+      if (spaceBelow >= 100) position = 'bottom';
+      else if (spaceAbove >= 100) position = 'top';
+      else if (spaceRight >= 200) position = 'right';
+      else if (spaceLeft >= 200) position = 'left';
+      else position = 'bottom';
+    }
+
+    // Position based on calculated position
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    var scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    switch (position) {
+      case 'top':
+        tooltip.style.left = (rect.left + rect.width / 2 + scrollLeft) + 'px';
+        tooltip.style.transform = 'translateX(-50%)';
+        // Set after DOM attachment
+        setTimeout(function() {
+          tooltip.style.top = (rect.top + scrollTop - tooltip.offsetHeight - 12) + 'px';
+        }, 0);
+        break;
+      case 'right':
+        tooltip.style.left = (rect.right + scrollLeft + 12) + 'px';
+        tooltip.style.top = (rect.top + rect.height / 2 + scrollTop) + 'px';
+        tooltip.style.transform = 'translateY(-50%)';
+        break;
+      case 'bottom':
+        tooltip.style.left = (rect.left + rect.width / 2 + scrollLeft) + 'px';
+        tooltip.style.top = (rect.bottom + scrollTop + 12) + 'px';
+        tooltip.style.transform = 'translateX(-50%)';
+        break;
+      case 'left':
+        tooltip.style.top = (rect.top + rect.height / 2 + scrollTop) + 'px';
+        tooltip.style.transform = 'translateY(-50%)';
+        setTimeout(function() {
+          tooltip.style.left = (rect.left + scrollLeft - tooltip.offsetWidth - 12) + 'px';
+        }, 0);
+        break;
+    }
+
+    tooltip.dataset.position = position;
+  }
+
+  function positionSmartTipArrow(arrow, position, tooltip) {
+    var pos = tooltip.dataset.position || position || 'bottom';
+
+    switch (pos) {
+      case 'top':
+        arrow.style.bottom = '-5px';
+        arrow.style.left = '50%';
+        arrow.style.marginLeft = '-5px';
+        break;
+      case 'right':
+        arrow.style.left = '-5px';
+        arrow.style.top = '50%';
+        arrow.style.marginTop = '-5px';
+        break;
+      case 'bottom':
+        arrow.style.top = '-5px';
+        arrow.style.left = '50%';
+        arrow.style.marginLeft = '-5px';
+        break;
+      case 'left':
+        arrow.style.right = '-5px';
+        arrow.style.top = '50%';
+        arrow.style.marginTop = '-5px';
+        break;
+    }
+  }
+
+  function injectSmartTipStyles() {
+    if (document.getElementById('at-smart-tip-styles')) return;
+
+    var style = document.createElement('style');
+    style.id = 'at-smart-tip-styles';
+    style.textContent = \`
+      @keyframes at-smart-tip-fade-in {
+        from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+      @keyframes at-beacon-pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+        50% { transform: scale(1.1); box-shadow: 0 0 0 8px transparent; }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+      }
+      .at-smart-tip a {
+        color: inherit;
+      }
+      .at-smart-tip a:hover {
+        opacity: 0.8;
+      }
+      .at-smart-tip-beacon {
+        transition: transform 0.15s ease;
+      }
+      .at-smart-tip-beacon:hover {
+        transform: scale(1.2);
+      }
+    \`;
+    document.head.appendChild(style);
   }
 
   // ============================================
@@ -5005,6 +5453,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
         // Initialize production banners
         initProductionBanners(config);
+
+        // Initialize smart tips (contextual tooltips)
+        initSmartTips(config);
 
         // Mark init as complete
         window.__AT_INIT_COMPLETE__ = true;

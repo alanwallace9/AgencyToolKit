@@ -59,12 +59,17 @@ Following the established pattern, build the Smart Tips builder at:
 app/(dashboard)/tours/tips/[id]/
 ├── page.tsx                    # Original route (will redirect to /g/tips/[id])
 └── _components/
-    ├── smart-tips-builder.tsx  # Main 3-column layout
-    ├── tips-list-panel.tsx     # Left panel
-    ├── tip-settings-panel.tsx  # Center panel
-    ├── tip-preview.tsx         # Right panel
-    └── tip-full-settings.tsx   # Settings sheet
+    ├── smart-tips-builder.tsx  # Main layout with collapsible settings
+    ├── tips-list-panel.tsx     # Left panel: tips with ⚙ gear icons
+    ├── tip-settings-panel.tsx  # Collapsible center panel (slides in/out)
+    ├── tip-preview.tsx         # Right panel: expands when settings closed
+    └── tip-global-settings.tsx # Sheet: targeting, theme selection
 ```
+
+**Key UX Pattern:** Settings panel is collapsible
+- Click ⚙ gear on tip → settings slides in
+- Click ✕ or gear again → settings slides out, preview expands
+- Auto-save on all changes
 
 ### 3. Server Actions
 
@@ -131,6 +136,18 @@ From the spec, these can be imported directly:
 - `useElementSelector` hook from `tours/[id]/_hooks/use-element-selector.ts`
 - Theme selector pattern from `banner-settings-panel.tsx`
 - Targeting UI patterns from `checklist-settings-panel.tsx`
+
+---
+
+## Key Decisions Made
+
+| Decision | Choice |
+|----------|--------|
+| **Content format** | Plain text + links only (no bold/italic). Links for Loom videos, help docs, courses. |
+| **Tips list** | Flat list with status filter (like banners) |
+| **Analytics** | Deferred to Phase 3 backlog (track views/clicks later) |
+| **Settings panel** | Collapsible - click ⚙ to open, preview expands when closed |
+| **Character limit** | 200 chars recommended, show counter (e.g., "142/200") |
 
 ---
 

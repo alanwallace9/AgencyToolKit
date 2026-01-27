@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Get agency by token with live tours (DAP), checklists, banners, default menu preset, and login designs
+    // Get agency by token with live tours (DAP), checklists, banners, smart_tips, default menu preset, and login designs
     const { data: agency, error } = await supabase
       .from('agencies')
       .select(
@@ -83,12 +83,30 @@ export async function GET(request: Request) {
           schedule,
           trial_triggers
         ),
-        tour_themes (
+        smart_tips (
+          id,
+          name,
+          status,
+          element,
+          content,
+          trigger,
+          position,
+          targeting,
+          theme_id
+        ),
+        guidely_themes (
           id,
           name,
           colors,
           typography,
-          borders
+          borders,
+          shadows,
+          avatar,
+          buttons,
+          tour_overrides,
+          smart_tip_overrides,
+          banner_overrides,
+          checklist_overrides
         ),
         menu_presets (
           id,
@@ -133,6 +151,11 @@ export async function GET(request: Request) {
     // Filter to only live or scheduled banners
     const activeBanners = (agency.banners || []).filter(
       (banner: { status: string }) => banner.status === 'live' || banner.status === 'scheduled'
+    );
+
+    // Filter to only live smart tips
+    const liveSmartTips = (agency.smart_tips || []).filter(
+      (tip: { status: string }) => tip.status === 'live'
     );
 
     // Get the default menu preset config
@@ -275,19 +298,33 @@ export async function GET(request: Request) {
         targeting: tour.targeting || {},
         theme_id: tour.theme_id,
       })),
-      // Tour themes for styling
-      tour_themes: (agency.tour_themes || []).map((theme: {
+      // Guidely themes for styling
+      guidely_themes: (agency.guidely_themes || []).map((theme: {
         id: string;
         name: string;
         colors: unknown;
         typography: unknown;
         borders: unknown;
+        shadows: unknown;
+        avatar: unknown;
+        buttons: unknown;
+        tour_overrides: unknown;
+        smart_tip_overrides: unknown;
+        banner_overrides: unknown;
+        checklist_overrides: unknown;
       }) => ({
         id: theme.id,
         name: theme.name,
         colors: theme.colors || {},
         typography: theme.typography || {},
         borders: theme.borders || {},
+        shadows: theme.shadows || {},
+        avatar: theme.avatar || {},
+        buttons: theme.buttons || {},
+        tour_overrides: theme.tour_overrides || {},
+        smart_tip_overrides: theme.smart_tip_overrides || {},
+        banner_overrides: theme.banner_overrides || {},
+        checklist_overrides: theme.checklist_overrides || {},
       })),
       // Checklists for onboarding
       checklists: liveChecklists.map((checklist: {
@@ -347,6 +384,26 @@ export async function GET(request: Request) {
         schedule: banner.schedule || { mode: 'always' },
         trial_triggers: banner.trial_triggers || { days_remaining: 7 },
       })),
+      // Smart Tips for contextual tooltips
+      smart_tips: liveSmartTips.map((tip: {
+        id: string;
+        name: string;
+        element: unknown;
+        content: string;
+        trigger: string;
+        position: string;
+        targeting: unknown;
+        theme_id: string | null;
+      }) => ({
+        id: tip.id,
+        name: tip.name,
+        element: tip.element || { selector: '' },
+        content: tip.content,
+        trigger: tip.trigger,
+        position: tip.position,
+        targeting: tip.targeting || {},
+        theme_id: tip.theme_id,
+      })),
     };
 
     // DEBUG: Log full config summary
@@ -361,7 +418,8 @@ export async function GET(request: Request) {
       liveToursCount: config.tours.length,
       liveChecklistsCount: config.checklists.length,
       activeBannersCount: config.banners.length,
-      tourThemesCount: config.tour_themes.length,
+      liveSmartTipsCount: config.smart_tips.length,
+      guidelyThemesCount: config.guidely_themes.length,
     });
 
     return NextResponse.json(config, {

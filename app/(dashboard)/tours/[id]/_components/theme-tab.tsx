@@ -40,7 +40,7 @@ export function ThemeTab({
         colors: DEFAULT_THEME_COLORS,
       });
       toast.success('Theme created');
-      router.push(`/tours/themes/${theme.id}`);
+      router.push(`/g/themes/${theme.id}`);
     } catch (error) {
       toast.error('Failed to create theme', {
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -84,7 +84,7 @@ export function ThemeTab({
               isSelected={selectedThemeId === theme.id}
               isAgencyDefault={theme.is_default}
               onSelect={() => onSelectTheme(theme.id)}
-              onEdit={() => router.push(`/tours/themes/${theme.id}`)}
+              onEdit={() => router.push(`/g/themes/${theme.id}`)}
             />
           ))}
 
@@ -145,10 +145,10 @@ export function ThemeTab({
         <Palette className="h-4 w-4" />
         <span>Manage all themes in</span>
         <Link
-          href="/tours"
+          href="/g/themes"
           className="text-primary hover:underline inline-flex items-center gap-1"
         >
-          Guided Tours
+          Themes
           <ExternalLink className="h-3 w-3" />
         </Link>
       </div>

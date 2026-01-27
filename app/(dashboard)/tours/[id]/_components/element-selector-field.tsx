@@ -106,7 +106,7 @@ export function ElementSelectorField({
       </div>
 
       {/* Selected Element Display */}
-      {value && !showManual && (
+      {value?.selector && !showManual && (
         <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -235,7 +235,7 @@ export function ElementSelectorField({
         <div className="flex gap-2">
           <Button
             type="button"
-            variant={value ? 'outline' : 'default'}
+            variant={value?.selector ? 'outline' : 'default'}
             onClick={openSelector}
             disabled={disabled || isSelecting}
             className="flex-1"
@@ -248,7 +248,7 @@ export function ElementSelectorField({
             ) : (
               <>
                 <Target className="mr-2 h-4 w-4" />
-                {value ? 'Re-select Element' : 'Select Element'}
+                {value?.selector ? 'Re-select Element' : 'Select Element'}
               </>
             )}
           </Button>
@@ -282,7 +282,7 @@ export function ElementSelectorField({
       )}
 
       {/* Help Text */}
-      {!value && !showManual && !isSelecting && !error && (
+      {!value?.selector && !showManual && !isSelecting && !error && (
         <p className="text-xs text-muted-foreground">
           Click to open your GHL account and visually select an element for this step.
         </p>
