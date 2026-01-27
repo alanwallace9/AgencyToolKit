@@ -37,6 +37,7 @@ import type { TourTheme, TourThemeColors, TourThemeTypography, TourThemeBorders,
 
 interface ThemeEditorClientProps {
   theme: TourTheme;
+  backHref?: string;
 }
 
 interface ThemeState {
@@ -52,7 +53,7 @@ interface ThemeState {
 // Maximum undo history
 const MAX_HISTORY = 20;
 
-export function ThemeEditorClient({ theme }: ThemeEditorClientProps) {
+export function ThemeEditorClient({ theme, backHref = '/tours' }: ThemeEditorClientProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isSettingDefault, setIsSettingDefault] = useState(false);
@@ -236,11 +237,11 @@ export function ThemeEditorClient({ theme }: ThemeEditorClientProps) {
         <div className="container flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-4">
             <Link
-              href="/tours"
+              href={backHref}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Tours
+              Back
             </Link>
             <Separator orientation="vertical" className="h-6" />
             <div className="flex items-center gap-2">

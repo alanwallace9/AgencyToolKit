@@ -9,6 +9,36 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // Redirect old /tours routes to new /g routes (Guidely)
+      {
+        source: '/tours/checklists/:id',
+        destination: '/g/checklists/:id',
+        permanent: true,
+      },
+      {
+        source: '/tours/themes/:id',
+        destination: '/g/themes/:id',
+        permanent: true,
+      },
+      {
+        source: '/tours/banners/:id',
+        destination: '/g/banners/:id',
+        permanent: true,
+      },
+      {
+        source: '/tours/:id',
+        destination: '/g/tours/:id',
+        permanent: true,
+      },
+      {
+        source: '/tours',
+        destination: '/g/tours',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

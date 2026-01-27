@@ -57,6 +57,7 @@ interface TourEditorProps {
   customers: Customer[];
   ghlDomain: string | null;
   builderAutoClose: boolean;
+  backHref?: string;
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error';
@@ -80,7 +81,7 @@ const createDefaultStep = (order: number): TourStep => ({
   },
 });
 
-export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, builderAutoClose }: TourEditorProps) {
+export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, builderAutoClose, backHref = '/tours' }: TourEditorProps) {
   const router = useRouter();
   const [tour, setTour] = useState(initialTour);
   const [steps, setSteps] = useState<TourStep[]>(
@@ -436,7 +437,7 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
       {/* Header */}
       <div className="border-b bg-background px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/tours">
+          <Link href={backHref}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>

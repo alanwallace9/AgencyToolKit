@@ -47,9 +47,10 @@ interface BannerBuilderProps {
   themes: TourTheme[];
   tours: TourWithStats[];
   checklists: Checklist[];
+  backHref?: string;
 }
 
-export function BannerBuilder({ banner: initialBanner, themes, tours, checklists }: BannerBuilderProps) {
+export function BannerBuilder({ banner: initialBanner, themes, tours, checklists, backHref = '/tours' }: BannerBuilderProps) {
   const router = useRouter();
   const [banner, setBanner] = useState<Banner>(initialBanner);
   const [showFullSettings, setShowFullSettings] = useState(false);
@@ -128,7 +129,7 @@ export function BannerBuilder({ banner: initialBanner, themes, tours, checklists
     try {
       await archiveBanner(banner.id);
       toast.success('Banner archived');
-      router.push('/tours');
+      router.push(backHref);
     } catch (error) {
       toast.error('Failed to archive');
     } finally {
@@ -140,7 +141,7 @@ export function BannerBuilder({ banner: initialBanner, themes, tours, checklists
     try {
       const newBanner = await duplicateBanner(banner.id);
       toast.success('Banner duplicated');
-      router.push(`/tours/banners/${newBanner.id}`);
+      router.push(`${backHref}/${newBanner.id}`);
     } catch (error) {
       toast.error('Failed to duplicate');
     }
@@ -150,7 +151,7 @@ export function BannerBuilder({ banner: initialBanner, themes, tours, checklists
     try {
       await deleteBanner(banner.id);
       toast.success('Banner deleted');
-      router.push('/tours');
+      router.push(backHref);
     } catch (error) {
       toast.error('Failed to delete');
     }
@@ -189,7 +190,7 @@ export function BannerBuilder({ banner: initialBanner, themes, tours, checklists
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/tours">
+            <Link href={backHref}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>

@@ -47,9 +47,10 @@ interface ChecklistBuilderProps {
   checklist: Checklist;
   themes: TourTheme[];
   tours: TourWithStats[];
+  backHref?: string;
 }
 
-export function ChecklistBuilder({ checklist: initialChecklist, themes, tours }: ChecklistBuilderProps) {
+export function ChecklistBuilder({ checklist: initialChecklist, themes, tours, backHref = '/tours' }: ChecklistBuilderProps) {
   const router = useRouter();
   const [checklist, setChecklist] = useState<Checklist>(initialChecklist);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(
@@ -203,7 +204,7 @@ export function ChecklistBuilder({ checklist: initialChecklist, themes, tours }:
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/tours">
+            <Link href={backHref}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>

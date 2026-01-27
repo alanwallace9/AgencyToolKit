@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Palette, LogIn, Loader2, Paintbrush, Map, ImageIcon, Sparkles, Layers, BadgeCheck } from "lucide-react"
+import { Map, ImageIcon, Sparkles, Layers, BadgeCheck } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -16,38 +16,11 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 
-const customizeItems = [
-  {
-    title: "Menu Customizer",
-    href: "/menu",
-    description: "Reorder and hide navigation items",
-    icon: Palette,
-  },
-  {
-    title: "Login Screen",
-    href: "/login",
-    description: "Branded login page design",
-    icon: LogIn,
-  },
-  {
-    title: "Loading Animations",
-    href: "/loading",
-    description: "Custom loading screens",
-    icon: Loader2,
-  },
-  {
-    title: "Dashboard Colors",
-    href: "/colors",
-    description: "Theme and color scheme",
-    icon: Paintbrush,
-  },
-]
-
 const proItems = [
   {
-    title: "Onboarding Tours",
-    href: "/tours",
-    description: "Guide new users through your app",
+    title: "Guidely",
+    href: "/g",
+    description: "Tours, checklists, tips & banners",
     icon: Map,
   },
   {
@@ -141,35 +114,6 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
               TrustSignal
             </Link>
           </NavigationMenuLink>
-        </NavigationMenuItem>
-
-        {/* Customize dropdown */}
-        <NavigationMenuItem>
-          <NavigationMenuTrigger
-            className={cn(
-              "text-[14px] font-medium h-9 px-3",
-              customizeItems.some((item) => pathname.startsWith(item.href))
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Customize
-          </NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid w-[420px] gap-2 p-3 md:grid-cols-2">
-              {customizeItems.map((item) => (
-                <ListItem
-                  key={item.href}
-                  title={item.title}
-                  href={item.href}
-                  icon={item.icon}
-                  isActive={pathname.startsWith(item.href)}
-                >
-                  {item.description}
-                </ListItem>
-              ))}
-            </ul>
-          </NavigationMenuContent>
         </NavigationMenuItem>
 
         {/* Pro dropdown */}
