@@ -5,13 +5,6 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { TourSettings } from '@/types/database';
 
 interface SettingsTabProps {
@@ -101,7 +94,7 @@ export function SettingsTab({ settings, onUpdateSettings }: SettingsTabProps) {
             <div>
               <div className="text-sm font-medium">Show progress indicator</div>
               <div className="text-xs text-muted-foreground">
-                Display step progress (e.g., "Step 2 of 5")
+                Display step progress (style configured in Theme tab)
               </div>
             </div>
             <Switch
@@ -111,29 +104,6 @@ export function SettingsTab({ settings, onUpdateSettings }: SettingsTabProps) {
               }
             />
           </div>
-
-          {settings.show_progress !== false && (
-            <div className="pl-6">
-              <Label className="text-sm">Progress style</Label>
-              <Select
-                value={settings.progress_style || 'dots'}
-                onValueChange={(value) =>
-                  onUpdateSettings({
-                    progress_style: value as 'dots' | 'numbers' | 'bar',
-                  })
-                }
-              >
-                <SelectTrigger className="w-48 mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dots">Dots (● ○ ○)</SelectItem>
-                  <SelectItem value="numbers">Numbers (1/5)</SelectItem>
-                  <SelectItem value="bar">Progress bar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <div className="flex items-center justify-between">
             <div>

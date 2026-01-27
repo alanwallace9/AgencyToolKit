@@ -39,16 +39,17 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
     return count.toString();
   };
 
-  // Generate preview text
-  const previewText = `${template.text_config.prefix || ''}Sarah${template.text_config.suffix || ''}`;
+
+  // Use the actual API-generated image for accurate preview
+  const apiPreviewUrl = `/api/images/${template.id}?name=Sarah`;
 
   return (
     <Card className="group overflow-hidden hover:shadow-md transition-shadow">
-      {/* Image Preview */}
+      {/* Image Preview - Uses ACTUAL API-generated image */}
       <div className="relative aspect-video bg-muted overflow-hidden">
         {!imageError ? (
           <img
-            src={template.base_image_url}
+            src={apiPreviewUrl}
             alt={template.name}
             className="w-full h-full object-cover"
             onError={() => setImageError(true)}
@@ -58,29 +59,6 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
             <span className="text-sm">Image not available</span>
           </div>
         )}
-
-        {/* Text overlay preview (simplified visual) */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: `${template.text_config.x}%`,
-            top: `${template.text_config.y}%`,
-            transform: 'translate(-50%, -50%)',
-          }}
-        >
-          <span
-            className="px-2 py-1 text-xs font-medium rounded whitespace-nowrap"
-            style={{
-              color: template.text_config.color,
-              backgroundColor: template.text_config.background_color || 'transparent',
-              textShadow: !template.text_config.background_color
-                ? '0 1px 2px rgba(0,0,0,0.8)'
-                : 'none',
-            }}
-          >
-            {previewText}
-          </span>
-        </div>
 
         {/* Hover overlay with actions */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -93,7 +71,7 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => window.open(`/api/og/${template.id}?name=Sarah`, '_blank')}
+            onClick={() => window.open(`/api/images/${template.id}?name=Sarah`, '_blank')}
           >
             <Eye className="h-4 w-4 mr-1" />
             Preview
@@ -144,7 +122,7 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => window.open(`/api/og/${template.id}?name=Sarah`, '_blank')}
+                onClick={() => window.open(`/api/images/${template.id}?name=Sarah`, '_blank')}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Open Preview

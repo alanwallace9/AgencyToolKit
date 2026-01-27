@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Dices, Monitor, Smartphone, ExternalLink } from 'lucide-react';
+import { Dices, Monitor, Smartphone, ExternalLink, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PreviewDevice {
@@ -55,30 +55,21 @@ export function PreviewModal({
   devices,
   selectedDevice,
   onDeviceChange,
-  appliedCrop,
-  flipH,
-  flipV,
 }: PreviewModalProps) {
   const [isMobileView, setIsMobileView] = useState(false);
+  const [imageKey, setImageKey] = useState(0); // For forcing image refresh
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Construct the preview URL (this will be the actual OG image URL)
-  const previewUrl = `/api/og/${template.id}?name=${encodeURIComponent(previewName)}`;
+  // Use the actual API URL - this is the ONLY source of truth
+  const previewUrl = `/api/images/${template.id}?name=${encodeURIComponent(previewName || 'Friend')}&_t=${imageKey}`;
 
-  // Calculate display text
-  const displayText = `${textConfig.prefix || ''}${previewName || textConfig.fallback}${textConfig.suffix || ''}`;
+  // Calculate display text for email mockup text
+  const displayText = `${textConfig.prefix || ''}${previewName || textConfig.fallback || 'Friend'}${textConfig.suffix || ''}`;
 
-  // Calculate auto-shrink font size (same logic as editor)
-  const calculateFontSize = () => {
-    const baseSize = textConfig.size || 32;
-    const boxWidth = (textConfig.width || 40);
-    const textLength = displayText.length;
-    const estimatedWidth = textLength * (baseSize * 0.6);
-    const availableWidth = boxWidth * 6;
-
-    if (estimatedWidth > availableWidth) {
-      return Math.max(16, baseSize * (availableWidth / estimatedWidth));
-    }
-    return baseSize;
+  // Refresh the preview image
+  const handleRefresh = () => {
+    setIsLoading(true);
+    setImageKey(Date.now());
   };
 
   return (
@@ -96,6 +87,8 @@ export function PreviewModal({
             <Input
               value={previewName}
               onChange={(e) => onPreviewNameChange(e.target.value)}
+              onBlur={handleRefresh}
+              onKeyDown={(e) => e.key === 'Enter' && handleRefresh()}
               className="w-40 h-8"
               placeholder="Enter a name..."
             />
@@ -103,10 +96,22 @@ export function PreviewModal({
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={onDiceRoll}
+              onClick={() => {
+                onDiceRoll();
+                setTimeout(handleRefresh, 100);
+              }}
               title="Random long name"
             >
               <Dices className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleRefresh}
+              title="Refresh preview"
+            >
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             </Button>
           </div>
 
@@ -155,29 +160,21 @@ export function PreviewModal({
           </Button>
         </div>
 
-        {/* Email Mockup Preview */}
+        {/* Email Mockup Preview - Uses ACTUAL API Image */}
         <div className="flex-1 overflow-auto py-6 bg-muted/30">
           <div className="flex justify-center">
             {isMobileView ? (
               <MobileEmailMockup
                 device={selectedDevice}
-                template={template}
-                textConfig={textConfig}
                 displayText={displayText}
-                fontSize={calculateFontSize()}
-                appliedCrop={appliedCrop}
-                flipH={flipH}
-                flipV={flipV}
+                previewUrl={previewUrl}
+                onImageLoad={() => setIsLoading(false)}
               />
             ) : (
               <DesktopEmailMockup
-                template={template}
-                textConfig={textConfig}
                 displayText={displayText}
-                fontSize={calculateFontSize()}
-                appliedCrop={appliedCrop}
-                flipH={flipH}
-                flipV={flipV}
+                previewUrl={previewUrl}
+                onImageLoad={() => setIsLoading(false)}
               />
             )}
           </div>
@@ -187,40 +184,15 @@ export function PreviewModal({
   );
 }
 
-// Desktop Email Mockup
+// Desktop Email Mockup - Now uses actual API image
 interface EmailMockupProps {
-  template: ImageTemplate;
-  textConfig: ImageTemplateTextConfig;
   displayText: string;
-  fontSize: number;
-  appliedCrop: { x: number; y: number; width: number; height: number } | null;
-  flipH: boolean;
-  flipV: boolean;
+  previewUrl: string;
+  onImageLoad?: () => void;
 }
 
-function DesktopEmailMockup({ template, textConfig, displayText, fontSize, appliedCrop, flipH, flipV }: EmailMockupProps) {
-  // Calculate crop transforms - when cropped, the image should fill the container showing only the cropped area
-  const hasCrop = appliedCrop && (appliedCrop.x !== 0 || appliedCrop.y !== 0 || appliedCrop.width !== 100 || appliedCrop.height !== 100);
-
-  // Calculate scale and position for cropped image
-  const scaleX = hasCrop ? 100 / appliedCrop!.width : 1;
-  const scaleY = hasCrop ? 100 / appliedCrop!.height : 1;
-  const translateX = hasCrop ? -appliedCrop!.x * scaleX : 0;
-  const translateY = hasCrop ? -appliedCrop!.y * scaleY : 0;
-
-  // Calculate adjusted text position (relative to cropped area)
-  const adjustedTextX = hasCrop
-    ? ((textConfig.x - appliedCrop!.x) / appliedCrop!.width) * 100
-    : textConfig.x;
-  const adjustedTextY = hasCrop
-    ? ((textConfig.y - appliedCrop!.y) / appliedCrop!.height) * 100
-    : textConfig.y;
-  const adjustedTextWidth = hasCrop
-    ? (textConfig.width || 40) / appliedCrop!.width * 100
-    : textConfig.width || 40;
-  const adjustedTextHeight = hasCrop
-    ? (textConfig.height || 10) / appliedCrop!.height * 100
-    : textConfig.height || 10;
+function DesktopEmailMockup({ displayText, previewUrl, onImageLoad }: EmailMockupProps) {
+  const firstName = displayText.replace(/^(Hi |Hello |Hey )/i, '').replace(/[!,.].*$/, '');
 
   return (
     <div className="w-[600px] bg-white rounded-lg shadow-lg overflow-hidden">
@@ -228,58 +200,23 @@ function DesktopEmailMockup({ template, textConfig, displayText, fontSize, appli
       <div className="border-b px-4 py-3 bg-muted/30">
         <div className="text-sm font-medium">From: Bill's Plumbing</div>
         <div className="text-sm text-muted-foreground">
-          Subject: Thanks for choosing us, {displayText.split(' ').pop()}!
+          Subject: Thanks for choosing us, {firstName}!
         </div>
       </div>
 
       {/* Email Body */}
       <div className="p-6 space-y-4">
-        <p className="text-sm">Hi {displayText.split(' ').pop()},</p>
+        <p className="text-sm">Hi {firstName},</p>
         <p className="text-sm">Thanks for letting us help you today!</p>
 
-        {/* The personalized image */}
-        <div className="relative rounded-lg overflow-hidden" style={{ maxHeight: 300 }}>
+        {/* The ACTUAL API-generated image */}
+        <div className="rounded-lg overflow-hidden shadow-md">
           <img
-            src={template.base_image_url}
-            alt={template.name}
-            className="w-full h-full object-cover"
-            style={{
-              transform: `
-                ${flipH ? 'scaleX(-1)' : ''}
-                ${flipV ? 'scaleY(-1)' : ''}
-                ${hasCrop ? `scale(${scaleX}, ${scaleY}) translate(${translateX}%, ${translateY}%)` : ''}
-              `.trim() || undefined,
-              transformOrigin: 'top left',
-            }}
+            src={previewUrl}
+            alt="Personalized image preview"
+            className="w-full h-auto"
+            onLoad={onImageLoad}
           />
-
-          {/* Text overlay simulation */}
-          <div
-            className="absolute flex items-center justify-center"
-            style={{
-              left: `${adjustedTextX}%`,
-              top: `${adjustedTextY}%`,
-              width: `${adjustedTextWidth}%`,
-              height: `${adjustedTextHeight}%`,
-              backgroundColor: textConfig.background_color || 'transparent',
-              borderRadius: textConfig.background_color ? (textConfig.padding || 8) / 2 : 0,
-              padding: textConfig.background_color ? textConfig.padding || 8 : 0,
-              boxShadow: textConfig.background_color ? '0 2px 8px rgba(0,0,0,0.15)' : undefined,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: textConfig.font || 'Poppins',
-                fontSize: `${fontSize * 0.5}px`, // Scale down for preview
-                fontWeight: textConfig.font_weight || 'bold',
-                color: textConfig.color || '#FFFFFF',
-                textAlign: 'center',
-                textShadow: !textConfig.background_color ? '0 2px 4px rgba(0,0,0,0.5)' : undefined,
-              }}
-            >
-              {displayText}
-            </span>
-          </div>
         </div>
 
         <p className="text-sm">Would you mind leaving us a quick review?</p>
@@ -290,34 +227,14 @@ function DesktopEmailMockup({ template, textConfig, displayText, fontSize, appli
   );
 }
 
-// Mobile Email Mockup
+// Mobile Email Mockup - Now uses actual API image
 interface MobileEmailMockupProps extends EmailMockupProps {
   device: PreviewDevice;
 }
 
-function MobileEmailMockup({ device, template, textConfig, displayText, fontSize, appliedCrop, flipH, flipV }: MobileEmailMockupProps) {
+function MobileEmailMockup({ device, displayText, previewUrl, onImageLoad }: MobileEmailMockupProps) {
   const isNokia = device.name === 'Nokia 855';
-
-  // Calculate crop transforms
-  const hasCrop = appliedCrop && (appliedCrop.x !== 0 || appliedCrop.y !== 0 || appliedCrop.width !== 100 || appliedCrop.height !== 100);
-  const scaleX = hasCrop ? 100 / appliedCrop!.width : 1;
-  const scaleY = hasCrop ? 100 / appliedCrop!.height : 1;
-  const translateX = hasCrop ? -appliedCrop!.x * scaleX : 0;
-  const translateY = hasCrop ? -appliedCrop!.y * scaleY : 0;
-
-  // Calculate adjusted text position
-  const adjustedTextX = hasCrop
-    ? ((textConfig.x - appliedCrop!.x) / appliedCrop!.width) * 100
-    : textConfig.x;
-  const adjustedTextY = hasCrop
-    ? ((textConfig.y - appliedCrop!.y) / appliedCrop!.height) * 100
-    : textConfig.y;
-  const adjustedTextWidth = hasCrop
-    ? (textConfig.width || 40) / appliedCrop!.width * 100
-    : textConfig.width || 40;
-  const adjustedTextHeight = hasCrop
-    ? (textConfig.height || 10) / appliedCrop!.height * 100
-    : textConfig.height || 10;
+  const firstName = displayText.replace(/^(Hi |Hello |Hey )/i, '').replace(/[!,.].*$/, '');
 
   return (
     <div
@@ -351,50 +268,18 @@ function MobileEmailMockup({ device, template, textConfig, displayText, fontSize
         </div>
 
         {/* Email Content (simplified for mobile) */}
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-2 overflow-auto" style={{ maxHeight: isNokia ? 160 : 360 }}>
           <div className="text-[10px] font-medium">Bill's Plumbing</div>
 
-          {/* The personalized image */}
-          <div className="relative rounded overflow-hidden">
+          {/* The ACTUAL API-generated image */}
+          <div className="rounded overflow-hidden">
             <img
-              src={template.base_image_url}
-              alt={template.name}
-              className="w-full h-full object-cover"
-              style={{
-                maxHeight: isNokia ? 80 : 150,
-                transform: `
-                  ${flipH ? 'scaleX(-1)' : ''}
-                  ${flipV ? 'scaleY(-1)' : ''}
-                  ${hasCrop ? `scale(${scaleX}, ${scaleY}) translate(${translateX}%, ${translateY}%)` : ''}
-                `.trim() || undefined,
-                transformOrigin: 'top left',
-              }}
+              src={previewUrl}
+              alt="Personalized image preview"
+              className="w-full h-auto"
+              style={{ maxHeight: isNokia ? 80 : 150 }}
+              onLoad={onImageLoad}
             />
-
-            {/* Text overlay simulation */}
-            <div
-              className="absolute flex items-center justify-center"
-              style={{
-                left: `${adjustedTextX}%`,
-                top: `${adjustedTextY}%`,
-                width: `${adjustedTextWidth}%`,
-                height: `${adjustedTextHeight}%`,
-                backgroundColor: textConfig.background_color || 'transparent',
-                borderRadius: textConfig.background_color ? (textConfig.padding || 8) / 4 : 0,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: textConfig.font || 'Poppins',
-                  fontSize: `${fontSize * 0.25}px`,
-                  fontWeight: textConfig.font_weight || 'bold',
-                  color: textConfig.color || '#FFFFFF',
-                  textShadow: !textConfig.background_color ? '0 1px 2px rgba(0,0,0,0.5)' : undefined,
-                }}
-              >
-                {displayText}
-              </span>
-            </div>
           </div>
 
           <p className={cn('text-muted-foreground', isNokia ? 'text-[6px]' : 'text-[8px]')}>

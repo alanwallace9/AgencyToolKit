@@ -119,7 +119,7 @@
 - ✅ 2026-01-26: Features 30-31 - Banners Builder + Embed (3-panel layout, 5 style presets, scheduling, targeting, analytics)
 
 ### In Progress
-- None currently
+- Features 28-29: Smart Tips - Spec complete, waiting on Left Nav implementation (Guidely product structure)
 
 ### Completed Recently
 - [x] Features 30-31: Banners Builder + Embed (3-panel layout, styles, scheduling, analytics)

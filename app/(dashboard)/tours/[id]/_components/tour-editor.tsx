@@ -18,6 +18,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
   ArrowLeft,
   Send,
   Check,
@@ -26,6 +36,7 @@ import {
   Copy,
   Undo,
   Redo,
+  BookmarkPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -37,7 +48,7 @@ import { ThemeTab } from './theme-tab';
 import { StepPreviewModal } from './step-preview-modal';
 import { PreviewDropdown } from './preview-dropdown';
 import { ElementValidator, type ValidationResult } from './element-validator';
-import { updateTour, publishTour, unpublishTour } from '../../_actions/tour-actions';
+import { updateTour, publishTour, unpublishTour, saveAsTemplate } from '../../_actions/tour-actions';
 import type { Tour, TourStep, TourSettings, TourTargeting, TourTheme, Customer } from '@/types/database';
 
 interface TourEditorProps {
@@ -91,6 +102,10 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
   const [showValidator, setShowValidator] = useState(false);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [tourName, setTourName] = useState(tour.name);
 
   // Undo/Redo history
@@ -375,6 +390,38 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
     toast.success('Link copied to clipboard');
   };
 
+  const handleOpenSaveTemplate = () => {
+    setTemplateName(tourName);
+    setTemplateDescription('');
+    setShowSaveTemplateDialog(true);
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) return;
+
+    setIsSavingTemplate(true);
+    try {
+      // Save current tour state first
+      await updateTour(tour.id, { name: tourName, steps, settings, targeting });
+
+      const template = await saveAsTemplate(tour.id, {
+        name: templateName.trim(),
+        description: templateDescription.trim() || undefined,
+      });
+
+      toast.success('Template saved', {
+        description: `"${template.name}" is now available in your templates.`,
+      });
+      setShowSaveTemplateDialog(false);
+    } catch (error) {
+      toast.error('Failed to save template', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   const statusConfig = {
     saved: { icon: Check, text: 'Saved', className: 'text-green-600' },
     saving: { icon: Loader2, text: 'Saving...', className: 'text-muted-foreground animate-spin' },
@@ -445,6 +492,17 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
           {/* Copy link */}
           <Button variant="ghost" size="icon" onClick={handleCopyLink} title="Copy tour link">
             <Copy className="h-4 w-4" />
+          </Button>
+
+          {/* Save as template */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleOpenSaveTemplate}
+            title="Save as template"
+            disabled={steps.length === 0}
+          >
+            <BookmarkPlus className="h-4 w-4" />
           </Button>
 
           {/* Preview dropdown with Quick/Live/Test options */}
@@ -632,6 +690,67 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Save as Template dialog */}
+      <Dialog open={showSaveTemplateDialog} onOpenChange={setShowSaveTemplateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Template</DialogTitle>
+            <DialogDescription>
+              Create a reusable template from this tour. You can use it to quickly create new tours with the same steps and settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input
+                id="template-name"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g., Welcome Tour Template"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="template-description">Description (optional)</Label>
+              <Textarea
+                id="template-description"
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                placeholder="Brief description of what this template is for..."
+                rows={3}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+              <p className="font-medium mb-1">What will be saved:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>{steps.length} step{steps.length !== 1 ? 's' : ''}</li>
+                <li>Tour settings (autoplay, progress, etc.)</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveTemplateDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAsTemplate}
+              disabled={isSavingTemplate || !templateName.trim()}
+            >
+              {isSavingTemplate ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <BookmarkPlus className="h-4 w-4 mr-2" />
+                  Save Template
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

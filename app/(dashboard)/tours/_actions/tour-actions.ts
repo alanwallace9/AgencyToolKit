@@ -394,6 +394,7 @@ export async function getTourTemplates(): Promise<Array<{
   name: string;
   description: string | null;
   category: 'system' | 'custom';
+  steps_count?: number;
 }>> {
   const agency = await getCurrentAgency();
   if (!agency) {
@@ -405,7 +406,7 @@ export async function getTourTemplates(): Promise<Array<{
 
   const { data: templates, error } = await supabase
     .from('tour_templates')
-    .select('id, name, description, category')
+    .select('id, name, description, category, steps')
     .or(`category.eq.system,agency_id.eq.${agency.id}`)
     .order('category', { ascending: true })
     .order('name', { ascending: true });
@@ -414,5 +415,190 @@ export async function getTourTemplates(): Promise<Array<{
     throw new Error(error.message);
   }
 
-  return templates || [];
+  return (templates || []).map(t => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    category: t.category as 'system' | 'custom',
+    steps_count: Array.isArray(t.steps) ? t.steps.length : 0,
+  }));
+}
+
+/**
+ * Save a tour as a template
+ */
+export async function saveAsTemplate(tourId: string, data: {
+  name: string;
+  description?: string;
+}): Promise<{ id: string; name: string }> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = createAdminClient();
+
+  // Fetch the tour
+  const { data: tour, error: fetchError } = await supabase
+    .from('tours')
+    .select('steps, settings')
+    .eq('id', tourId)
+    .eq('agency_id', agency.id)
+    .single();
+
+  if (fetchError || !tour) {
+    throw new Error('Tour not found');
+  }
+
+  // Create the template
+  const { data: template, error } = await supabase
+    .from('tour_templates')
+    .insert({
+      agency_id: agency.id,
+      name: data.name,
+      description: data.description || null,
+      category: 'custom',
+      steps: tour.steps,
+      settings: tour.settings,
+    })
+    .select('id, name')
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+  return template;
+}
+
+/**
+ * Update a template (custom only)
+ */
+export async function updateTemplate(
+  id: string,
+  data: Partial<{ name: string; description: string | null }>
+): Promise<{ id: string; name: string }> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = createAdminClient();
+
+  // Verify it's a custom template owned by this agency
+  const { data: existing, error: fetchError } = await supabase
+    .from('tour_templates')
+    .select('id, category')
+    .eq('id', id)
+    .eq('agency_id', agency.id)
+    .single();
+
+  if (fetchError || !existing) {
+    throw new Error('Template not found');
+  }
+
+  if (existing.category === 'system') {
+    throw new Error('Cannot edit system templates');
+  }
+
+  const { data: template, error } = await supabase
+    .from('tour_templates')
+    .update(data)
+    .eq('id', id)
+    .eq('agency_id', agency.id)
+    .select('id, name')
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+  return template;
+}
+
+/**
+ * Delete a template (custom only)
+ */
+export async function deleteTemplate(id: string): Promise<void> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = createAdminClient();
+
+  // Verify it's a custom template owned by this agency
+  const { data: existing, error: fetchError } = await supabase
+    .from('tour_templates')
+    .select('id, category')
+    .eq('id', id)
+    .eq('agency_id', agency.id)
+    .single();
+
+  if (fetchError || !existing) {
+    throw new Error('Template not found');
+  }
+
+  if (existing.category === 'system') {
+    throw new Error('Cannot delete system templates');
+  }
+
+  const { error } = await supabase
+    .from('tour_templates')
+    .delete()
+    .eq('id', id)
+    .eq('agency_id', agency.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+}
+
+/**
+ * Duplicate a template
+ */
+export async function duplicateTemplate(id: string): Promise<{ id: string; name: string }> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = createAdminClient();
+
+  // Fetch original template (can be system or custom)
+  const { data: original, error: fetchError } = await supabase
+    .from('tour_templates')
+    .select('*')
+    .eq('id', id)
+    .or(`category.eq.system,agency_id.eq.${agency.id}`)
+    .single();
+
+  if (fetchError || !original) {
+    throw new Error('Template not found');
+  }
+
+  // Create copy as custom template
+  const { data: duplicate, error } = await supabase
+    .from('tour_templates')
+    .insert({
+      agency_id: agency.id,
+      name: `${original.name} (Copy)`,
+      description: original.description,
+      category: 'custom',
+      steps: original.steps,
+      settings: original.settings,
+    })
+    .select('id, name')
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath('/tours');
+  return duplicate;
 }

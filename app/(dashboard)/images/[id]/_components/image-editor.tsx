@@ -1,36 +1,35 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import type { ImageTemplate, ImageTemplateTextConfig } from '@/types/database';
-import { EditorCanvas } from './editor-canvas';
+import { FabricCanvas, FabricCanvasRef, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './fabric-canvas';
 import { TextToolbar } from './text-toolbar';
 import { ImageToolbar } from './image-toolbar';
 import { LeftPanel } from './left-panel';
 import { PropertiesPanel } from './properties-panel';
 import { PreviewModal } from './preview-modal';
+import { URLGenerator } from './url-generator';
 import { updateImageTemplate } from '../../_actions/image-actions';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Undo2, Check } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Eye, Undo2, Check, Pencil, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { DEFAULT_TEXT_CONFIG } from '../../_lib/defaults';
 
-// Sample names for preview - diverse + international + edge cases
+// Sample names for preview - common real names
 const SAMPLE_NAMES = [
-  // Short (Quick tests)
-  'Bill', 'Sarah', 'John', 'Alex', 'Mike',
-  // Medium
-  'Michael', 'Jessica', 'Brandon', 'Jennifer',
-  // Long (Western)
-  'Alexandra', 'Christopher', 'Bartholomew', 'Stephanie', 'Elizabeth',
-  // Long (International)
-  'Muhammad', 'Krishnamurthy', 'Aleksandr', 'Ekaterina', 'Oluwaseun',
-  // Edge cases (hyphenated, apostrophes, accents)
-  'Jean-Pierre', 'Mary-Jane', "O'Connor", 'José', 'François',
+  // Short (4-5 chars)
+  'John', 'Mary', 'Bill', 'Sarah', 'Mike',
+  // Medium (6-7 chars)
+  'Robert', 'Thomas', 'Michael', 'Jessica', 'Jennifer',
+  // Longer (8-9 chars) - may shrink slightly
+  'Patricia', 'Margaret', 'Stephanie', 'Katherine',
 ];
-// Long names for 🎲 button (10+ characters)
-const LONG_NAMES = SAMPLE_NAMES.filter(n => n.length >= 10);
+// Long names for dice button (10+ characters) - will definitely shrink
+const LONG_NAMES = [
+  'Christopher', 'Elizabeth', 'Jacqueline', 'Alexandria', 'Johnathan',
+];
 // Easter egg: 1-in-50 chance on dice roll
 const EASTER_EGG_NAME = 'Shaun Coming Atcha!';
 const EASTER_EGG_CHANCE = 0.02; // 1 in 50
@@ -49,6 +48,9 @@ interface ImageEditorProps {
 }
 
 export function ImageEditor({ template, userName }: ImageEditorProps) {
+  // Fabric canvas ref
+  const fabricCanvasRef = useRef<FabricCanvasRef>(null);
+
   // Core state
   const [textConfig, setTextConfig] = useState<ImageTemplateTextConfig>(
     template.text_config || DEFAULT_TEXT_CONFIG
@@ -56,22 +58,11 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
   const [hasTextBox, setHasTextBox] = useState(
     template.text_config?.x !== undefined && template.text_config?.y !== undefined
   );
-  const [selectedElement, setSelectedElement] = useState<'text' | 'image' | null>(null);
 
   // Preview state
   const [previewName, setPreviewName] = useState('Sarah');
-  const [isPreviewMode, setIsPreviewMode] = useState(false); // Edit vs Preview toggle
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState(PREVIEW_DEVICES[0]);
-
-  // Crop state
-  const [isCropMode, setIsCropMode] = useState(false);
-  const [cropBounds, setCropBounds] = useState<{ x: number; y: number; width: number; height: number }>({ x: 0, y: 0, width: 100, height: 100 });
-  const [appliedCrop, setAppliedCrop] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-
-  // Image transform state (for flip)
-  const [flipH, setFlipH] = useState(false);
-  const [flipV, setFlipV] = useState(false);
 
   // Save state
   const [isSaving, setIsSaving] = useState(false);
@@ -79,24 +70,45 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
   const [undoStack, setUndoStack] = useState<ImageTemplateTextConfig[]>([]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Snap lines state (snap to center guides)
-  const [showSnapLines, setShowSnapLines] = useState(true);
-  const [activeSnapLines, setActiveSnapLines] = useState<{ x?: number; y?: number }>({});
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'editor' | 'urls'>('editor');
 
-  // Zoom state
-  const [zoom, setZoom] = useState(1);
+  // For toolbar state (read from canvas ref)
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [showGrid, setShowGrid] = useState(false);
 
-  // Canvas ref for accurate drag calculations
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  // Sync state from canvas ref
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (fabricCanvasRef.current) {
+        setZoomLevel(fabricCanvasRef.current.zoomLevel);
+        setShowGrid(fabricCanvasRef.current.showGrid);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    })
-  );
+  // Preload Google Fonts for canvas rendering
+  useEffect(() => {
+    const fonts = [
+      'Inter:wght@400;700',
+      'Poppins:wght@400;700',
+      'Roboto:wght@400;700',
+      'Open+Sans:wght@400;700',
+      'Lato:wght@400;700',
+      'Montserrat:wght@400;700',
+      'Playfair+Display:wght@400;700',
+      'Oswald:wght@400;700',
+    ];
+    const fontLink = document.createElement('link');
+    fontLink.href = `https://fonts.googleapis.com/css2?family=${fonts.join('&family=')}&display=swap`;
+    fontLink.rel = 'stylesheet';
+    document.head.appendChild(fontLink);
+
+    return () => {
+      document.head.removeChild(fontLink);
+    };
+  }, []);
 
   // Auto-save with debounce
   const saveChanges = useCallback(async (config: ImageTemplateTextConfig) => {
@@ -140,196 +152,57 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
     }
   }, [undoStack, debouncedSave]);
 
-  // Handle drag start - ensure text box is selected when dragging starts
-  const handleDragStart = () => {
-    setSelectedElement('text');
-  };
-
-  // Handle drag move - show snap lines when near center
-  const handleDragMove = (event: { delta: { x: number; y: number } }) => {
-    if (!showSnapLines || !hasTextBox) return;
-
-    const canvasEl = canvasContainerRef.current?.querySelector('.editor-canvas');
-    const canvasRect = canvasEl?.getBoundingClientRect();
-    if (!canvasRect) return;
-
-    const canvasWidth = canvasRect.width;
-    const canvasHeight = canvasRect.height;
-
-    // Calculate current position during drag
-    const deltaXPercent = (event.delta.x / canvasWidth) * 100;
-    const deltaYPercent = (event.delta.y / canvasHeight) * 100;
-    const currentX = textConfig.x + deltaXPercent;
-    const currentY = textConfig.y + deltaYPercent;
-
-    // Calculate center of text box
-    const boxCenterX = currentX + (textConfig.width || 40) / 2;
-    const boxCenterY = currentY + (textConfig.height || 10) / 2;
-
-    // Show snap lines when within 3% of center
-    const snapThreshold = 3;
-    const newSnapLines: { x?: number; y?: number } = {};
-
-    if (Math.abs(boxCenterX - 50) < snapThreshold) {
-      newSnapLines.x = 50;
-    }
-    if (Math.abs(boxCenterY - 50) < snapThreshold) {
-      newSnapLines.y = 50;
-    }
-
-    setActiveSnapLines(newSnapLines);
-  };
-
-  // Handle drag end for text box
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { delta } = event;
-    if (delta && hasTextBox) {
-      // Get actual rendered canvas dimensions for accurate percentage calculation
-      // This fixes the aspect ratio issue where drag would snap back
-      const canvasEl = canvasContainerRef.current?.querySelector('.editor-canvas');
-      const canvasRect = canvasEl?.getBoundingClientRect();
-
-      const canvasWidth = canvasRect?.width || template.base_image_width || 600;
-      const canvasHeight = canvasRect?.height || template.base_image_height || 400;
-
-      // Convert pixel delta to percentage using RENDERED canvas size
-      const deltaXPercent = (delta.x / canvasWidth) * 100;
-      const deltaYPercent = (delta.y / canvasHeight) * 100;
-
-      let newX = textConfig.x + deltaXPercent;
-      let newY = textConfig.y + deltaYPercent;
-
-      // Snap to center if within threshold and snap lines enabled
-      if (showSnapLines) {
-        const boxCenterX = newX + (textConfig.width || 40) / 2;
-        const boxCenterY = newY + (textConfig.height || 10) / 2;
-        const snapThreshold = 3;
-
-        if (Math.abs(boxCenterX - 50) < snapThreshold) {
-          newX = 50 - (textConfig.width || 40) / 2;
-        }
-        if (Math.abs(boxCenterY - 50) < snapThreshold) {
-          newY = 50 - (textConfig.height || 10) / 2;
-        }
-      }
-
-      // Clamp to bounds
-      newX = Math.max(0, Math.min(100 - (textConfig.width || 40), newX));
-      newY = Math.max(0, Math.min(100 - (textConfig.height || 10), newY));
-
-      updateTextConfig({ x: newX, y: newY });
-    }
-    setActiveSnapLines({});
-  };
-
-  // Add/move text box from preset - inserts with WHITE background by default
+  // Add or reposition text box from toolbar
   const handleInsertTextBox = useCallback((position: { x: number; y: number }) => {
-    const newConfig: Partial<ImageTemplateTextConfig> = {
-      ...DEFAULT_TEXT_CONFIG,
-      x: position.x,
-      y: position.y,
-      background_color: '#FFFFFF', // White background by default per user request
-      padding: 12,
-    };
-    setHasTextBox(true);
-    setSelectedElement('text');
-    updateTextConfig(newConfig as ImageTemplateTextConfig);
-  }, [updateTextConfig]);
-
+    if (!hasTextBox) {
+      // Create text box at this position with defaults
+      const newConfig: Partial<ImageTemplateTextConfig> = {
+        ...DEFAULT_TEXT_CONFIG,
+        x: position.x,
+        y: position.y,
+        width: 20.3, // 130px on 640px canvas
+        height: 12.2, // 44px on 360px canvas
+        background_color: '#FFFFFF',
+        padding: 12,
+      };
+      setHasTextBox(true);
+      updateTextConfig(newConfig as ImageTemplateTextConfig);
+    } else {
+      // Just move existing text box (preserve current styling)
+      fabricCanvasRef.current?.setTextPosition(position.x, position.y);
+    }
+  }, [hasTextBox, updateTextConfig]);
 
   // Roll dice for random long name (with Easter egg - 1 in 50 chance)
   const handleDiceRoll = useCallback(() => {
-    // Easter egg: 1-in-50 chance of "Shaun Coming Atcha!"
     if (Math.random() < EASTER_EGG_CHANCE) {
       setPreviewName(EASTER_EGG_NAME);
-      toast.success('🎲 Shaun Coming Atcha!');
+      toast.success('Shaun Coming Atcha!');
     } else {
-      // Pick from long names for stress testing
       const randomName = LONG_NAMES[Math.floor(Math.random() * LONG_NAMES.length)];
       setPreviewName(randomName);
     }
   }, []);
 
-  // Flip image handlers
-  const handleFlipH = useCallback(() => setFlipH(prev => !prev), []);
-  const handleFlipV = useCallback(() => setFlipV(prev => !prev), []);
-
-  // Crop handlers
-  const handleEnterCropMode = useCallback(() => {
-    // Reset crop bounds to full image when entering crop mode
-    setCropBounds({ x: 0, y: 0, width: 100, height: 100 });
-    setIsCropMode(true);
-  }, []);
-
-  const handleApplyCrop = useCallback(() => {
-    setAppliedCrop(cropBounds);
-    setIsCropMode(false);
-    toast.success('Crop applied');
-  }, [cropBounds]);
-
-  const handleCancelCrop = useCallback(() => {
-    // Reset to previous applied crop or full image
-    setCropBounds(appliedCrop || { x: 0, y: 0, width: 100, height: 100 });
-    setIsCropMode(false);
-  }, [appliedCrop]);
-
+  // Handle revert (reset everything to defaults)
   const handleRevert = useCallback(() => {
-    setFlipH(false);
-    setFlipV(false);
-    setAppliedCrop(null);
-    setCropBounds({ x: 0, y: 0, width: 100, height: 100 });
-    setZoom(1);
-    toast.success('Image reverted to original');
-  }, []);
+    // Reset image (flip, position)
+    fabricCanvasRef.current?.resetImage();
 
-  // Keyboard navigation for text box (arrows = 1%, Shift+arrows = 10%)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle if text box exists and is selected
-      if (!hasTextBox || selectedElement !== 'text') return;
-
-      // Ignore if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      const step = e.shiftKey ? 10 : 1; // Shift = 10%, normal = 1%
-      let handled = false;
-
-      switch (e.key) {
-        case 'ArrowLeft':
-          updateTextConfig({ x: Math.max(0, textConfig.x - step) });
-          handled = true;
-          break;
-        case 'ArrowRight':
-          updateTextConfig({ x: Math.min(100 - (textConfig.width || 40), textConfig.x + step) });
-          handled = true;
-          break;
-        case 'ArrowUp':
-          updateTextConfig({ y: Math.max(0, textConfig.y - step) });
-          handled = true;
-          break;
-        case 'ArrowDown':
-          updateTextConfig({ y: Math.min(100 - (textConfig.height || 10), textConfig.y + step) });
-          handled = true;
-          break;
-      }
-
-      if (handled) {
-        e.preventDefault();
-      }
+    // Reset text config to defaults
+    const resetConfig = {
+      ...DEFAULT_TEXT_CONFIG,
+      // Keep prefix/suffix/fallback from current config (user content)
+      prefix: textConfig.prefix,
+      suffix: textConfig.suffix,
+      fallback: textConfig.fallback,
     };
+    setTextConfig(resetConfig);
+    setHasTextBox(true);
+    debouncedSave(resetConfig);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hasTextBox, selectedElement, textConfig, updateTextConfig]);
-
-  // Zoom with mouse wheel + Cmd/Ctrl
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.metaKey || e.ctrlKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
-    }
-  }, []);
+    toast.success('Reset to defaults');
+  }, [textConfig.prefix, textConfig.suffix, textConfig.fallback, debouncedSave]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -341,7 +214,7 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
   }, []);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
+    <div className="flex flex-col h-[calc(100vh-120px)] overflow-hidden">
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <div className="flex items-center gap-4">
@@ -392,88 +265,138 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
         </div>
       </div>
 
-      {/* Toolbar - Always visible */}
-      <div className="border-b bg-muted/30 px-4 py-2 min-h-[52px] flex items-center gap-4">
-        {/* Text Controls */}
-        <TextToolbar
-          config={textConfig}
-          onConfigChange={updateTextConfig}
-          showSnapLines={showSnapLines}
-          onToggleSnapLines={() => setShowSnapLines(prev => !prev)}
-          hasTextBox={hasTextBox}
-          onInsertTextBox={handleInsertTextBox}
-        />
-
-        {/* Divider */}
-        <div className="w-px h-8 bg-border" />
-
-        {/* Image Controls */}
-        <ImageToolbar
-          isCropMode={isCropMode}
-          onEnterCrop={handleEnterCropMode}
-          onApplyCrop={handleApplyCrop}
-          onCancelCrop={handleCancelCrop}
-          onFlipH={handleFlipH}
-          onFlipV={handleFlipV}
-          onRevert={handleRevert}
-          flipH={flipH}
-          flipV={flipV}
-          hasAppliedCrop={appliedCrop !== null}
-        />
+      {/* Tab Navigation */}
+      <div className="border-b bg-background px-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'editor' | 'urls')}>
+          <TabsList className="h-10 bg-transparent p-0 gap-4">
+            <TabsTrigger
+              value="editor"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-2"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Editor
+            </TabsTrigger>
+            <TabsTrigger
+              value="urls"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-2"
+            >
+              <Link2 className="h-4 w-4 mr-2" />
+              URLs
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Main Editor Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Sample names only */}
-        <LeftPanel
-          previewName={previewName}
-          onPreviewNameChange={setPreviewName}
-          onDiceRoll={handleDiceRoll}
-          sampleNames={SAMPLE_NAMES}
-          userName={userName}
-        />
-
-        {/* Canvas Area */}
-        <div
-          ref={canvasContainerRef}
-          className="flex-1 bg-muted/20 p-6 overflow-auto"
-          onWheel={handleWheel}
-        >
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-          >
-            <EditorCanvas
-              template={template}
-              textConfig={textConfig}
+      {activeTab === 'editor' ? (
+        <>
+          {/* Toolbar - Always visible */}
+          <div className="border-b bg-muted/30 px-4 py-2 min-h-[52px] flex items-center gap-4">
+            {/* Text Controls */}
+            <TextToolbar
+              config={textConfig}
+              onConfigChange={updateTextConfig}
               hasTextBox={hasTextBox}
-              previewName={previewName}
-              selectedElement={selectedElement}
-              onSelectElement={setSelectedElement}
-              isCropMode={isCropMode}
-              cropBounds={cropBounds}
-              onCropBoundsChange={setCropBounds}
-              appliedCrop={appliedCrop}
-              flipH={flipH}
-              flipV={flipV}
-              zoom={zoom}
-              showSnapLines={showSnapLines}
-              activeSnapLines={activeSnapLines}
-              onActiveSnapLinesChange={setActiveSnapLines}
-              onTextConfigChange={updateTextConfig}
+              onInsertTextBox={handleInsertTextBox}
             />
-          </DndContext>
-        </div>
 
-        {/* Right Panel */}
-        <PropertiesPanel
-          config={textConfig}
-          onConfigChange={updateTextConfig}
-          hasTextBox={hasTextBox}
-        />
-      </div>
+            {/* Divider */}
+            <div className="w-px h-8 bg-border" />
+
+            {/* Image Controls */}
+            <ImageToolbar
+              onFit={() => fabricCanvasRef.current?.fitImage()}
+              onFill={() => fabricCanvasRef.current?.fillImage()}
+              onFlipH={() => fabricCanvasRef.current?.flipHorizontal()}
+              onFlipV={() => fabricCanvasRef.current?.flipVertical()}
+              onRevert={handleRevert}
+              showGrid={showGrid}
+              onToggleGrid={() => fabricCanvasRef.current?.toggleGrid()}
+              zoomLevel={zoomLevel}
+              onZoomChange={(zoom) => fabricCanvasRef.current?.setZoom(zoom)}
+            />
+          </div>
+
+          {/* Scrollable Content Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Main Editor Area */}
+            <div className="flex-1 flex overflow-hidden min-h-0">
+              {/* Left Panel - Sample names */}
+              <LeftPanel
+                previewName={previewName}
+                onPreviewNameChange={setPreviewName}
+                onDiceRoll={handleDiceRoll}
+                sampleNames={SAMPLE_NAMES}
+                userName={userName}
+              />
+
+              {/* Canvas Area */}
+              <div className="flex-1 bg-muted/20 p-6 overflow-auto flex items-center justify-center">
+                <FabricCanvas
+                  ref={fabricCanvasRef}
+                  template={template}
+                  textConfig={textConfig}
+                  previewName={previewName}
+                  onTextConfigChange={updateTextConfig}
+                />
+              </div>
+
+              {/* Right Panel */}
+              <PropertiesPanel
+                config={textConfig}
+                onConfigChange={updateTextConfig}
+                hasTextBox={hasTextBox}
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        /* URLs Tab - Full Page Layout */
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Side - URLs and Instructions */}
+          <div className="w-1/2 border-r overflow-auto p-6">
+            <URLGenerator
+              templateId={template.id}
+              previewName={previewName}
+              fullPage
+            />
+          </div>
+
+          {/* Right Side - Live Preview */}
+          <div className="w-1/2 bg-muted/30 flex flex-col overflow-hidden">
+            <div className="p-4 border-b bg-background">
+              <h3 className="font-medium">Live Preview</h3>
+              <p className="text-sm text-muted-foreground">See how your image will look with a name</p>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-6 overflow-auto">
+              <div className="max-w-full max-h-full">
+                <img
+                  src={`/api/images/${template.id}?name=${encodeURIComponent(previewName || 'Sarah')}&_t=${Date.now()}`}
+                  alt="Preview"
+                  className="max-w-full max-h-[500px] rounded-lg shadow-lg object-contain"
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t bg-background flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Preview with name:</span>
+              <input
+                type="text"
+                value={previewName}
+                onChange={(e) => setPreviewName(e.target.value)}
+                className="flex-1 h-8 px-3 text-sm border rounded-md"
+                placeholder="Enter a name..."
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDiceRoll}
+                title="Random long name"
+              >
+                🎲
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       <PreviewModal
@@ -487,9 +410,9 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
         devices={PREVIEW_DEVICES}
         selectedDevice={previewDevice}
         onDeviceChange={setPreviewDevice}
-        appliedCrop={appliedCrop}
-        flipH={flipH}
-        flipV={flipV}
+        appliedCrop={null}
+        flipH={false}
+        flipV={false}
       />
     </div>
   );

@@ -2,6 +2,31 @@
 
 Ideas and features to add after the core image personalization features are complete.
 
+---
+
+## Known Issues (Feature 37)
+
+### Zoom Controls Canvas Instead of Image
+
+**Problem:** The Cmd/Ctrl + scroll wheel zoom affects the entire canvas container, not just the image inside it. When zooming in, the entire editor area scales (including the text box, handles, and canvas frame) instead of zooming into the base image content.
+
+**Expected Behavior:** Zoom should scale the base image to allow finer detail work when positioning the text box, similar to how Canva's zoom works on the canvas content.
+
+**Current Behavior:**
+- `zoom` state stored in `image-editor.tsx` (lines 86-87)
+- Applied via CSS `transform: scale(${zoom})` on the canvas container
+- This scales everything proportionally, not just the image
+
+**Suggested Fix:**
+1. **Option A (Simple):** Remove zoom feature for now - it's not critical for MVP
+2. **Option B (Proper):** Implement viewport-based zoom where the image is larger than the visible area and can be panned
+3. **Option C (Alternative):** Keep current behavior but communicate it's "canvas zoom" not "image zoom"
+
+**Priority:** Low (not blocking workflow)
+**Complexity:** Medium - requires rethinking zoom architecture
+
+---
+
 ## Future Feature Ideas
 
 ### Email Notifications via Resend

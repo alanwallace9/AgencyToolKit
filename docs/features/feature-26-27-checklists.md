@@ -1,10 +1,11 @@
 # Features 26-27: Checklists Builder & Widget
 
-**Status:** Ready for Implementation
+**Status:** ✅ Implemented
 **Priority:** High (Next after F25)
-**Estimated Sessions:** 2
+**Estimated Sessions:** 2 (Completed in 1)
 **Dependencies:** F22 (Tours in Embed), F23 (Tour Themes)
 **Blocks:** None
+**Completed:** 2026-01-26
 
 ---
 
@@ -80,27 +81,27 @@ Based on Usetiful's checklist design:
 ## Acceptance Criteria
 
 ### Builder
-- [ ] Checklists list page shows all checklists with status and stats
-- [ ] Can create checklists with title, description, and items
-- [ ] Each item has: title, description (optional), action, completion trigger
-- [ ] Actions: none, launch tour, open URL
-- [ ] Completion triggers: manual (click), tour-complete, element-exists
-- [ ] Can select theme from existing tour_themes (independent from tours)
-- [ ] Live preview panel shows widget appearance as you edit
+- [x] Checklists list page shows all checklists with status and stats
+- [x] Can create checklists with title, description, and items
+- [x] Each item has: title, description (optional), action, completion trigger
+- [x] Actions: none, launch tour, open URL
+- [x] Completion triggers: manual (click), tour-complete, element-exists, url-visited
+- [x] Can select theme from existing tour_themes (independent from tours)
+- [x] Live preview panel shows widget appearance as you edit
 
 ### Widget
-- [ ] Floating widget appears in embed script
-- [ ] Colored header with title and close button
-- [ ] Progress bar with percentage
-- [ ] Items show completed (checkmark) vs incomplete (circle)
-- [ ] Item descriptions display below titles
-- [ ] "Dismiss" link to hide checklist
-- [ ] CTA button at bottom (customizable text)
-- [ ] Minimized state: manila folder tab at bottom
-- [ ] Tab is sticky (stays visible on scroll)
-- [ ] Tab text is customizable ("Get started", etc.)
-- [ ] Widget position: bottom-right or bottom-left
-- [ ] Per-customer progress is tracked and persists
+- [x] Floating widget appears in embed script
+- [x] Colored header with title and close button
+- [x] Progress bar with percentage
+- [x] Items show completed (checkmark) vs incomplete (circle)
+- [x] Item descriptions display below titles
+- [x] "Dismiss" link to hide checklist
+- [x] CTA button at bottom (customizable text)
+- [x] Minimized state: manila folder tab at bottom
+- [x] Tab is sticky (stays visible on scroll)
+- [x] Tab text is customizable ("Get started", etc.)
+- [x] Widget position: bottom-right or bottom-left
+- [x] Per-customer progress is tracked and persists
 
 ---
 
@@ -569,3 +570,77 @@ Checklists use the same `tour_themes` table as tours, but can independently sele
 - [ ] Progress shows in customer detail page
 - [ ] Filter customers by checklist status
 - [ ] Stats show on checklist cards (started, completed)
+
+---
+
+## Implementation Notes (2026-01-26)
+
+### What Was Built
+
+Full checklist system with builder UI and embed widget, completed in a single session.
+
+### Database Tables Created
+
+1. **`checklists`** - Main checklist table
+   - JSONB fields: items, widget, on_complete, targeting
+   - References tour_themes for styling
+   - RLS policies for agency isolation
+
+2. **`customer_checklist_progress`** - Per-customer progress tracking
+   - Tracks completed_items array, status, timestamps
+   - Unique constraint on (customer_id, checklist_id)
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `tours/_actions/checklist-actions.ts` | Server actions for CRUD + stats |
+| `tours/_components/checklists-card.tsx` | Card on tours page with create dialog |
+| `tours/checklists/[id]/page.tsx` | Builder page |
+| `tours/checklists/[id]/_components/checklist-builder.tsx` | Main 3-panel builder |
+| `tours/checklists/[id]/_components/checklist-items-panel.tsx` | Sortable items list |
+| `tours/checklists/[id]/_components/checklist-item-settings.tsx` | Item configuration |
+| `tours/checklists/[id]/_components/checklist-settings-panel.tsx` | Settings sheet |
+| `tours/checklists/[id]/_components/checklist-preview.tsx` | Live widget preview |
+| `api/track/checklist-progress/route.ts` | Public progress tracking API |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `types/database.ts` | Added checklist interfaces |
+| `tours/_components/tours-client.tsx` | Added ChecklistsCard integration |
+| `tours/page.tsx` | Added checklists data fetching |
+| `api/config/route.ts` | Added checklists to config response |
+| `embed.js/route.ts` | Added full checklist widget rendering |
+
+### Key Implementation Details
+
+1. **Builder Pattern**: Same 3-panel layout as tour builder (items, settings, preview)
+2. **Drag-Drop**: Uses @dnd-kit/sortable for item reordering
+3. **Auto-Save**: Debounced save with "All changes saved" indicator
+4. **Widget Rendering**: Full HTML/CSS generated in embed script (~500 lines)
+5. **Progress Tracking**: localStorage for client-side, database for server-side
+6. **Confetti**: Loads canvas-confetti dynamically on completion
+7. **Templates**: "Getting Started" system template included
+
+### Completion Triggers Implemented
+
+- `manual` - User clicks the checkbox
+- `tour_complete` - Linked tour finishes
+- `element_exists` - CSS selector matches element on page
+- `url_visited` - User visits a specific URL pattern
+
+### Deviations from Spec
+
+- Added `url_visited` completion trigger (user requested)
+- Checklist builder placed under `/tours/checklists/[id]` instead of separate `/checklists` route
+- ChecklistsCard integrated into existing ToursClient component
+
+### Quick Wins Implemented
+
+- Estimated time display in settings panel
+- "Getting Started" default template
+- Interactive preview with click-to-complete
+- Status badges (Live/Draft/Archived)
+- Duplicate checklist action

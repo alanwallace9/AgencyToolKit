@@ -4,18 +4,18 @@ import type { ImageTemplateTextConfig } from '@/types/database';
 
 export const DEFAULT_TEXT_CONFIG: ImageTemplateTextConfig = {
   x: 50,
-  y: 80,
-  width: 40,
-  height: 10,
+  y: 50,
+  width: 20.3,  // 130px on 640px canvas
+  height: 12.2, // 44px on 360px canvas
   font: 'Poppins',
   size: 32,
   font_weight: 'bold',
   text_align: 'center',
   text_transform: 'none',
-  color: '#000000', // Black text (pairs with white box default)
-  background_color: null,
-  padding: 8,
+  color: '#000000', // Black text
+  background_color: '#FFFFFF', // White box
+  padding: 12,
   fallback: 'Friend',
-  prefix: '', // Empty by default - user can add
-  suffix: '', // Empty by default - user can add
+  prefix: '',
+  suffix: '',
 };

@@ -22,20 +22,23 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bold, Italic, Underline, Minus, Plus, Magnet, LayoutGrid, ChevronDown } from 'lucide-react';
+import { Bold, Italic, Underline, Minus, Plus, LayoutGrid, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// 9-point position presets
+// 9-point position presets (center points as percentages)
 const POSITION_PRESETS = [
-  { id: 'TL', label: 'Top Left', x: 5, y: 5 },
-  { id: 'TC', label: 'Top Center', x: 30, y: 5 },
-  { id: 'TR', label: 'Top Right', x: 55, y: 5 },
-  { id: 'ML', label: 'Middle Left', x: 5, y: 45 },
-  { id: 'MC', label: 'Middle Center', x: 30, y: 45 },
-  { id: 'MR', label: 'Middle Right', x: 55, y: 45 },
-  { id: 'BL', label: 'Bottom Left', x: 5, y: 80 },
-  { id: 'BC', label: 'Bottom Center', x: 30, y: 80 },
-  { id: 'BR', label: 'Bottom Right', x: 55, y: 80 },
+  // Top row
+  { x: 20, y: 15, label: 'Top Left' },
+  { x: 50, y: 15, label: 'Top Center' },
+  { x: 80, y: 15, label: 'Top Right' },
+  // Middle row
+  { x: 20, y: 50, label: 'Middle Left' },
+  { x: 50, y: 50, label: 'Center' },
+  { x: 80, y: 50, label: 'Middle Right' },
+  // Bottom row
+  { x: 20, y: 85, label: 'Bottom Left' },
+  { x: 50, y: 85, label: 'Bottom Center' },
+  { x: 80, y: 85, label: 'Bottom Right' },
 ];
 
 // Supported fonts (Google Fonts compatible with @vercel/og)
@@ -65,8 +68,6 @@ const COLOR_PRESETS = [
 interface TextToolbarProps {
   config: ImageTemplateTextConfig;
   onConfigChange: (updates: Partial<ImageTemplateTextConfig>) => void;
-  showSnapLines: boolean;
-  onToggleSnapLines: () => void;
   hasTextBox: boolean;
   onInsertTextBox: (position: { x: number; y: number }) => void;
 }
@@ -74,8 +75,6 @@ interface TextToolbarProps {
 export function TextToolbar({
   config,
   onConfigChange,
-  showSnapLines,
-  onToggleSnapLines,
   hasTextBox,
   onInsertTextBox,
 }: TextToolbarProps) {
@@ -84,10 +83,30 @@ export function TextToolbar({
 
   const hasBackground = config.background_color !== null && config.background_color !== undefined;
 
-  // Handle position preset click - inserts text box with WHITE background
-  const handlePresetClick = (preset: typeof POSITION_PRESETS[0]) => {
+  // Handle position preset click - inserts/moves text box
+  const handlePresetClick = (preset: typeof POSITION_PRESETS[number]) => {
     onInsertTextBox({ x: preset.x, y: preset.y });
   };
+
+  // Determine which position is closest to current config
+  const getActivePresetIndex = () => {
+    if (config.x === undefined || config.y === undefined) return -1;
+
+    let closestIdx = -1;
+    let closestDist = Infinity;
+
+    POSITION_PRESETS.forEach((pos, idx) => {
+      const dist = Math.sqrt(Math.pow(pos.x - config.x, 2) + Math.pow(pos.y - config.y, 2));
+      if (dist < closestDist && dist < 15) { // Within 15% threshold
+        closestDist = dist;
+        closestIdx = idx;
+      }
+    });
+
+    return closestIdx;
+  };
+
+  const activePresetIdx = getActivePresetIndex();
 
   // Toggle bold
   const handleBoldToggle = () => {
@@ -119,28 +138,46 @@ export function TextToolbar({
             <ChevronDown className="h-3 w-3 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          {/* 3x3 Grid Preview */}
-          <div className="p-2">
-            <div className="grid grid-cols-3 gap-1 mb-2">
-              {POSITION_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  className={cn(
-                    'aspect-square rounded border border-muted-foreground/30',
-                    'hover:border-primary hover:bg-primary/10 transition-colors',
-                    'flex items-center justify-center text-[9px] text-muted-foreground font-medium'
-                  )}
-                  onClick={() => handlePresetClick(preset)}
-                >
-                  {preset.id}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground text-center">
-              {hasTextBox ? 'Click to reposition box' : 'Click to add text box'}
-            </p>
+        <DropdownMenuContent align="start" className="w-auto p-3">
+          {/* Visual 3x3 Grid with mini canvas thumbnails */}
+          <Label className="text-xs font-medium mb-2 block">Text Box Position</Label>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            {POSITION_PRESETS.map((preset, idx) => (
+              <button
+                key={idx}
+                onClick={() => handlePresetClick(preset)}
+                title={preset.label}
+                className={cn(
+                  'relative w-12 h-9 rounded-md border-2 transition-all hover:border-primary/50 hover:bg-muted/50',
+                  activePresetIdx === idx
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-background'
+                )}
+              >
+                {/* Mini canvas representation */}
+                <div className="absolute inset-1 rounded-sm border border-border/50">
+                  {/* Text box indicator */}
+                  <div
+                    className={cn(
+                      'absolute w-[40%] h-[20%] rounded-sm transition-colors',
+                      activePresetIdx === idx ? 'bg-primary' : 'bg-muted-foreground/40'
+                    )}
+                    style={{
+                      // Position the mini text box based on the preset
+                      left: preset.x < 40 ? '8%' : preset.x > 60 ? 'auto' : '50%',
+                      right: preset.x > 60 ? '8%' : 'auto',
+                      top: preset.y < 40 ? '12%' : preset.y > 60 ? 'auto' : '50%',
+                      bottom: preset.y > 60 ? '12%' : 'auto',
+                      transform: `translate(${preset.x === 50 ? '-50%' : '0'}, ${preset.y === 50 ? '-50%' : '0'})`,
+                    }}
+                  />
+                </div>
+              </button>
+            ))}
           </div>
+          <p className="text-[10px] text-muted-foreground text-center">
+            {hasTextBox ? 'Click to reposition' : 'Click to add text box'}
+          </p>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -252,18 +289,28 @@ export function TextToolbar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-none border-l"
-          onClick={() => {/* Italic - for future */}}
-          disabled
+          className={cn(
+            "h-9 w-9 rounded-none border-l",
+            config.font_style === 'italic' && "bg-muted"
+          )}
+          onClick={() => {
+            const newStyle = config.font_style === 'italic' ? 'normal' : 'italic';
+            onConfigChange({ font_style: newStyle });
+          }}
         >
           <Italic className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-l-none border-l"
-          onClick={() => {/* Underline - for future */}}
-          disabled
+          className={cn(
+            "h-9 w-9 rounded-l-none border-l",
+            config.text_decoration === 'underline' && "bg-muted"
+          )}
+          onClick={() => {
+            const newDecoration = config.text_decoration === 'underline' ? 'none' : 'underline';
+            onConfigChange({ text_decoration: newDecoration });
+          }}
         >
           <Underline className="h-4 w-4" />
         </Button>
@@ -319,21 +366,23 @@ export function TextToolbar({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M4 12V4h8" />
-                <path d="M4 4c0 4.4 3.6 8 8 8" />
+                {/* Rounded corner icon */}
+                <path d="M5 19V9a4 4 0 0 1 4-4h10" />
               </svg>
-              {config.padding || 8}
+              {config.padding ?? 12}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-48 p-3" align="start">
             <div className="space-y-3">
               <Label className="text-xs font-medium">Corner Radius & Padding</Label>
               <Slider
-                value={[config.padding || 8]}
+                value={[config.padding ?? 12]}
                 min={0}
-                max={32}
-                step={2}
+                max={24}
+                step={1}
                 onValueChange={([value]) => onConfigChange({ padding: value })}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
@@ -344,20 +393,6 @@ export function TextToolbar({
           </PopoverContent>
         </Popover>
       )}
-
-      {/* Divider */}
-      <div className="w-px h-8 bg-border mx-2" />
-
-      {/* Snap Lines Toggle */}
-      <Button
-        variant={showSnapLines ? 'default' : 'outline'}
-        size="icon"
-        className="h-9 w-9"
-        onClick={onToggleSnapLines}
-        title={showSnapLines ? 'Snap lines on' : 'Snap lines off'}
-      >
-        <Magnet className="h-4 w-4" />
-      </Button>
     </div>
   );
 }
