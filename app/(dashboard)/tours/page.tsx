@@ -6,7 +6,10 @@ import { getCurrentAgency } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ToursClient } from './_components/tours-client';
 import { getTours, getTourTemplates } from './_actions/tour-actions';
-import type { Customer } from '@/types/database';
+import { getThemes } from './_actions/theme-actions';
+import { getChecklistsWithStats } from './_actions/checklist-actions';
+import { getBannersWithStats } from './_actions/banner-actions';
+import type { Customer, TourTheme } from '@/types/database';
 
 export default async function ToursPage() {
   const agency = await getCurrentAgency();
@@ -39,12 +42,15 @@ export default async function ToursPage() {
     );
   }
 
-  // Fetch tours, templates, and customers in parallel
+  // Fetch tours, templates, themes, checklists, and customers in parallel
   const supabase = createAdminClient();
 
-  const [tours, templates, { data: customers }] = await Promise.all([
+  const [tours, templates, themes, checklists, banners, { data: customers }] = await Promise.all([
     getTours(),
     getTourTemplates(),
+    getThemes(),
+    getChecklistsWithStats(),
+    getBannersWithStats(),
     supabase
       .from('customers')
       .select('id, name, ghl_location_id, ghl_url')
@@ -63,6 +69,9 @@ export default async function ToursPage() {
       <ToursClient
         tours={tours}
         templates={templates}
+        themes={themes}
+        checklists={checklists}
+        banners={banners}
         customers={(customers as Customer[]) || []}
       />
     </>

@@ -613,31 +613,52 @@ export interface ChecklistItem {
 
 export interface ChecklistWidget {
   position: 'bottom-left' | 'bottom-right';
-  collapsed_by_default: boolean;
-  show_progress: boolean;
+  default_state: 'expanded' | 'minimized';
+  minimized_text: string;
+  cta_text: string;
   hide_when_complete: boolean;
+  show_confetti: boolean;
 }
 
-export interface ChecklistCompletionAction {
-  type: CompletionActionType;
-  content?: string;
+export interface ChecklistOnComplete {
+  type: 'none' | 'celebration' | 'redirect';
   url?: string;
-  event_name?: string;
+}
+
+export interface ChecklistTargeting {
+  url_mode: 'all' | 'specific';
+  url_patterns: string[];
+  customer_mode: 'all' | 'specific';
+  customer_ids: string[];
 }
 
 export interface Checklist {
   id: string;
   agency_id: string;
-  subaccount_id: string | null;
   name: string;
   title: string;
-  description?: string;
-  status: TourStatus;
+  description?: string | null;
+  status: 'draft' | 'live' | 'archived';
   items: ChecklistItem[];
-  targeting: TourTargeting;
   widget: ChecklistWidget;
-  on_complete?: ChecklistCompletionAction;
+  on_complete: ChecklistOnComplete;
+  targeting: ChecklistTargeting;
   theme_id: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerChecklistProgress {
+  id: string;
+  customer_id: string;
+  checklist_id: string;
+  completed_items: string[];
+  status: 'not_started' | 'in_progress' | 'completed' | 'dismissed';
+  started_at: string | null;
+  completed_at: string | null;
+  dismissed_at: string | null;
+  last_activity_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -668,31 +689,69 @@ export interface SmartTip {
 // BANNER TYPES
 // ============================================
 
+export type BannerType = 'standard' | 'trial_expiration';
+export type BannerStatus = 'draft' | 'live' | 'archived' | 'scheduled';
 export type BannerPosition = 'top' | 'bottom';
-export type BannerStyle = 'info' | 'success' | 'warning' | 'error' | 'custom';
+export type BannerDisplayMode = 'inline' | 'float';
+export type BannerStylePreset = 'info' | 'success' | 'warning' | 'error' | 'custom';
+export type BannerActionType = 'url' | 'tour' | 'checklist' | 'dismiss';
+export type BannerPriority = 'high' | 'normal' | 'low';
+export type BannerDismissDuration = 'session' | 'permanent';
 
 export interface BannerAction {
+  enabled: boolean;
   label: string;
-  type: 'url' | 'tour' | 'dismiss';
-  url?: string;
-  tour_id?: string;
+  type: BannerActionType;
+  url?: string | null;
+  tour_id?: string | null;
+  checklist_id?: string | null;
+  new_tab?: boolean;
+  whole_banner_clickable?: boolean;
+}
+
+export interface BannerTargeting {
+  url_mode: 'all' | 'specific' | 'except';
+  url_patterns: string[];  // Simple string patterns with wildcard support for V1
+  customer_mode: 'all' | 'specific';
+  customer_ids: string[];
+}
+
+export interface BannerSchedule {
+  mode: 'always' | 'range';
+  start_date: string | null;
+  end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  timezone: 'user' | string;
+}
+
+export interface BannerTrialTriggers {
+  days_remaining: number;
 }
 
 export interface Banner {
   id: string;
   agency_id: string;
-  subaccount_id: string | null;
   name: string;
-  status: TourStatus;
+  banner_type: BannerType;
+  status: BannerStatus;
   content: string;
+  action: BannerAction;
   position: BannerPosition;
-  style: BannerStyle;
-  dismissible: boolean;
-  action?: BannerAction;
-  targeting: TourTargeting;
-  start_date?: string;
-  end_date?: string;
+  display_mode: BannerDisplayMode;
+  style_preset: BannerStylePreset;
   theme_id: string | null;
+  dismissible: boolean;
+  dismiss_duration: BannerDismissDuration;
+  priority: BannerPriority;
+  exclusive: boolean;
+  targeting: BannerTargeting;
+  schedule: BannerSchedule;
+  trial_triggers: BannerTrialTriggers;
+  view_count: number;
+  click_count: number;
+  dismiss_count: number;
+  published_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -813,6 +872,8 @@ export interface ImageTemplateTextConfig {
   font: string;
   size: number;
   font_weight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  font_style?: 'normal' | 'italic';
+  text_decoration?: 'none' | 'underline';
   text_align?: 'left' | 'center' | 'right';
   text_transform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   letter_spacing?: number;

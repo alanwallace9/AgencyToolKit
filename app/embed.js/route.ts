@@ -3172,6 +3172,667 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   }
 
   // ============================================
+  // CHECKLIST WIDGET SYSTEM
+  // ============================================
+
+  var CHECKLIST_STATE_KEY_PREFIX = 'at_checklist_';
+  var CHECKLIST_DISMISS_KEY_PREFIX = 'at_checklist_dismissed_';
+
+  // Get checklist state from localStorage
+  function getChecklistState(checklistId) {
+    try {
+      var locationId = getGHLLocationId();
+      var key = CHECKLIST_STATE_KEY_PREFIX + checklistId + '_' + locationId;
+      var stored = localStorage.getItem(key);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      logWarn('Failed to get checklist state', e);
+    }
+    return { completedItems: [], status: 'not_started' };
+  }
+
+  // Save checklist state to localStorage
+  function saveChecklistState(checklistId, state) {
+    try {
+      var locationId = getGHLLocationId();
+      var key = CHECKLIST_STATE_KEY_PREFIX + checklistId + '_' + locationId;
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (e) {
+      logWarn('Failed to save checklist state', e);
+    }
+  }
+
+  // Check if checklist was dismissed
+  function isChecklistDismissed(checklistId) {
+    try {
+      var locationId = getGHLLocationId();
+      var key = CHECKLIST_DISMISS_KEY_PREFIX + checklistId + '_' + locationId;
+      return localStorage.getItem(key) === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Dismiss checklist
+  function dismissChecklist(checklistId) {
+    try {
+      var locationId = getGHLLocationId();
+      var key = CHECKLIST_DISMISS_KEY_PREFIX + checklistId + '_' + locationId;
+      localStorage.setItem(key, 'true');
+    } catch (e) {
+      logWarn('Failed to dismiss checklist', e);
+    }
+  }
+
+  // Track checklist progress to server
+  function trackChecklistProgress(checklistId, completedItems, status) {
+    var locationId = getGHLLocationId();
+    if (!locationId || !CONFIG_KEY) return;
+
+    var payload = {
+      agency_token: CONFIG_KEY,
+      ghl_location_id: locationId,
+      checklist_id: checklistId,
+      completed_items: completedItems,
+      status: status
+    };
+
+    fetch(API_BASE + '/api/track/checklist-progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function(e) {
+      // Silently fail
+    });
+  }
+
+  // Show confetti animation
+  function showConfetti() {
+    // Load canvas-confetti if not already loaded
+    if (!window.confetti) {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+      script.onload = function() {
+        if (window.confetti) {
+          window.confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        }
+      };
+      document.head.appendChild(script);
+    } else {
+      window.confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+  }
+
+  // Render checklist widget
+  function renderChecklistWidget(checklist, theme) {
+    var state = getChecklistState(checklist.id);
+    var completedItems = state.completedItems || [];
+    var items = checklist.items || [];
+    var widget = checklist.widget || {};
+    var position = widget.position || 'bottom-right';
+    var defaultState = widget.default_state || 'minimized';
+
+    var totalCount = items.length;
+    var completedCount = completedItems.length;
+    var percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+    // Theme colors
+    var primaryColor = theme?.colors?.primary || '#3b82f6';
+    var backgroundColor = theme?.colors?.background || '#ffffff';
+    var textColor = theme?.colors?.text || '#1f2937';
+    var textSecondary = theme?.colors?.text_secondary || '#6b7280';
+    var borderRadius = theme?.borders?.radius || '12px';
+
+    // Remove existing widget
+    var existing = document.getElementById('at-checklist-' + checklist.id);
+    if (existing) existing.remove();
+
+    // Create widget container
+    var container = document.createElement('div');
+    container.id = 'at-checklist-' + checklist.id;
+    container.className = 'at-checklist-widget at-checklist-' + position;
+    container.setAttribute('data-checklist-id', checklist.id);
+
+    // Apply position styles
+    container.style.cssText = 'position:fixed;bottom:0;' + (position === 'bottom-right' ? 'right:20px;' : 'left:20px;') + 'z-index:10000;font-family:system-ui,-apple-system,sans-serif;';
+
+    // Build HTML
+    var itemsHtml = items.map(function(item) {
+      var isCompleted = completedItems.includes(item.id);
+      return '<div class="at-checklist-item' + (isCompleted ? ' completed' : '') + '" data-item-id="' + item.id + '" style="display:flex;align-items:flex-start;gap:8px;padding:8px;margin:0 -8px;border-radius:8px;cursor:pointer;transition:background 0.15s;">' +
+        '<span style="flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;' + (isCompleted ? 'background:' + primaryColor + ';color:white;' : 'border:2px solid ' + textSecondary + ';') + '">' +
+        (isCompleted ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') +
+        '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<span style="display:block;font-size:14px;font-weight:500;' + (isCompleted ? 'text-decoration:line-through;opacity:0.6;' : '') + 'color:' + textColor + ';">' + escapeHtml(item.title) + '</span>' +
+        (item.description ? '<span style="display:block;font-size:12px;color:' + textSecondary + ';margin-top:2px;">' + escapeHtml(item.description) + '</span>' : '') +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    container.innerHTML =
+      '<!-- Minimized Tab -->' +
+      '<div class="at-checklist-tab" style="display:' + (defaultState === 'minimized' ? 'flex' : 'none') + ';align-items:center;gap:8px;padding:8px 16px;background:' + primaryColor + ';color:white;border-radius:' + borderRadius + ' ' + borderRadius + ' 0 0;cursor:pointer;font-weight:500;font-size:14px;box-shadow:0 -2px 8px rgba(0,0,0,0.1);transition:transform 0.15s;">' +
+      '<span>' + escapeHtml(widget.minimized_text || 'Get started') + '</span>' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>' +
+      '</div>' +
+      '<!-- Expanded Widget -->' +
+      '<div class="at-checklist-expanded" style="display:' + (defaultState === 'expanded' ? 'block' : 'none') + ';width:300px;background:' + backgroundColor + ';border-radius:' + borderRadius + ';box-shadow:0 4px 24px rgba(0,0,0,0.15);overflow:hidden;">' +
+      '<div class="at-checklist-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:' + primaryColor + ';color:white;">' +
+      '<span style="font-weight:600;font-size:14px;">' + escapeHtml(checklist.title) + '</span>' +
+      '<button class="at-checklist-close" style="background:none;border:none;color:white;cursor:pointer;padding:4px;border-radius:4px;display:flex;transition:background 0.15s;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>' +
+      '</div>' +
+      '<div class="at-checklist-progress" style="padding:12px 16px 0;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-size:12px;font-weight:600;color:' + textColor + ';">' + percent + '%</span></div>' +
+      '<div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;"><div style="width:' + percent + '%;height:100%;background:' + primaryColor + ';border-radius:3px;transition:width 0.3s;"></div></div>' +
+      '</div>' +
+      '<div class="at-checklist-items" style="padding:12px 16px;max-height:240px;overflow-y:auto;">' + itemsHtml + '</div>' +
+      '<div class="at-checklist-footer" style="padding:12px 16px;border-top:1px solid #e5e7eb;text-align:center;">' +
+      '<a class="at-dismiss-link" style="display:block;font-size:12px;color:' + textSecondary + ';cursor:pointer;margin-bottom:8px;">Dismiss onboarding</a>' +
+      '<button class="at-checklist-cta" style="width:100%;padding:10px 16px;background:' + primaryColor + ';color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s;">' + escapeHtml(widget.cta_text || 'Get Started') + '</button>' +
+      '</div>' +
+      '</div>';
+
+    document.body.appendChild(container);
+
+    // Event handlers
+    var tab = container.querySelector('.at-checklist-tab');
+    var expanded = container.querySelector('.at-checklist-expanded');
+    var closeBtn = container.querySelector('.at-checklist-close');
+    var dismissLink = container.querySelector('.at-dismiss-link');
+    var ctaBtn = container.querySelector('.at-checklist-cta');
+    var itemElements = container.querySelectorAll('.at-checklist-item');
+
+    // Expand
+    tab.addEventListener('click', function() {
+      tab.style.display = 'none';
+      expanded.style.display = 'block';
+    });
+
+    // Minimize
+    closeBtn.addEventListener('click', function() {
+      expanded.style.display = 'none';
+      tab.style.display = 'flex';
+    });
+
+    // Hover effects
+    tab.addEventListener('mouseenter', function() { tab.style.transform = 'translateY(-2px)'; });
+    tab.addEventListener('mouseleave', function() { tab.style.transform = 'translateY(0)'; });
+    closeBtn.addEventListener('mouseenter', function() { closeBtn.style.background = 'rgba(255,255,255,0.2)'; });
+    closeBtn.addEventListener('mouseleave', function() { closeBtn.style.background = 'none'; });
+
+    // Dismiss
+    dismissLink.addEventListener('click', function() {
+      dismissChecklist(checklist.id);
+      container.remove();
+    });
+
+    // CTA - click first incomplete item
+    ctaBtn.addEventListener('click', function() {
+      var firstIncomplete = items.find(function(item) {
+        return !completedItems.includes(item.id);
+      });
+      if (firstIncomplete) {
+        handleChecklistItemClick(checklist, firstIncomplete, theme);
+      }
+    });
+
+    // Item clicks
+    itemElements.forEach(function(el) {
+      el.addEventListener('mouseenter', function() { el.style.background = '#f3f4f6'; });
+      el.addEventListener('mouseleave', function() { el.style.background = 'none'; });
+      el.addEventListener('click', function() {
+        var itemId = el.getAttribute('data-item-id');
+        var item = items.find(function(i) { return i.id === itemId; });
+        if (item) {
+          handleChecklistItemClick(checklist, item, theme);
+        }
+      });
+    });
+  }
+
+  // Handle checklist item click
+  function handleChecklistItemClick(checklist, item, theme) {
+    var state = getChecklistState(checklist.id);
+    var completedItems = state.completedItems || [];
+    var action = item.action || {};
+    var trigger = item.completion_trigger || {};
+
+    // Execute action
+    if (action.type === 'tour' && action.tour_id) {
+      // TODO: Launch specific tour
+      log('Launching tour:', action.tour_id);
+    } else if (action.type === 'url' && action.url) {
+      if (action.new_tab) {
+        window.open(action.url, '_blank');
+      } else {
+        window.location.href = action.url;
+      }
+    }
+
+    // Handle manual completion trigger
+    if (trigger.type === 'manual') {
+      if (!completedItems.includes(item.id)) {
+        completedItems.push(item.id);
+        var newStatus = completedItems.length === checklist.items.length ? 'completed' : 'in_progress';
+        saveChecklistState(checklist.id, { completedItems: completedItems, status: newStatus });
+        trackChecklistProgress(checklist.id, completedItems, newStatus);
+
+        // Re-render widget
+        renderChecklistWidget(checklist, theme);
+
+        // Check if all items complete
+        if (newStatus === 'completed') {
+          handleChecklistComplete(checklist);
+        }
+      }
+    }
+  }
+
+  // Handle checklist completion
+  function handleChecklistComplete(checklist) {
+    var widget = checklist.widget || {};
+    var onComplete = checklist.on_complete || {};
+
+    // Show confetti if enabled
+    if (widget.show_confetti) {
+      showConfetti();
+    }
+
+    // Handle completion action
+    if (onComplete.type === 'celebration') {
+      log('Checklist completed! Showing celebration');
+    } else if (onComplete.type === 'redirect' && onComplete.url) {
+      setTimeout(function() {
+        window.location.href = onComplete.url;
+      }, 1500);
+    }
+
+    // Hide widget if configured
+    if (widget.hide_when_complete) {
+      setTimeout(function() {
+        var widgetEl = document.getElementById('at-checklist-' + checklist.id);
+        if (widgetEl) widgetEl.remove();
+      }, 2000);
+    }
+  }
+
+  // HTML escape helper
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Check if checklist should be shown based on targeting
+  function shouldShowChecklist(checklist) {
+    var targeting = checklist.targeting || {};
+
+    // Check if dismissed
+    if (isChecklistDismissed(checklist.id)) {
+      log('Checklist dismissed:', checklist.name);
+      return false;
+    }
+
+    // Check URL targeting
+    if (targeting.url_mode === 'specific' && targeting.url_patterns?.length > 0) {
+      var currentUrl = window.location.href;
+      var matched = targeting.url_patterns.some(function(pattern) {
+        return matchUrlPattern(currentUrl, pattern);
+      });
+      if (!matched) {
+        log('URL does not match checklist targeting:', checklist.name);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Initialize production checklists
+  function initProductionChecklists(config) {
+    var checklists = config.checklists || [];
+    var themes = config.tour_themes || [];
+
+    if (checklists.length === 0) {
+      log('No live checklists configured');
+      return;
+    }
+
+    log('Checking ' + checklists.length + ' live checklist(s)');
+
+    // Wait for page to be ready
+    function renderChecklists() {
+      checklists.forEach(function(checklist) {
+        if (shouldShowChecklist(checklist)) {
+          var theme = themes.find(function(t) { return t.id === checklist.theme_id; });
+          renderChecklistWidget(checklist, theme);
+          log('Rendered checklist widget:', checklist.name);
+        }
+      });
+    }
+
+    // Delay to let page load
+    setTimeout(renderChecklists, 2500);
+  }
+
+  // ============================================
+  // BANNERS - In-app Announcements
+  // ============================================
+
+  var BANNER_STYLE_COLORS = {
+    info: { bg: '#3B82F6', text: '#ffffff' },
+    success: { bg: '#10B981', text: '#ffffff' },
+    warning: { bg: '#F59E0B', text: '#1F2937' },
+    error: { bg: '#EF4444', text: '#ffffff' }
+  };
+
+  function shouldShowBanner(banner) {
+    // Check schedule
+    if (banner.schedule && banner.schedule.mode === 'range') {
+      var now = new Date();
+      if (banner.schedule.start_date) {
+        var start = new Date(banner.schedule.start_date);
+        if (now < start) return false;
+      }
+      if (banner.schedule.end_date) {
+        var end = new Date(banner.schedule.end_date);
+        if (now > end) return false;
+      }
+    }
+
+    // Check URL targeting
+    if (banner.targeting && banner.targeting.url_mode !== 'all') {
+      var currentUrl = window.location.href;
+      var patterns = banner.targeting.url_patterns || [];
+
+      if (patterns.length > 0) {
+        var matchesPattern = patterns.some(function(pattern) {
+          // Convert wildcard pattern to regex
+          var regex = new RegExp(pattern.replace(/\\*/g, '.*'), 'i');
+          return regex.test(currentUrl);
+        });
+
+        if (banner.targeting.url_mode === 'specific' && !matchesPattern) return false;
+        if (banner.targeting.url_mode === 'except' && matchesPattern) return false;
+      }
+    }
+
+    // Check dismissal
+    if (banner.dismissible) {
+      var storageKey = 'at_banner_dismissed_' + banner.id;
+      if (banner.dismiss_duration === 'permanent') {
+        var dismissed = localStorage.getItem(storageKey);
+        if (dismissed) {
+          // Check if 30 days have passed
+          var dismissedTime = parseInt(dismissed, 10);
+          var thirtyDays = 30 * 24 * 60 * 60 * 1000;
+          if (Date.now() - dismissedTime < thirtyDays) return false;
+        }
+      } else {
+        if (sessionStorage.getItem(storageKey)) return false;
+      }
+    }
+
+    return true;
+  }
+
+  function getBannerColors(banner, themes) {
+    if (banner.style_preset === 'custom' && banner.theme_id) {
+      var theme = themes.find(function(t) { return t.id === banner.theme_id; });
+      if (theme && theme.colors) {
+        return {
+          bg: theme.colors.primary || '#3B82F6',
+          text: theme.colors.text || '#ffffff'
+        };
+      }
+    }
+    return BANNER_STYLE_COLORS[banner.style_preset] || BANNER_STYLE_COLORS.info;
+  }
+
+  function renderBanner(banner, themes) {
+    var colors = getBannerColors(banner, themes);
+
+    // Replace dynamic variables in content
+    var content = banner.content
+      .replace(/\\{\\{days\\}\\}/g, '3') // TODO: Get actual trial days
+      .replace(/\\{\\{customer_name\\}\\}/g, 'Customer')
+      .replace(/\\{\\{agency_name\\}\\}/g, 'Agency');
+
+    var el = document.createElement('div');
+    el.id = 'at-banner-' + banner.id;
+    el.className = 'at-banner at-banner-' + banner.position + ' at-banner-' + banner.display_mode;
+
+    // Base styles
+    el.style.cssText = [
+      'display: flex',
+      'align-items: center',
+      'justify-content: center',
+      'padding: 12px 16px',
+      'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      'font-size: 14px',
+      'z-index: 99999',
+      'position: fixed',
+      'left: 0',
+      'right: 0',
+      'background-color: ' + colors.bg,
+      'color: ' + colors.text
+    ].join(';');
+
+    // Position styles
+    if (banner.position === 'top') {
+      el.style.top = banner.display_mode === 'float' ? '10px' : '0';
+    } else {
+      el.style.bottom = banner.display_mode === 'float' ? '10px' : '0';
+    }
+
+    // Float mode styles
+    if (banner.display_mode === 'float') {
+      el.style.left = '10px';
+      el.style.right = '10px';
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    }
+
+    // Build inner HTML
+    var innerHtml = '<div style="display:flex;align-items:center;gap:12px;flex:1;justify-content:center;">';
+    innerHtml += '<span style="flex:1;text-align:center;">' + escapeHtml(content) + '</span>';
+
+    // Action button
+    if (banner.action && banner.action.enabled) {
+      innerHtml += '<button class="at-banner-action" style="' + [
+        'background: rgba(255,255,255,0.2)',
+        'border: 1px solid rgba(255,255,255,0.3)',
+        'border-radius: 4px',
+        'padding: 6px 12px',
+        'color: inherit',
+        'cursor: pointer',
+        'font-weight: 500',
+        'white-space: nowrap'
+      ].join(';') + '">' + escapeHtml(banner.action.label || 'Learn More') + '</button>';
+    }
+
+    innerHtml += '</div>';
+
+    // Dismiss button
+    if (banner.dismissible) {
+      innerHtml += '<button class="at-banner-dismiss" style="' + [
+        'background: none',
+        'border: none',
+        'color: inherit',
+        'cursor: pointer',
+        'padding: 4px 8px',
+        'margin-left: 8px',
+        'opacity: 0.7',
+        'font-size: 16px'
+      ].join(';') + '" aria-label="Dismiss">×</button>';
+    }
+
+    el.innerHTML = innerHtml;
+
+    // Insert into DOM
+    if (banner.position === 'top') {
+      document.body.prepend(el);
+      // Add padding to body for inline mode
+      if (banner.display_mode === 'inline') {
+        document.body.style.paddingTop = el.offsetHeight + 'px';
+      }
+    } else {
+      document.body.appendChild(el);
+      if (banner.display_mode === 'inline') {
+        document.body.style.paddingBottom = el.offsetHeight + 'px';
+      }
+    }
+
+    // Track view
+    trackBannerEvent(banner.id, 'view');
+
+    // Handle action click
+    if (banner.action && banner.action.enabled) {
+      var actionEl = banner.action.whole_banner_clickable ? el : el.querySelector('.at-banner-action');
+      if (actionEl) {
+        actionEl.addEventListener('click', function(e) {
+          e.stopPropagation();
+          trackBannerEvent(banner.id, 'click');
+          handleBannerAction(banner.action);
+        });
+        if (banner.action.whole_banner_clickable) {
+          el.style.cursor = 'pointer';
+        }
+      }
+    }
+
+    // Handle dismiss
+    if (banner.dismissible) {
+      var dismissEl = el.querySelector('.at-banner-dismiss');
+      if (dismissEl) {
+        dismissEl.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var storageKey = 'at_banner_dismissed_' + banner.id;
+          if (banner.dismiss_duration === 'permanent') {
+            localStorage.setItem(storageKey, Date.now().toString());
+          } else {
+            sessionStorage.setItem(storageKey, 'true');
+          }
+          trackBannerEvent(banner.id, 'dismiss');
+          el.remove();
+          // Reset padding
+          if (banner.display_mode === 'inline') {
+            if (banner.position === 'top') {
+              document.body.style.paddingTop = '';
+            } else {
+              document.body.style.paddingBottom = '';
+            }
+          }
+        });
+      }
+    }
+  }
+
+  function handleBannerAction(action) {
+    if (!action) return;
+
+    switch (action.type) {
+      case 'url':
+        if (action.url) {
+          if (action.new_tab) {
+            window.open(action.url, '_blank');
+          } else {
+            window.location.href = action.url;
+          }
+        }
+        break;
+      case 'tour':
+        if (action.tour_id && window.__AGENCY_TOOLKIT__) {
+          window.__AGENCY_TOOLKIT__.startTour(action.tour_id);
+        }
+        break;
+      case 'checklist':
+        if (action.checklist_id && window.__AGENCY_TOOLKIT__) {
+          window.__AGENCY_TOOLKIT__.openChecklist(action.checklist_id);
+        }
+        break;
+      case 'dismiss':
+        // Handled by dismiss logic
+        break;
+    }
+  }
+
+  function trackBannerEvent(bannerId, eventType) {
+    fetch(API_BASE + '/api/track/banner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banner_id: bannerId, event_type: eventType })
+    }).catch(function(err) {
+      log('Failed to track banner event:', err);
+    });
+  }
+
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Initialize production banners
+  function initProductionBanners(config) {
+    var banners = config.banners || [];
+    var themes = config.tour_themes || [];
+
+    if (banners.length === 0) {
+      log('No active banners configured');
+      return;
+    }
+
+    log('Checking ' + banners.length + ' active banner(s)');
+
+    // Filter to banners that should show
+    var bannersToShow = banners.filter(shouldShowBanner);
+
+    if (bannersToShow.length === 0) {
+      log('No banners match current conditions');
+      return;
+    }
+
+    // Sort by priority
+    var priorityOrder = { high: 0, normal: 1, low: 2 };
+    bannersToShow.sort(function(a, b) {
+      return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+    });
+
+    // Check for exclusive banner
+    var exclusiveBanner = bannersToShow.find(function(b) { return b.exclusive; });
+    if (exclusiveBanner) {
+      bannersToShow = [exclusiveBanner];
+    }
+
+    // Render banners after page load
+    function renderBanners() {
+      bannersToShow.forEach(function(banner) {
+        renderBanner(banner, themes);
+        log('Rendered banner:', banner.name);
+      });
+    }
+
+    // Delay to let page load
+    setTimeout(renderBanners, 1500);
+  }
+
+  // ============================================
   // VALIDATION MODE - Test Element Selectors
   // ============================================
 
@@ -4338,6 +4999,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
         // Initialize production tours (only if not in special modes)
         initProductionTours(config);
+
+        // Initialize production checklists
+        initProductionChecklists(config);
+
+        // Initialize production banners
+        initProductionBanners(config);
 
         // Mark init as complete
         window.__AT_INIT_COMPLETE__ = true;

@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Get agency by token with live tours (DAP), default menu preset, and login designs
+    // Get agency by token with live tours (DAP), checklists, banners, default menu preset, and login designs
     const { data: agency, error } = await supabase
       .from('agencies')
       .select(
@@ -52,6 +52,36 @@ export async function GET(request: Request) {
           settings,
           targeting,
           theme_id
+        ),
+        checklists (
+          id,
+          name,
+          title,
+          status,
+          items,
+          widget,
+          on_complete,
+          targeting,
+          theme_id
+        ),
+        banners (
+          id,
+          name,
+          banner_type,
+          status,
+          content,
+          action,
+          position,
+          display_mode,
+          style_preset,
+          theme_id,
+          dismissible,
+          dismiss_duration,
+          priority,
+          exclusive,
+          targeting,
+          schedule,
+          trial_triggers
         ),
         tour_themes (
           id,
@@ -93,6 +123,16 @@ export async function GET(request: Request) {
     // Filter to only live tours (DAP status)
     const liveTours = (agency.tours || []).filter(
       (tour: { status: string }) => tour.status === 'live'
+    );
+
+    // Filter to only live checklists
+    const liveChecklists = (agency.checklists || []).filter(
+      (checklist: { status: string }) => checklist.status === 'live'
+    );
+
+    // Filter to only live or scheduled banners
+    const activeBanners = (agency.banners || []).filter(
+      (banner: { status: string }) => banner.status === 'live' || banner.status === 'scheduled'
     );
 
     // Get the default menu preset config
@@ -249,6 +289,64 @@ export async function GET(request: Request) {
         typography: theme.typography || {},
         borders: theme.borders || {},
       })),
+      // Checklists for onboarding
+      checklists: liveChecklists.map((checklist: {
+        id: string;
+        name: string;
+        title: string;
+        items: unknown[];
+        widget: unknown;
+        on_complete: unknown;
+        targeting: unknown;
+        theme_id: string | null;
+      }) => ({
+        id: checklist.id,
+        name: checklist.name,
+        title: checklist.title,
+        items: checklist.items || [],
+        widget: checklist.widget || {},
+        on_complete: checklist.on_complete || { type: 'celebration' },
+        targeting: checklist.targeting || {},
+        theme_id: checklist.theme_id,
+      })),
+      // Banners for announcements
+      banners: activeBanners.map((banner: {
+        id: string;
+        name: string;
+        banner_type: string;
+        status: string;
+        content: string;
+        action: unknown;
+        position: string;
+        display_mode: string;
+        style_preset: string;
+        theme_id: string | null;
+        dismissible: boolean;
+        dismiss_duration: string;
+        priority: string;
+        exclusive: boolean;
+        targeting: unknown;
+        schedule: unknown;
+        trial_triggers: unknown;
+      }) => ({
+        id: banner.id,
+        name: banner.name,
+        banner_type: banner.banner_type,
+        status: banner.status,
+        content: banner.content,
+        action: banner.action || { enabled: false, label: '', type: 'dismiss' },
+        position: banner.position,
+        display_mode: banner.display_mode,
+        style_preset: banner.style_preset,
+        theme_id: banner.theme_id,
+        dismissible: banner.dismissible,
+        dismiss_duration: banner.dismiss_duration,
+        priority: banner.priority,
+        exclusive: banner.exclusive,
+        targeting: banner.targeting || { url_mode: 'all', url_patterns: [], customer_mode: 'all', customer_ids: [] },
+        schedule: banner.schedule || { mode: 'always' },
+        trial_triggers: banner.trial_triggers || { days_remaining: 7 },
+      })),
     };
 
     // DEBUG: Log full config summary
@@ -261,6 +359,8 @@ export async function GET(request: Request) {
       colorsSidebarBg: config.colors?.sidebar_bg || 'none',
       hasLoading: !!config.loading,
       liveToursCount: config.tours.length,
+      liveChecklistsCount: config.checklists.length,
+      activeBannersCount: config.banners.length,
       tourThemesCount: config.tour_themes.length,
     });
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -11,33 +10,40 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Map, SlidersHorizontal, X, Sparkles, ArrowRight, FileText, MessageSquare, Megaphone, ListChecks } from 'lucide-react';
-import { toast } from 'sonner';
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, Map, SlidersHorizontal, X } from 'lucide-react';
 import { TourCard } from './tour-card';
 import { AddTourDialog } from './add-tour-dialog';
-import { createTour } from '../_actions/tour-actions';
+import { ThemesCard } from './themes-card';
+import { TemplatesCard } from './templates-card';
+import { ChecklistsCard } from './checklists-card';
+import { BannersCard } from './banners-card';
 import type { TourWithStats } from '../_actions/tour-actions';
-import type { Customer, TourStatus } from '@/types/database';
+import type { ChecklistWithStats } from '../_actions/checklist-actions';
+import type { BannerWithStats } from '../_actions/banner-actions';
+import type { Customer, TourStatus, TourTheme } from '@/types/database';
 
 interface Template {
   id: string;
   name: string;
   description: string | null;
   category: 'system' | 'custom';
+  steps_count?: number;
 }
 
 interface ToursClientProps {
   tours: TourWithStats[];
   templates: Template[];
+  themes: TourTheme[];
+  checklists: ChecklistWithStats[];
+  banners: BannerWithStats[];
   customers: Customer[];
 }
 
 type SortField = 'created_at' | 'updated_at' | 'name' | 'views' | 'completion';
 type SortOrder = 'asc' | 'desc';
 
-export function ToursClient({ tours, templates, customers }: ToursClientProps) {
-  const router = useRouter();
+export function ToursClient({ tours, templates, themes, checklists, banners, customers }: ToursClientProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TourStatus | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('created_at');
@@ -121,50 +127,6 @@ export function ToursClient({ tours, templates, customers }: ToursClientProps) {
     setStatusFilter('all');
   };
 
-  const [creatingFromTemplate, setCreatingFromTemplate] = useState<string | null>(null);
-
-  const handleUseTemplate = async (template: Template) => {
-    setCreatingFromTemplate(template.id);
-    try {
-      const tour = await createTour({
-        name: template.name,
-        template_id: template.id,
-      });
-      toast.success('Tour created from template');
-      router.push(`/tours/${tour.id}`);
-    } catch (error) {
-      toast.error('Failed to create tour', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setCreatingFromTemplate(null);
-    }
-  };
-
-  // Template icons based on name
-  const getTemplateIcon = (name: string) => {
-    if (name.toLowerCase().includes('welcome')) return MessageSquare;
-    if (name.toLowerCase().includes('feature') || name.toLowerCase().includes('highlight')) return Sparkles;
-    if (name.toLowerCase().includes('checklist') || name.toLowerCase().includes('getting started')) return ListChecks;
-    if (name.toLowerCase().includes('announcement') || name.toLowerCase().includes('banner')) return Megaphone;
-    return FileText;
-  };
-
-  // Sort templates in preferred order
-  const sortedTemplates = useMemo(() => {
-    const order = ['welcome', 'announcement', 'feature', 'checklist'];
-    return [...templates].sort((a, b) => {
-      const aName = a.name.toLowerCase();
-      const bName = b.name.toLowerCase();
-      const aIndex = order.findIndex(keyword => aName.includes(keyword));
-      const bIndex = order.findIndex(keyword => bName.includes(keyword));
-      // Items not in order list go to end
-      const aOrder = aIndex === -1 ? order.length : aIndex;
-      const bOrder = bIndex === -1 ? order.length : bIndex;
-      return aOrder - bOrder;
-    });
-  }, [templates]);
-
   return (
     <div className="space-y-6">
       {/* Search and filters row */}
@@ -224,49 +186,20 @@ export function ToursClient({ tours, templates, customers }: ToursClientProps) {
         </div>
       </div>
 
-      {/* Templates Section */}
-      {templates.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Templates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {sortedTemplates.map((template) => {
-                const Icon = getTemplateIcon(template.name);
-                const isCreating = creatingFromTemplate === template.id;
-                return (
-                  <button
-                    key={template.id}
-                    onClick={() => handleUseTemplate(template)}
-                    disabled={isCreating}
-                    className="flex flex-col items-start p-4 rounded-lg border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all text-left group disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <span className="font-medium text-sm">{template.name}</span>
-                    </div>
-                    {template.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                        {template.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1 text-xs text-primary mt-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isCreating ? 'Creating...' : 'Use template'}
-                      <ArrowRight className="h-3 w-3" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Templates, Themes, Checklists, and Banners Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {/* Templates Card */}
+        <TemplatesCard templates={templates} />
+
+        {/* Themes Card */}
+        <ThemesCard themes={themes} />
+
+        {/* Checklists Card */}
+        <ChecklistsCard checklists={checklists} />
+
+        {/* Banners Card */}
+        <BannersCard banners={banners} />
+      </div>
 
       {/* Extended filters */}
       {showFilters && (
@@ -335,7 +268,7 @@ export function ToursClient({ tours, templates, customers }: ToursClientProps) {
           ))}
         </div>
       ) : tours.length === 0 ? (
-        <EmptyState customers={customers} templates={templates} onUseTemplate={handleUseTemplate} creatingFromTemplate={creatingFromTemplate} />
+        <EmptyState customers={customers} />
       ) : (
         <NoResults onClear={clearFilters} />
       )}
@@ -343,101 +276,21 @@ export function ToursClient({ tours, templates, customers }: ToursClientProps) {
   );
 }
 
-function EmptyState({
-  customers,
-  templates,
-  onUseTemplate,
-  creatingFromTemplate
-}: {
-  customers: Customer[];
-  templates: Template[];
-  onUseTemplate: (template: Template) => void;
-  creatingFromTemplate: string | null;
-}) {
-  // Template icons based on name
-  const getTemplateIcon = (name: string) => {
-    if (name.toLowerCase().includes('welcome')) return MessageSquare;
-    if (name.toLowerCase().includes('feature') || name.toLowerCase().includes('highlight')) return Sparkles;
-    if (name.toLowerCase().includes('checklist') || name.toLowerCase().includes('getting started')) return ListChecks;
-    if (name.toLowerCase().includes('announcement') || name.toLowerCase().includes('banner')) return Megaphone;
-    return FileText;
-  };
-
-  // Sort templates in preferred order
-  const sortedTemplates = useMemo(() => {
-    const order = ['welcome', 'announcement', 'feature', 'checklist'];
-    return [...templates].sort((a, b) => {
-      const aName = a.name.toLowerCase();
-      const bName = b.name.toLowerCase();
-      const aIndex = order.findIndex(keyword => aName.includes(keyword));
-      const bIndex = order.findIndex(keyword => bName.includes(keyword));
-      const aOrder = aIndex === -1 ? order.length : aIndex;
-      const bOrder = bIndex === -1 ? order.length : bIndex;
-      return aOrder - bOrder;
-    });
-  }, [templates]);
-
+function EmptyState({ customers }: { customers: Customer[] }) {
   return (
-    <div className="space-y-6">
-      {/* Templates in empty state */}
-      {templates.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Start with a Template
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {sortedTemplates.map((template) => {
-                const Icon = getTemplateIcon(template.name);
-                const isCreating = creatingFromTemplate === template.id;
-                return (
-                  <button
-                    key={template.id}
-                    onClick={() => onUseTemplate(template)}
-                    disabled={isCreating}
-                    className="flex flex-col items-start p-4 rounded-lg border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all text-left group disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <span className="font-medium text-sm">{template.name}</span>
-                    </div>
-                    {template.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                        {template.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1 text-xs text-primary mt-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isCreating ? 'Creating...' : 'Use template'}
-                      <ArrowRight className="h-3 w-3" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Or start from scratch */}
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <Map className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold text-lg mb-1">Or start from scratch</h3>
-          <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Create a custom guided tour to help your users navigate the platform
-            and discover key features.
-          </p>
-          <AddTourDialog customers={customers} />
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <Map className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="font-semibold text-lg mb-1">No tours yet</h3>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6">
+          Use a template above or create a custom guided tour to help your users
+          navigate the platform and discover key features.
+        </p>
+        <AddTourDialog customers={customers} />
+      </CardContent>
+    </Card>
   );
 }
 

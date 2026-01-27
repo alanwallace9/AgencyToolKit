@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 75% Complete (30 of 40 Active Features)
+## Progress: 85% Complete (34 of 40 Active Features)
 *5 features moved to backlog*
 
 ---
@@ -43,16 +43,16 @@
 - [x] Feature 25: Tour Analytics Dashboard (Customer Progress Tracking)
 
 #### Checklists
-- [ ] Feature 26: Checklists Builder (Items, Actions, Completion Triggers)
-- [ ] Feature 27: Checklists Widget + Embed (Floating Widget, Progress Tracking)
+- [x] Feature 26: Checklists Builder (Items, Actions, Completion Triggers)
+- [x] Feature 27: Checklists Widget + Embed (Floating Widget, Progress Tracking)
 
 #### Smart Tips (Hover Tooltips)
 - [ ] Feature 28: Smart Tips Builder (Element Target, Trigger, Content)
 - [ ] Feature 29: Smart Tips Embed (Hover/Click/Focus Triggers)
 
 #### Banners
-- [ ] Feature 30: Banners Builder (Top/Bottom, Styles, Actions, Scheduling)
-- [ ] Feature 31: Banners Embed (Dismissible, Session Storage)
+- [x] Feature 30: Banners Builder (Top/Bottom, Styles, Actions, Scheduling)
+- [x] Feature 31: Banners Embed (Dismissible, Session Storage)
 
 #### DAP Utilities
 - [ ] Feature 34: URL Pattern Tester UI (Test URLs Against Patterns)
@@ -115,11 +115,15 @@
 - ✅ 2026-01-26: Feature 37 - Font size mismatch fix (API scaling based on editor canvas, not original image)
 - ✅ 2026-01-26: Feature 37 - Font loading, text centering, italic/underline, corner radius slider fixes
 - ✅ 2026-01-26: Feature 25 - Tour Analytics (Customer Progress Tracking)
+- ✅ 2026-01-26: Features 26-27 - Checklists Builder + Widget (Full implementation)
+- ✅ 2026-01-26: Features 30-31 - Banners Builder + Embed (3-panel layout, 5 style presets, scheduling, targeting, analytics)
 
 ### In Progress
-- [ ] Feature 21: Tour Preview - Code complete, needs testing
+- None currently
 
 ### Completed Recently
+- [x] Features 30-31: Banners Builder + Embed (3-panel layout, styles, scheduling, analytics)
+- [x] Features 26-27: Checklists Builder + Widget (Full system)
 - [x] Feature 25: Tour Analytics - Customer Progress Tracking
 - [x] Feature 42-43: Social Proof Widget (TrustSignal)
 - [x] Feature 38 & 39: Image Generation API + URL Generator (Sharp-based)
@@ -130,9 +134,10 @@
 - RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
-- Feature 26-27: Checklists Builder + Widget
-- Feature 28-29: Smart Tips Builder + Embed
-- Feature 30-31: Banners Builder + Embed
+- Feature 28-29: Smart Tips Builder + Embed (hover tooltips)
+- Feature 34: URL Pattern Tester UI
+- Feature 44: Settings Page Complete
+- Feature 45: Plan Gating & Upgrade Prompts
 
 ---
 
