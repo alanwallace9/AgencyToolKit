@@ -482,5 +482,128 @@ Everything in `/tours/banners/`, `/tours/checklists/`, `/tours/[id]/`
 - **Right:** Large preview with mock page
 
 ### Reused Components
-- `ColorControl` from `/g/themes/[id]/_components/color-control.tsx`
+- `CustomColorPicker` from `/components/shared/custom-color-picker.tsx`
 - `BannerFullSettings` sheet from `/tours/banners/[id]/_components/banner-full-settings.tsx`
+
+### Schedule Popover Added
+- `/g/banners/[id]/_components/banner-schedule-popover.tsx`
+- Native HTML `<input type="date">` and `<input type="time">` for clean OS pickers
+- Quick presets (7/14/30 days, always on)
+- Timezone support (ET, CT, MT, PT, UTC, user's local)
+- Embed script updated to respect times AND timezone
+
+---
+
+## CRITICAL: Layout Scroll Fix
+
+**Problem:** When center settings panel opens, the entire page becomes scrollable with white space at the bottom.
+
+**Root Cause:** The Guidely layout used `h-[calc(100vh-4rem)]` with negative margins `-my-8 -mx-8`, which created fragile height calculations. When flex recalculated for the new center column, overflow escaped.
+
+**Solution:** Use fixed positioning to break out of document flow entirely.
+
+### Before (Broken)
+```tsx
+// app/(dashboard)/g/layout.tsx
+<div className="h-[calc(100vh-4rem)] -my-8 -mx-8 flex">
+  <GuidelySidebar />
+  <main className="flex-1 overflow-hidden">
+    {children}
+  </main>
+</div>
+```
+
+### After (Fixed)
+```tsx
+// app/(dashboard)/g/layout.tsx
+<div className="fixed inset-0 top-16 flex">
+  <GuidelySidebar />
+  <main className="flex-1 overflow-hidden">
+    {children}
+  </main>
+</div>
+```
+
+**Key Points:**
+- `fixed inset-0 top-16` - Fixed position, full viewport, offset by header height (64px = 4rem = top-16)
+- `overflow-hidden` on main - Only inner columns scroll, never the layout
+- Each builder's columns use `overflow-y-auto` individually
+- Never use calc-based heights for the outer container
+
+---
+
+## Builder Column Structure (REQUIRED)
+
+Every builder under `/g/` must follow this structure:
+
+```tsx
+<div className="flex flex-col h-full overflow-hidden">
+  {/* Header - shrink-0 so it doesn't collapse */}
+  <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
+    {/* Back button, name input, status, actions */}
+  </div>
+
+  {/* Main content - flex-1 min-h-0 so it fills remaining space */}
+  <div className="flex-1 flex min-h-0 overflow-hidden">
+
+    {/* Left panel - fixed width, scrollable */}
+    <div className="w-80 border-r bg-muted/30 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto">
+        {/* Left content */}
+      </div>
+    </div>
+
+    {/* Center panel - conditional, fixed width, scrollable */}
+    {showCenterPanel && (
+      <div className="w-80 border-r flex flex-col min-h-0 overflow-hidden">
+        <div className="flex items-center justify-between p-3 border-b bg-muted/30 shrink-0">
+          <h3>Panel Title</h3>
+          <Button onClick={() => setShowCenterPanel(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {/* Center content */}
+        </div>
+      </div>
+    )}
+
+    {/* Right panel - flexible width, scrollable */}
+    <div className="flex-1 bg-muted/30 min-h-0 overflow-hidden">
+      {/* Preview content */}
+    </div>
+  </div>
+</div>
+```
+
+**Critical CSS Classes:**
+- `h-full overflow-hidden` - Root container fills parent, hides overflow
+- `shrink-0` - Header won't collapse
+- `flex-1 min-h-0` - Content area fills remaining space and can shrink
+- `overflow-y-auto` - Each column scrolls independently
+- `overflow-hidden` on outer flex containers - Prevents double scrollbars
+
+---
+
+## Remaining Refactors
+
+| Builder | Status | Pattern | Notes |
+|---------|--------|---------|-------|
+| **Banners** | ✅ Complete | A (Single) | 3-column + schedule popover |
+| **Smart Tips** | ✅ Complete | B (Multi) | Already follows pattern |
+| **Checklists** | ⬜ TODO | B (Multi) | Needs slide-out center panel |
+| **Tours** | ⬜ TODO | B (Multi) | Most complex, has rich text |
+
+### Checklists Migration Plan
+1. Copy column structure from Banners
+2. Left: Items list (already exists)
+3. Center: Item settings (extract from current inline)
+4. Right: Widget preview (enlarge current)
+5. Keep widget appearance settings in Settings sheet
+
+### Tours Migration Plan
+1. Copy column structure from Banners
+2. Left: Steps list (already exists)
+3. Center: Step editor (extract from tabs)
+4. Right: Tour preview (enlarge current)
+5. Keep Targeting, Theme in Settings sheet (global settings)
