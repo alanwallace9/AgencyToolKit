@@ -859,6 +859,13 @@ export interface BannerTrialTriggers {
   days_remaining: number;
 }
 
+export interface BannerCustomColors {
+  background: string;
+  text: string;
+  button_bg?: string;
+  button_text?: string;
+}
+
 export interface Banner {
   id: string;
   agency_id: string;
@@ -870,6 +877,7 @@ export interface Banner {
   position: BannerPosition;
   display_mode: BannerDisplayMode;
   style_preset: BannerStylePreset;
+  custom_colors: BannerCustomColors | null;
   theme_id: string | null;
   dismissible: boolean;
   dismiss_duration: BannerDismissDuration;

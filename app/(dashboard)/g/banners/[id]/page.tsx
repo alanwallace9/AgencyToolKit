@@ -4,7 +4,7 @@ import { getBanner } from '@/app/(dashboard)/tours/_actions/banner-actions';
 import { getThemes } from '@/app/(dashboard)/tours/_actions/theme-actions';
 import { getTours } from '@/app/(dashboard)/tours/_actions/tour-actions';
 import { getChecklists } from '@/app/(dashboard)/tours/_actions/checklist-actions';
-import { BannerBuilder } from '@/app/(dashboard)/tours/banners/[id]/_components/banner-builder';
+import { BannerBuilderNew } from './_components/banner-builder-new';
 
 interface BannerPageProps {
   params: Promise<{ id: string }>;
@@ -25,7 +25,7 @@ export default async function GuidelyBannerPage({ params }: BannerPageProps) {
   if (!banner) notFound();
 
   return (
-    <BannerBuilder
+    <BannerBuilderNew
       banner={banner}
       themes={themes}
       tours={tours.filter(t => t.status === 'live')}

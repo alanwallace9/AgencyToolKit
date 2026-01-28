@@ -3541,16 +3541,88 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     error: { bg: '#EF4444', text: '#ffffff' }
   };
 
+  // Parse time string like "9:00 AM" to hours and minutes
+  function parseTimeString(timeStr) {
+    if (!timeStr) return null;
+    var match = timeStr.match(/(\\d+):(\\d+)\\s*(AM|PM)/i);
+    if (!match) return null;
+    var hours = parseInt(match[1]);
+    var minutes = parseInt(match[2]);
+    var period = match[3].toUpperCase();
+
+    if (period === 'AM' && hours === 12) hours = 0;
+    else if (period === 'PM' && hours !== 12) hours += 12;
+
+    return { hours: hours, minutes: minutes };
+  }
+
+  // Get current time in a specific timezone
+  function getNowInTimezone(timezone) {
+    if (!timezone || timezone === 'user') {
+      return new Date();
+    }
+    try {
+      // Get current time formatted in the target timezone
+      var options = {
+        timeZone: timezone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      };
+      var formatter = new Intl.DateTimeFormat('en-US', options);
+      var parts = formatter.formatToParts(new Date());
+      var values = {};
+      parts.forEach(function(p) { values[p.type] = p.value; });
+
+      // Build a date object representing "now" in the target timezone
+      // This creates a Date where getHours() etc return the timezone's local values
+      return new Date(
+        parseInt(values.year),
+        parseInt(values.month) - 1,
+        parseInt(values.day),
+        parseInt(values.hour),
+        parseInt(values.minute),
+        parseInt(values.second)
+      );
+    } catch (e) {
+      log('Timezone error, falling back to local:', e);
+      return new Date();
+    }
+  }
+
   function shouldShowBanner(banner) {
     // Check schedule
     if (banner.schedule && banner.schedule.mode === 'range') {
-      var now = new Date();
+      // Get current time in the configured timezone
+      var timezone = banner.schedule.timezone;
+      var now = getNowInTimezone(timezone);
+
+      // Build start datetime
       if (banner.schedule.start_date) {
         var start = new Date(banner.schedule.start_date);
+        // Apply start time if set
+        if (banner.schedule.start_time) {
+          var startTime = parseTimeString(banner.schedule.start_time);
+          if (startTime) {
+            start.setHours(startTime.hours, startTime.minutes, 0, 0);
+          }
+        }
         if (now < start) return false;
       }
+
+      // Build end datetime
       if (banner.schedule.end_date) {
         var end = new Date(banner.schedule.end_date);
+        // Apply end time if set
+        if (banner.schedule.end_time) {
+          var endTime = parseTimeString(banner.schedule.end_time);
+          if (endTime) {
+            end.setHours(endTime.hours, endTime.minutes, 59, 999);
+          }
+        } else {
+          // Default to end of day if no time specified
+          end.setHours(23, 59, 59, 999);
+        }
         if (now > end) return false;
       }
     }

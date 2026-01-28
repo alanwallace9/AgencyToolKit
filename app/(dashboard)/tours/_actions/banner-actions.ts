@@ -101,6 +101,8 @@ export async function updateBanner(
 
   revalidatePath('/tours');
   revalidatePath(`/tours/banners/${id}`);
+  revalidatePath('/g/banners');
+  revalidatePath(`/g/banners/${id}`);
   return banner as Banner;
 }
 
@@ -118,6 +120,7 @@ export async function deleteBanner(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath('/tours');
+  revalidatePath('/g/banners');
 }
 
 export async function duplicateBanner(id: string): Promise<Banner> {
@@ -148,6 +151,7 @@ export async function duplicateBanner(id: string): Promise<Banner> {
       position: original.position,
       display_mode: original.display_mode,
       style_preset: original.style_preset,
+      custom_colors: original.custom_colors,
       theme_id: original.theme_id,
       dismissible: original.dismissible,
       dismiss_duration: original.dismiss_duration,
@@ -164,6 +168,7 @@ export async function duplicateBanner(id: string): Promise<Banner> {
   if (error) throw new Error(error.message);
 
   revalidatePath('/tours');
+  revalidatePath('/g/banners');
   return banner as Banner;
 }
 
@@ -209,6 +214,8 @@ export async function publishBanner(id: string): Promise<Banner> {
 
   revalidatePath('/tours');
   revalidatePath(`/tours/banners/${id}`);
+  revalidatePath('/g/banners');
+  revalidatePath(`/g/banners/${id}`);
   return banner as Banner;
 }
 
@@ -229,6 +236,8 @@ export async function unpublishBanner(id: string): Promise<Banner> {
 
   revalidatePath('/tours');
   revalidatePath(`/tours/banners/${id}`);
+  revalidatePath('/g/banners');
+  revalidatePath(`/g/banners/${id}`);
   return banner as Banner;
 }
 
@@ -249,6 +258,8 @@ export async function archiveBanner(id: string): Promise<Banner> {
 
   revalidatePath('/tours');
   revalidatePath(`/tours/banners/${id}`);
+  revalidatePath('/g/banners');
+  revalidatePath(`/g/banners/${id}`);
   return banner as Banner;
 }
 
