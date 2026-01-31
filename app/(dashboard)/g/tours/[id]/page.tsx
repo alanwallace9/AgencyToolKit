@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getCurrentAgency } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { TourEditor } from '@/app/(dashboard)/tours/[id]/_components/tour-editor';
+import { TourBuilderNew } from './_components/tour-builder-new';
 import type { Tour, TourTheme, Customer } from '@/types/database';
 
 interface TourPageProps {
@@ -44,7 +44,7 @@ export default async function GuidelyTourPage({ params }: TourPageProps) {
   }
 
   return (
-    <TourEditor
+    <TourBuilderNew
       tour={tourResult.data as Tour}
       themes={(themesResult.data as TourTheme[]) || []}
       customers={(customersResult.data as Customer[]) || []}

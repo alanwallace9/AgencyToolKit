@@ -602,8 +602,402 @@ Every builder under `/g/` must follow this structure:
 5. Keep widget appearance settings in Settings sheet
 
 ### Tours Migration Plan
-1. Copy column structure from Banners
-2. Left: Steps list (already exists)
-3. Center: Step editor (extract from tabs)
-4. Right: Tour preview (enlarge current)
-5. Keep Targeting, Theme in Settings sheet (global settings)
+
+See detailed plan below in "Tours Builder Refactor" section.
+
+---
+
+## Tours Builder Refactor (Pattern B: Multi-Item)
+
+**Date:** 2026-01-28
+**Status:** In Progress
+
+### Current State
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Header: [← Back] [Name] [Status] [...actions...] [Publish]      │
+├─────────────────────────────────────────────────────────────────┤
+│ [Steps] [Settings] [Targeting] [Theme]  ← 4 TABS                │
+├──────────────────┬──────────────────────────────────────────────┤
+│ Step List (w-72) │ Step Editor (flex-1)                         │
+│                  │                                              │
+│ • Step 1         │ Element selector, Title, Content,            │
+│ • Step 2 ←       │ Position, Buttons, Overlay settings          │
+│ • Step 3         │                                              │
+│                  │ NO PREVIEW VISIBLE (hidden in modal)         │
+│ [+ Add Step]     │                                              │
+└──────────────────┴──────────────────────────────────────────────┘
+```
+
+**Problems:**
+- No live preview during editing (must open modal)
+- Settings tab separate from header pattern
+- Step editor takes full width, no visual context
+- Inconsistent with Banners/Smart Tips
+
+### Target State
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Header                                                              │
+│ [← Back] [Name] [Status]                       [Settings2] [Publish]│
+├─────────────────────────────────────────────────────────────────────┤
+│ [Steps] [Targeting] [Theme]  ← 3 TABS (Settings moved to header)    │
+├──────────┬──────────────────┬───────────────────────────────────────┤
+│ Left     │ Center (slides)  │ Right                                 │
+│ (w-72)   │ (w-80)           │ (flex-1)                              │
+│          │                  │                                       │
+│ STEPS    │ Step Editor      │ FOCUSED PREVIEW                       │
+│ TAB:     │ (slides out      │                                       │
+│          │ when [slider2]   │      [Contacts] ← target element      │
+│ ○ Step 1 │ clicked)         │           │                           │
+│ ● Step 2 [slider2]          │           ▼                           │
+│ ○ Step 3 │ - Element 🎯     │   ┌─────────────┐                     │
+│          │ - Title          │   │ Welcome!    │                     │
+│ [+ Add]  │ - Content        │   │             │                     │
+│          │ - Position       │   │ Click here  │ ← tooltip/modal     │
+│ ──────── │ - Buttons        │   │ to start... │                     │
+│          │ - Overlay        │   │             │                     │
+│ TARGETING│                  │   │ [Prev][Next]│                     │
+│ TAB:     │ [X] close        │   └─────────────┘                     │
+│ (full w) │                  │                                       │
+│          │                  │  [← Prev] Step 2 of 3 [Next →]        │
+│ THEME    │                  │                                       │
+│ TAB:     │                  │                                       │
+│ (full w) │                  │                                       │
+└──────────┴──────────────────┴───────────────────────────────────────┘
+```
+
+### Key Decisions
+
+| Item | Decision |
+|------|----------|
+| **Tabs** | Keep 3 tabs: Steps, Targeting, Theme (remove Settings tab) |
+| **Settings** | Moves to header button (Settings2 icon) → opens Sheet |
+| **Center panel** | Slides out when step's Settings2 icon clicked, ~w-80, scrollable |
+| **Right preview** | Always visible, focused on target element + tooltip/modal |
+| **Preview content** | Shows actual element label (e.g., "Contacts") + styled popover |
+| **Schedule** | No - URL targeting is sufficient for tours |
+| **Icon** | Settings2 (sliders) not Settings (gear) |
+
+### Preview Design
+
+The preview is NOT a full GHL page mock. It's a focused preview showing:
+1. The target element (button, menu item, etc.) with its actual label
+2. The tooltip/modal/banner attached to it, fully styled
+3. Step navigation arrows at bottom
+
+```
+┌───────────────────────────────────────┐
+│                                       │
+│         [Contacts]  ← target element  │
+│              │                        │
+│              ▼                        │
+│     ┌─────────────────┐               │
+│     │ Welcome!        │               │
+│     │                 │               │
+│     │ Click here to   │  ← styled    │
+│     │ view your       │    tooltip   │
+│     │ contacts...     │              │
+│     │                 │               │
+│     │ [Previous][Next]│               │
+│     └─────────────────┘               │
+│                                       │
+│     [← Prev] Step 2 of 3 [Next →]     │
+└───────────────────────────────────────┘
+```
+
+### Tab Behavior
+
+| Tab | Left Panel | Center Panel | Right Panel |
+|-----|------------|--------------|-------------|
+| **Steps** | Step list with Settings2 icons | Slides out when step icon clicked | Preview of selected step |
+| **Targeting** | Full-width targeting settings | Hidden | Preview unchanged |
+| **Theme** | Full-width theme picker | Hidden | Preview reflects theme |
+
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `/g/tours/[id]/_components/tour-builder-new.tsx` | Main 3-column layout |
+| `/g/tours/[id]/_components/tour-steps-panel.tsx` | Left panel - step list with Settings2 icons |
+| `/g/tours/[id]/_components/tour-step-editor.tsx` | Center panel - step settings (slides out) |
+| `/g/tours/[id]/_components/tour-preview-panel.tsx` | Right panel - focused preview |
+| `/g/tours/[id]/_components/tour-settings-sheet.tsx` | Header Settings button → Sheet |
+
+### Files to Reuse
+
+| Existing File | Reuse For |
+|---------------|-----------|
+| `step-list.tsx` | Drag-drop logic for steps |
+| `rich-text-editor.tsx` | Content editing |
+| `element-selector-field.tsx` | 🎯 element picker |
+| `settings-tab.tsx` | Content moves to tour-settings-sheet |
+| `targeting-tab.tsx` | Left panel content on Targeting tab |
+| `theme-tab.tsx` | Left panel content on Theme tab |
+
+### Implementation Checklist
+
+- [x] **Step 1:** Create tour-builder-new.tsx shell (3-column layout, tabs, header) ✅
+- [x] **Step 2:** Create tour-steps-panel.tsx (step list with Settings2 icons, drag-drop) ✅
+- [x] **Step 3:** Create tour-step-editor.tsx (center slide-out panel with all step fields) ✅
+- [x] **Step 4:** Create tour-preview-panel.tsx (focused preview with target + tooltip) ✅
+- [x] **Step 5:** Create tour-settings-sheet.tsx (Settings tab content in Sheet) ✅
+- [x] **Step 6:** Update page.tsx to use new builder ✅
+- [x] **Step 7:** Test and verify build passes ✅
+- [ ] **Step 8:** Commit changes
+
+### Progress Log
+
+**Step 2 Complete:** Created `tour-steps-panel.tsx` with:
+- Draggable step list using @dnd-kit
+- Settings2 icon on each step (visible on hover or when selected)
+- Click Settings2 icon → calls `onOpenStepEditor(stepId)` → opens center panel
+- Step type icons with color coding (modal=blue, tooltip=purple, etc.)
+- Add button, duplicate, delete via dropdown menu
+- Content preview truncated to 40 chars
+
+**Step 3 Complete:** Created `tour-step-editor.tsx` with:
+- Compact layout for w-80 center panel
+- Step type dropdown with icons and colors
+- Title input with character counter
+- Rich text content editor
+- Element selector field (for tooltip/hotspot types)
+- Position dropdown (adapts to step type)
+- Collapsible "Step Options" section (overlay, highlight, interaction settings)
+- Collapsible "Buttons" section (primary/secondary with text and action)
+
+**Step 4 Complete:** Created `tour-preview-panel.tsx` with:
+- Inline preview (not modal) for right panel
+- Shows selected step with step type badge
+- Step navigation (prev/next arrows, dot indicators)
+- Renders all step types: Modal, Tooltip, Banner, Slideout, Hotspot
+- Mock target element for tooltip/hotspot types
+- Respects theme colors
+- Empty state when no steps exist
+
+**Step 5 Complete:** Created `tour-settings-sheet.tsx` with:
+- Sheet component wrapper for tour-level settings
+- Launch behavior (auto/manual, delay)
+- Progress & navigation toggles
+- Frequency settings (once, session, always, interval)
+- Priority setting
+
+**Step 6 Complete:** Updated `/g/tours/[id]/page.tsx` to use `TourBuilderNew` instead of `TourEditor`
+
+**Step 7 Complete:** Build passes - fixed type mismatch (themeId: string | undefined vs null)
+
+**Post-Implementation Fixes:**
+- Added "Upload Photo" option to primary button actions in tour-step-editor.tsx
+- Fixed position preview - tooltips/hotspots now properly align arrows with target elements
+- Each position (top/bottom/left/right) has explicit render path with centered arrows
+
+---
+
+## Checklists Builder Redesign (Pattern B: Multi-Item)
+
+**Status:** APPROVED - Ready for Implementation
+
+### Current State
+
+The existing Checklist builder at `app/(dashboard)/tours/checklists/[id]/_components/checklist-builder.tsx` already has a 3-column layout but differs from the new Tours pattern:
+
+| Aspect | Current Checklist | Target (Tours Pattern) |
+|--------|------------------|------------------------|
+| Left panel | Items list (w-72) | Items list (w-72) ✓ Same |
+| Center panel | Always visible (flex-1) | **Slides out** (w-80) |
+| Right panel | Preview (w-80, small) | Preview (**flex-1**, large) |
+| Settings icon | Gear (`Settings`) | Sliders (`Settings2`) |
+| Item editing | Click item → center fills | Click Settings2 → center slides out |
+| Tabs | None | **None** (keep simple) |
+| Undo/Redo | Missing | Add undo/redo |
+
+### Decision: No Tabs (Option A - Approved)
+
+Keep Checklists simple - no tabs like Tours. Left panel shows items only. Targeting and Theme stay in the Settings Sheet.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Header                                                              │
+│ [← Back] [Name input] [Status]              [Settings2] [Publish] ..│
+├──────────┬──────────────────┬───────────────────────────────────────┤
+│ Left     │ Center           │ Right                                 │
+│ (w-72)   │ (w-80, slides)   │ (flex-1)                              │
+│          │                  │                                       │
+│ ITEMS    │ Item Editor      │ LARGE Preview                         │
+│ list     │ (only when       │                                       │
+│          │ Settings2 icon   │ Shows checklist widget                │
+│ - Item 1 │ clicked)         │ in realistic context                  │
+│ - Item 2 │                  │                                       │
+│ - Item 3 │ Contains:        │ Interactive - can toggle              │
+│          │ - Title          │ items to test                         │
+│ [+ Add]  │ - Description    │                                       │
+│          │ - Action type    │                                       │
+│          │ - Completion     │                                       │
+│          │   trigger        │                                       │
+└──────────┴──────────────────┴───────────────────────────────────────┘
+```
+
+### Files to Create
+
+| File | Purpose | Reference |
+|------|---------|-----------|
+| `g/checklists/[id]/_components/checklist-builder-new.tsx` | Main shell - header, 3-col layout, slide-out logic, undo/redo | `tour-builder-new.tsx` |
+| `g/checklists/[id]/_components/checklist-items-panel-new.tsx` | Left panel - draggable items with Settings2 icons | `tour-steps-panel.tsx` |
+| `g/checklists/[id]/_components/checklist-item-editor.tsx` | Center slide-out - item settings (title, desc, action, trigger) | `tour-step-editor.tsx` |
+| `g/checklists/[id]/_components/checklist-preview-panel.tsx` | Right panel - full-size interactive preview | `tour-preview-panel.tsx` |
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `g/checklists/[id]/page.tsx` | Import and use `ChecklistBuilderNew` instead of `ChecklistBuilder` |
+
+### Files to Reuse (No Changes Needed)
+
+| File | Why |
+|------|-----|
+| `checklist-settings-panel.tsx` | Already a Sheet, already has all settings (Widget, Theme, Targeting, On Complete) |
+| `checklist-actions.ts` | Server actions work as-is |
+| `checklist-defaults.ts` | Default item creation works as-is |
+
+### Implementation Checklist
+
+- [x] **Step 1:** Create `checklist-builder-new.tsx` shell
+  - Header with back, name input, status badge, Settings2 button, publish
+  - 3-column layout with slide-out center
+  - State: items, selectedItemId, showItemEditor
+  - Undo/redo history for items array
+  - Auto-save with debounce
+
+- [x] **Step 2:** Create `checklist-items-panel-new.tsx`
+  - Draggable item list using @dnd-kit (copy from existing checklist-items-panel.tsx)
+  - Add Settings2 icon on each item (visible on hover/selected)
+  - Click Settings2 → calls `onOpenItemEditor(itemId)`
+  - Show completion trigger type badge (Click/Tour/Element/URL/Event)
+  - Add item button at bottom
+
+- [x] **Step 3:** Create `checklist-item-editor.tsx`
+  - Compact layout for w-80 slide-out panel
+  - Title input
+  - Description textarea
+  - Action section (none/tour/url) with conditional fields
+  - Completion trigger section (manual/tour_complete/url_visited/element_clicked/js_event)
+  - Delete button
+
+- [x] **Step 4:** Create `checklist-preview-panel.tsx`
+  - Takes flex-1 (large preview area)
+  - Shows checklist widget in simulated page context
+  - Interactive - can toggle items to test
+  - Respects theme colors
+  - Shows position (bottom-left/bottom-right)
+  - Reset button to clear completed items
+
+- [x] **Step 5:** Update `g/checklists/[id]/page.tsx`
+  - Change import from `ChecklistBuilder` to `ChecklistBuilderNew`
+
+- [x] **Step 6:** Test and verify build passes
+
+- [ ] **Step 7:** Commit changes
+
+### Props Interface Reference
+
+**ChecklistBuilderNewProps** (main component):
+```typescript
+interface ChecklistBuilderNewProps {
+  checklist: Checklist;
+  themes: TourTheme[];
+  tours: TourWithStats[];  // For linking items to tours
+  backHref?: string;
+}
+```
+
+**ChecklistItemsPanelNewProps** (left panel):
+```typescript
+interface ChecklistItemsPanelNewProps {
+  items: ChecklistItem[];
+  selectedItemId: string | null;
+  onSelectItem: (id: string) => void;
+  onOpenItemEditor: (id: string) => void;  // Opens center panel
+  onAddItem: () => void;
+  onReorderItems: (items: ChecklistItem[]) => void;
+}
+```
+
+**ChecklistItemEditorProps** (center slide-out):
+```typescript
+interface ChecklistItemEditorProps {
+  item: ChecklistItem;
+  tours: TourWithStats[];  // For tour selector dropdowns
+  onUpdateItem: (updates: Partial<ChecklistItem>) => void;
+  onDeleteItem: () => void;
+}
+```
+
+**ChecklistPreviewPanelProps** (right panel):
+```typescript
+interface ChecklistPreviewPanelProps {
+  checklist: Checklist;
+  theme?: TourTheme | null;
+}
+```
+
+### Key Behavior Details
+
+1. **Slide-out Logic:**
+   - `showItemEditor` state boolean
+   - When false: center panel hidden, right panel takes flex-1
+   - When true: center panel w-80 appears, right panel still flex-1
+   - Close button (X) in center panel header sets `showItemEditor = false`
+
+2. **Settings2 Icon Behavior:**
+   - Always visible when item is selected
+   - Visible on hover for non-selected items
+   - Click → `setSelectedItemId(id)` + `setShowItemEditor(true)`
+
+3. **Item Selection vs Editing:**
+   - Clicking item row → selects it (updates preview)
+   - Clicking Settings2 icon → selects AND opens editor
+
+4. **Undo/Redo:**
+   - Track `items` array history (max 50 states)
+   - Undo/Redo buttons in header
+   - Push to history on: add, delete, reorder, update item
+
+### Progress Log
+
+**2026-01-31: Steps 1-6 Complete + Customer Targeting**
+
+Created 4 new files in `/g/checklists/[id]/_components/`:
+- `checklist-builder-new.tsx` - Main shell with 3-column layout, undo/redo, auto-save
+- `checklist-items-panel-new.tsx` - Left panel with draggable items, Settings2 icons, trigger badges
+- `checklist-item-editor.tsx` - Center slide-out panel for item settings (compact layout)
+- `checklist-preview-panel.tsx` - Right panel with large interactive widget preview
+
+Created shared component:
+- `/components/shared/customer-multi-select.tsx` - Searchable multi-select with chips
+
+Updated files:
+- `page.tsx` to use `ChecklistBuilderNew` and fetch customers
+- `checklist-settings-panel.tsx` to accept customers prop and show multi-select
+
+Key features implemented:
+- Slide-out center panel (only opens when Settings2 icon clicked)
+- Settings2 icon behavior (visible on hover/selected)
+- Undo/Redo with 50-state history
+- Auto-save with 1s debounce
+- All 5 completion trigger types (manual, tour_complete, url_visited, element_clicked, js_event)
+- All 3 action types (none, tour, url)
+- Large interactive preview with reset button
+- Theme color support
+- Reuses existing ChecklistSettingsPanel sheet
+- **Searchable customer multi-select** for "Specific customers only" targeting
+
+Build passes.
+
+**Customer Segmentation System:** Documented in `/docs/features/customer-segmentation-targeting.md` for future implementation (tag-based targeting, conditions, lifecycle events).
+
+---

@@ -123,6 +123,17 @@
 ### In Progress
 - Final UI polish and refinements
 
+### Completed This Session (2026-01-31)
+- ✅ Checklists Builder Redesign (Pattern B - 3-panel layout with slide-out)
+- ✅ Customer multi-select component for targeting
+- ✅ Customer segmentation & targeting system (documented for backlog)
+
+### Completed (2026-01-28)
+- ✅ Banner Builder Redesign (Pattern A - 3-panel layout)
+- ✅ Banner Schedule Popover with native date/time pickers
+- ✅ Timezone-aware scheduling in embed script
+- ✅ Guidely layout scroll fix (fixed positioning)
+
 ### Completed Recently
 - [x] Features 28-29: Smart Tips Builder + Embed (hover tooltips, beacons, element targeting)
 - [x] Guidely Themes System: Theme editor, component overrides, system templates, per-feature defaults

@@ -20,14 +20,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { CustomerMultiSelect } from '@/components/shared/customer-multi-select';
 import { cn } from '@/lib/utils';
-import type { Checklist, ChecklistWidget, ChecklistOnComplete, ChecklistTargeting, TourTheme } from '@/types/database';
+import type { Checklist, ChecklistWidget, ChecklistOnComplete, ChecklistTargeting, TourTheme, Customer } from '@/types/database';
 
 interface ChecklistSettingsPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   checklist: Checklist;
   themes: TourTheme[];
+  customers?: Customer[];
   onUpdate: (updates: Partial<Checklist>) => void;
 }
 
@@ -36,6 +38,7 @@ export function ChecklistSettingsPanel({
   onOpenChange,
   checklist,
   themes,
+  customers = [],
   onUpdate,
 }: ChecklistSettingsPanelProps) {
   const updateWidget = (updates: Partial<ChecklistWidget>) => {
@@ -330,6 +333,22 @@ export function ChecklistSettingsPanel({
                   <Label htmlFor="customer-specific" className="font-normal">Specific customers only</Label>
                 </div>
               </RadioGroup>
+
+              {checklist.targeting.customer_mode === 'specific' && (
+                <div className="space-y-2 mt-3">
+                  <CustomerMultiSelect
+                    customers={customers}
+                    selectedIds={checklist.targeting.customer_ids || []}
+                    onSelectionChange={(ids) => updateTargeting({ customer_ids: ids })}
+                    placeholder="Search and select customers..."
+                  />
+                  {customers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      No customers found. Add customers in the Customers section.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
