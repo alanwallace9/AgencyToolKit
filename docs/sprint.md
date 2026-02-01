@@ -85,6 +85,7 @@
 - [ ] **Guidely Chrome Extension**: Capture tours/showcases from any website, replaces Builder Mode (see `docs/features/feature-guidely-chrome-extension.md`)
 - [ ] **Customer Import from GHL**: API integration to pull customers from GHL instead of manual entry
 - [ ] **Share/Import with Affiliate Attribution**: Share menu presets, tours, themes via link; 90-day attribution window; if recipient upgrades to Pro, sharer gets affiliate credit (viral growth mechanism)
+- [ ] **Admin Error Logs View**: Settings page (`/settings/errors`) to view error_logs table - search by code, filter by date, see error details
 
 ---
 
@@ -184,8 +185,6 @@
 - RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
-- Feature 44: Settings Page Complete
-- Feature 46: Error Handling & Toasts
 - Feature 47: Mobile Responsiveness
 - Feature 48: Documentation & Help
 

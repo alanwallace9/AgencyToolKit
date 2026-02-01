@@ -24,18 +24,25 @@ export function ErrorFallback({
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Log error on mount
+  // Log error on mount - generate code immediately, then try to log
   useEffect(() => {
     const logAndSetCode = async () => {
-      const code = await logError({
-        error,
-        url: typeof window !== 'undefined' ? window.location.href : undefined,
-        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
-        metadata: {
-          digest: error.digest,
-        },
-      });
-      setErrorCode(code);
+      try {
+        const code = await logError({
+          error,
+          url: typeof window !== 'undefined' ? window.location.href : undefined,
+          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
+          metadata: {
+            digest: error.digest,
+          },
+        });
+        setErrorCode(code);
+      } catch (loggingError) {
+        // If logging fails, still show a generated code for reference
+        console.error('Error logging failed:', loggingError);
+        const fallbackCode = `ERR-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        setErrorCode(fallbackCode);
+      }
     };
 
     logAndSetCode();
