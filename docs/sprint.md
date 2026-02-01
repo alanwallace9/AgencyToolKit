@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 95% Complete (38 of 40 Active Features)
+## Progress: 97.5% Complete (39 of 40 Active Features)
 *5 features moved to backlog, Feature 34 deprioritized*
 
 ---
@@ -72,7 +72,7 @@
 
 ### Polish & Launch
 - [x] Feature 46: Error Handling & Toasts
-- [ ] Feature 47: Mobile Responsiveness
+- [x] Feature 47: Mobile Responsiveness
 - [ ] Feature 48: Documentation & Help
 
 ### Backlog (Deferred)
@@ -124,6 +124,14 @@
 - ✅ 2026-01-26: Features 30-31 - Banners Builder + Embed (3-panel layout, 5 style presets, scheduling, targeting, analytics)
 - ✅ 2026-01-27: Features 28-29 - Smart Tips Builder + Embed (hover tooltips, beacons, element targeting)
 - ✅ 2026-01-27: Guidely Themes System - Full theme editor with component overrides, 5 system templates, per-feature defaults
+
+### Completed (2026-02-01) - Feature 47: Mobile Responsiveness
+- [x] Settings sidebar → mobile sheet overlay with hamburger menu
+- [x] Guidely sidebar → mobile sheet overlay (click toggle pattern)
+- [x] "Works better on desktop" banner for builders + image editor
+- [x] Customer table → card view on mobile
+- [x] Reduced padding on mobile screens (px-4 → px-8 → px-14)
+- [x] All changes scoped to mobile breakpoints (desktop unchanged)
 
 ### Completed (2026-02-01) - Feature 46: Error Handling & Toasts
 - [x] Database migration: error_logs table with unique codes
@@ -185,7 +193,6 @@
 - RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
-- Feature 47: Mobile Responsiveness
 - Feature 48: Documentation & Help
 
 *Note: Feature 34 (URL Pattern Tester) was deprioritized*

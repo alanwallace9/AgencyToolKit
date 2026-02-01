@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getCurrentAgency } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { TourBuilderNew } from './_components/tour-builder-new';
+import { DesktopSuggestionBanner } from '@/components/shared/desktop-suggestion-banner';
 import type { Tour, TourTheme, Customer } from '@/types/database';
 
 interface TourPageProps {
@@ -44,13 +45,16 @@ export default async function GuidelyTourPage({ params }: TourPageProps) {
   }
 
   return (
-    <TourBuilderNew
-      tour={tourResult.data as Tour}
-      themes={(themesResult.data as TourTheme[]) || []}
-      customers={(customersResult.data as Customer[]) || []}
-      ghlDomain={agency.ghl_domain}
-      builderAutoClose={agency.builder_auto_close ?? true}
-      backHref="/g/tours"
-    />
+    <>
+      <DesktopSuggestionBanner featureKey="tour-builder" />
+      <TourBuilderNew
+        tour={tourResult.data as Tour}
+        themes={(themesResult.data as TourTheme[]) || []}
+        customers={(customersResult.data as Customer[]) || []}
+        ghlDomain={agency.ghl_domain}
+        builderAutoClose={agency.builder_auto_close ?? true}
+        backHref="/g/tours"
+      />
+    </>
   );
 }

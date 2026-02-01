@@ -4,6 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { getCurrentAgency } from "@/lib/auth";
 import { ImageEditor } from "./_components/image-editor";
 import { UpgradeBanner } from "@/components/shared/upgrade-banner";
+import { DesktopSuggestionBanner } from "@/components/shared/desktop-suggestion-banner";
 
 interface ImageEditorPageProps {
   params: Promise<{ id: string }>;
@@ -29,6 +30,7 @@ export default async function ImageEditorPage({ params }: ImageEditorPageProps) 
   return (
     <>
       {!isPro && <UpgradeBanner feature="images" />}
+      <DesktopSuggestionBanner featureKey="image-editor" />
       <ImageEditor
         template={template}
         userName={userName}

@@ -6,10 +6,12 @@ import { Plus, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CustomerTable } from './customer-table';
+import { CustomerCardList } from './customer-card-list';
 import { AddCustomerDialog } from './add-customer-dialog';
 import { EmptyState } from './empty-state';
 import { CustomerFilterTabs } from './customer-filter-tabs';
 import { ExportCustomersButton } from './export-customers-button';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ProgressStatus, CustomerWithProgress } from '../page';
 
 interface StatusCounts {
@@ -41,6 +43,7 @@ export function CustomersClient({
 }: CustomersClientProps) {
   const router = useRouter();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const isMobile = useIsMobile();
 
   const clearFilter = () => {
     router.push('/customers');
@@ -114,6 +117,8 @@ export function CustomersClient({
         ) : (
           <EmptyState onAddCustomer={() => setShowAddDialog(true)} />
         )
+      ) : isMobile ? (
+        <CustomerCardList customers={customers} showProgress={!!tourFilter} />
       ) : (
         <CustomerTable customers={customers} showProgress={!!tourFilter} />
       )}

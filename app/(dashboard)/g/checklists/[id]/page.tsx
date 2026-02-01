@@ -5,6 +5,7 @@ import { getChecklist } from '@/app/(dashboard)/tours/_actions/checklist-actions
 import { getThemes } from '@/app/(dashboard)/tours/_actions/theme-actions';
 import { getTours } from '@/app/(dashboard)/tours/_actions/tour-actions';
 import { ChecklistBuilderNew } from './_components/checklist-builder-new';
+import { DesktopSuggestionBanner } from '@/components/shared/desktop-suggestion-banner';
 import type { Customer } from '@/types/database';
 
 interface ChecklistPageProps {
@@ -34,12 +35,15 @@ export default async function GuidelyChecklistPage({ params }: ChecklistPageProp
   const customers = (customersResult.data || []) as Customer[];
 
   return (
-    <ChecklistBuilderNew
-      checklist={checklist}
-      themes={themes}
-      tours={tours.filter(t => t.status === 'live')}
-      customers={customers}
-      backHref="/g/checklists"
-    />
+    <>
+      <DesktopSuggestionBanner featureKey="checklist-builder" />
+      <ChecklistBuilderNew
+        checklist={checklist}
+        themes={themes}
+        tours={tours.filter(t => t.status === 'live')}
+        customers={customers}
+        backHref="/g/checklists"
+      />
+    </>
   );
 }

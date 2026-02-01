@@ -3,6 +3,7 @@ import { getCurrentAgency } from '@/lib/auth';
 import { getSmartTip, getSmartTips } from '@/app/(dashboard)/tours/_actions/smart-tip-actions';
 import { getThemes } from '@/app/(dashboard)/tours/_actions/theme-actions';
 import { SmartTipsBuilder } from './_components/smart-tips-builder';
+import { DesktopSuggestionBanner } from '@/components/shared/desktop-suggestion-banner';
 
 interface SmartTipPageProps {
   params: Promise<{ id: string }>;
@@ -22,14 +23,17 @@ export default async function GuidelySmartTipPage({ params }: SmartTipPageProps)
   if (!tip) notFound();
 
   return (
-    <SmartTipsBuilder
-      tip={tip}
-      allTips={allTips}
-      themes={themes}
-      ghlDomain={agency.ghl_domain}
-      builderAutoClose={agency.builder_auto_close ?? true}
-      backHref="/g/tips"
-      plan={agency.plan}
-    />
+    <>
+      <DesktopSuggestionBanner featureKey="smart-tips-builder" />
+      <SmartTipsBuilder
+        tip={tip}
+        allTips={allTips}
+        themes={themes}
+        ghlDomain={agency.ghl_domain}
+        builderAutoClose={agency.builder_auto_close ?? true}
+        backHref="/g/tips"
+        plan={agency.plan}
+      />
+    </>
   );
 }

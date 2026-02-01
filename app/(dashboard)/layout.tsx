@@ -24,7 +24,7 @@ export default async function DashboardLayout({
     <div className="min-h-screen flex flex-col gradient-subtle">
       {/* Premium header with blur effect */}
       <header className="header-blur border-b border-border/50 sticky top-0 z-50">
-        <div className="flex h-16 items-center px-8 lg:px-14 max-w-[1800px] mx-auto w-full">
+        <div className="flex h-16 items-center px-4 sm:px-6 lg:px-14 max-w-[1800px] mx-auto w-full">
           <Link
             href="/dashboard"
             className="flex items-center gap-2.5 mr-8 group"
@@ -65,7 +65,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </header>
-      <main className="flex-1 py-8 px-8 lg:px-14 max-w-[1800px] mx-auto w-full">
+      <main className="flex-1 py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-14 max-w-[1800px] mx-auto w-full">
         {children}
       </main>
     </div>
