@@ -10,9 +10,9 @@ import {
   Megaphone,
   Palette,
   BarChart3,
-  Pin,
-  PinOff,
-  ChevronLeft
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,25 +28,21 @@ const sidebarItems = [
     title: "Tours",
     href: "/g/tours",
     icon: Map,
-    description: "Guided walkthroughs",
   },
   {
     title: "Checklists",
     href: "/g/checklists",
     icon: CheckSquare,
-    description: "Task lists with progress",
   },
   {
     title: "Smart Tips",
     href: "/g/tips",
     icon: Lightbulb,
-    description: "Contextual tooltips",
   },
   {
     title: "Banners",
     href: "/g/banners",
     icon: Megaphone,
-    description: "Announcements",
   },
   {
     divider: true,
@@ -55,118 +51,79 @@ const sidebarItems = [
     title: "Themes",
     href: "/g/themes",
     icon: Palette,
-    description: "Visual styling",
   },
   {
     title: "Analytics",
     href: "/g/analytics",
     icon: BarChart3,
-    description: "Performance tracking",
   },
 ]
 
 export function GuidelySidebar() {
   const pathname = usePathname()
-  const [isExpanded, setIsExpanded] = React.useState(false)
-  const [isPinned, setIsPinned] = React.useState(false)
-  const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  const [isExpanded, setIsExpanded] = React.useState(true)
 
-  // Load pinned state from localStorage on mount
+  // Load expanded state from localStorage on mount
   React.useEffect(() => {
-    const stored = localStorage.getItem("guidely-sidebar-pinned")
-    if (stored === "true") {
-      setIsPinned(true)
-      setIsExpanded(true)
+    const stored = localStorage.getItem("guidely-sidebar-expanded")
+    if (stored !== null) {
+      setIsExpanded(stored === "true")
     }
   }, [])
 
-  // Save pinned state to localStorage
-  const togglePin = () => {
-    const newPinned = !isPinned
-    setIsPinned(newPinned)
-    setIsExpanded(newPinned)
-    localStorage.setItem("guidely-sidebar-pinned", String(newPinned))
+  const toggleExpanded = () => {
+    const newExpanded = !isExpanded
+    setIsExpanded(newExpanded)
+    localStorage.setItem("guidely-sidebar-expanded", String(newExpanded))
   }
-
-  const handleMouseEnter = () => {
-    if (!isPinned) {
-      // Small delay to prevent accidental expansion
-      hoverTimeoutRef.current = setTimeout(() => {
-        setIsExpanded(true)
-      }, 100)
-    }
-  }
-
-  const handleMouseLeave = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-    }
-    if (!isPinned) {
-      setIsExpanded(false)
-    }
-  }
-
-  const showExpanded = isExpanded || isPinned
 
   return (
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          "h-full border-r border-border/50 bg-background/80 backdrop-blur-sm transition-all duration-200 ease-in-out flex flex-col",
-          showExpanded ? "w-[200px]" : "w-[60px]"
+          "h-full border-r border-border/50 bg-background/95 backdrop-blur-sm transition-all duration-200 ease-in-out flex flex-col relative",
+          isExpanded ? "w-[200px]" : "w-[60px]"
         )}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         {/* Header */}
-        <div className={cn(
-          "h-12 flex items-center border-b border-border/50 px-3",
-          showExpanded ? "justify-between" : "justify-center"
-        )}>
-          {showExpanded ? (
-            <>
-              <Link
-                href="/g"
-                className="font-semibold text-sm text-foreground hover:text-primary transition-colors"
-              >
-                Guidely
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={togglePin}
-              >
-                {isPinned ? (
-                  <PinOff className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : (
-                  <Pin className="h-3.5 w-3.5 text-muted-foreground" />
-                )}
-              </Button>
-            </>
+        <div
+          className={cn(
+            "h-12 flex items-center border-b border-border/50 px-3",
+            isExpanded ? "justify-start" : "justify-center"
+          )}
+        >
+          {isExpanded ? (
+            <Link
+              href="/g"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Guidely</span>
+            </Link>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
                   href="/g"
-                  className="font-bold text-sm text-primary hover:text-primary/80 transition-colors"
+                  className="flex items-center justify-center hover:opacity-80 transition-opacity"
                 >
-                  G
+                  <Sparkles className="h-5 w-5 text-primary" />
                 </Link>
               </TooltipTrigger>
-              <TooltipContent side="right">
-                Guidely Dashboard
-              </TooltipContent>
+              <TooltipContent side="right">Guidely Dashboard</TooltipContent>
             </Tooltip>
           )}
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 py-2 px-2 space-y-1">
+        <nav className="flex-1 py-2 px-2 space-y-1 overflow-y-auto">
           {sidebarItems.map((item, index) => {
             if ('divider' in item && item.divider) {
               return (
-                <div key={`divider-${index}`} className="my-2 border-t border-border/50" />
+                <div
+                  key={`divider-${index}`}
+                  className="my-2 border-t border-border/50"
+                />
               )
             }
 
@@ -178,23 +135,25 @@ export function GuidelySidebar() {
                 href={item.href!}
                 className={cn(
                   "flex items-center gap-3 rounded-md transition-colors relative",
-                  showExpanded ? "px-3 py-2" : "px-0 py-2 justify-center",
+                  isExpanded ? "px-3 py-2" : "px-0 py-2 justify-center",
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                {/* Active indicator dot */}
-                {isActive && !showExpanded && (
+                {/* Active indicator dot (when collapsed) */}
+                {isActive && !isExpanded && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r" />
                 )}
 
-                <Icon className={cn(
-                  "flex-shrink-0",
-                  showExpanded ? "h-4 w-4" : "h-5 w-5"
-                )} />
+                <Icon
+                  className={cn(
+                    "flex-shrink-0",
+                    isExpanded ? "h-4 w-4" : "h-5 w-5"
+                  )}
+                />
 
-                {showExpanded && (
+                {isExpanded && (
                   <span className="text-sm font-medium truncate">
                     {item.title}
                   </span>
@@ -203,12 +162,10 @@ export function GuidelySidebar() {
             )
 
             // Show tooltip when collapsed
-            if (!showExpanded) {
+            if (!isExpanded) {
               return (
                 <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>
-                    {linkContent}
-                  </TooltipTrigger>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
                   <TooltipContent side="right">
                     <span className="font-medium">{item.title}</span>
                   </TooltipContent>
@@ -220,9 +177,9 @@ export function GuidelySidebar() {
           })}
         </nav>
 
-        {/* Footer - Back to AT */}
+        {/* Footer - Back to Toolkit */}
         <div className="p-2 border-t border-border/50">
-          {showExpanded ? (
+          {isExpanded ? (
             <Link
               href="/dashboard"
               className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -240,12 +197,24 @@ export function GuidelySidebar() {
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
               </TooltipTrigger>
-              <TooltipContent side="right">
-                Back to Toolkit
-              </TooltipContent>
+              <TooltipContent side="right">Back to Toolkit</TooltipContent>
             </Tooltip>
           )}
         </div>
+
+        {/* Toggle Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute -right-3 bottom-6 h-6 w-6 rounded-full border bg-background shadow-sm hover:bg-muted z-10"
+          onClick={toggleExpanded}
+        >
+          {isExpanded ? (
+            <ChevronLeft className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </Button>
       </aside>
     </TooltipProvider>
   )
