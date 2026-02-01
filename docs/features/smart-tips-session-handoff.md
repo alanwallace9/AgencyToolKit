@@ -1,173 +1,143 @@
 # Smart Tips Session Handoff
 
 **Date:** 2026-01-27
-**Previous Session:** Guidely Left Nav Refactor (complete)
-**Next Feature:** Features 28-29 Smart Tips Builder + Embed
+**Status:** Partially Complete - Layout Scroll Bug Remains
 
 ---
 
-## Context
+## What Was Completed ✅
 
-The Guidely left navigation is now complete. Smart Tips needs to integrate into this structure.
+### 1. Beacon Target Mode Bug Fix
+- **Issue:** Tooltip anchored to wrong position when switching target modes
+- **Solution:** Moved tooltip rendering INSIDE the beacon container when beacon is target
+- **Files:** `app/(dashboard)/g/tips/[id]/_components/tip-preview.tsx`
 
-### What Was Built
+### 2. UX: Replaced Cards with Dropdown
+- **Before:** Two large card buttons for Element/Beacon selection
+- **After:** Compact Select dropdown with three options: Automatic | Element | Beacon
+- **Files:** `app/(dashboard)/g/tips/[id]/_components/tip-settings-panel.tsx`
 
-1. **Guidely Sidebar** (`app/(dashboard)/g/_components/guidely-sidebar.tsx`)
-   - Collapsible sidebar with hover expand and pin functionality
-   - "Guidely" header is clickable → navigates to `/g` dashboard
-   - Smart Tips already listed with "Coming Soon" badge
+### 3. Added 'automatic' Target Option
+- Added `'automatic'` to `SmartTipBeaconTarget` type in `types/database.ts`
+- When beacon is toggled ON, target auto-switches from 'element' to 'automatic'
+- 'Automatic' means: use beacon if enabled, else element
 
-2. **Route Structure** (under `/g/`)
-   - `/g` - Guidely dashboard with feature cards
-   - `/g/tours` - Tours list
-   - `/g/tours/[id]` - Tour builder
-   - `/g/checklists` - Checklists list
-   - `/g/checklists/[id]` - Checklist builder
-   - `/g/banners` - Banners list
-   - `/g/banners/[id]` - Banner builder
-   - `/g/themes` - Themes list
-   - `/g/themes/[id]` - Theme editor
-   - `/g/analytics` - Analytics dashboard
-
-3. **Pattern for New Features**
-   - List page at `/g/[feature]/page.tsx`
-   - Client component at `/g/[feature]/_components/[feature]-list-client.tsx`
-   - Builder page at `/g/[feature]/[id]/page.tsx`
-   - Builder component lives in original location (e.g., `tours/tips/[id]/_components/`)
-   - Builder wrapper passes `backHref="/g/tips"` prop
+### 4. Embed Script Updated
+- Updated `app/embed.js/route.ts` to handle 'automatic' target
+- Two locations: trigger setup and tooltip positioning
 
 ---
 
-## Smart Tips Integration Plan
+## Remaining Issue ❌
 
-### 1. Routes to Create
+### Whole-Page Scroll on Smart Tips Builder
 
-```
-app/(dashboard)/g/tips/
-├── page.tsx                    # List page (server component)
-├── _components/
-│   └── tips-list-client.tsx    # Client component with search, filter, create
-└── [id]/
-    └── page.tsx                # Builder page (wraps SmartTipsBuilder)
-```
+**Problem:** The Smart Tips builder page (`/g/tips/[id]`) scrolls the entire page with empty white space at the bottom. The Banners builder does NOT have this issue.
 
-### 2. Builder Components Location
+**Screenshots show:**
+- Page can scroll down revealing white space
+- Header gets cut off when scrolled
+- "Add Tip" button is visible but page shouldn't scroll at all
 
-Following the established pattern, build the Smart Tips builder at:
+### What Was Tried (Didn't Work)
 
-```
-app/(dashboard)/tours/tips/[id]/
-├── page.tsx                    # Original route (will redirect to /g/tips/[id])
-└── _components/
-    ├── smart-tips-builder.tsx  # Main layout with collapsible settings
-    ├── tips-list-panel.tsx     # Left panel: tips with ⚙ gear icons
-    ├── tip-settings-panel.tsx  # Collapsible center panel (slides in/out)
-    ├── tip-preview.tsx         # Right panel: expands when settings closed
-    └── tip-global-settings.tsx # Sheet: targeting, theme selection
-```
+1. **Height calculations:**
+   - `h-full` - didn't constrain properly
+   - `h-[calc(100vh-4rem)]` - still scrolled
+   - `h-[calc(100vh-8rem)]` - still scrolled
 
-**Key UX Pattern:** Settings panel is collapsible
-- Click ⚙ gear on tip → settings slides in
-- Click ✕ or gear again → settings slides out, preview expands
-- Auto-save on all changes
+2. **Overflow settings:**
+   - `overflow-hidden` on builder - didn't prevent parent scroll
+   - Changed layout's main from `overflow-auto` to `overflow-hidden` - broke list pages
 
-### 3. Server Actions
+3. **Fixed positioning:**
+   - `fixed inset-0 top-16` - worked but covered the Guidely sidebar
 
-Create at `app/(dashboard)/tours/_actions/smart-tip-actions.ts`:
-- Follow the pattern from `banner-actions.ts` and `checklist-actions.ts`
-- Include: getSmartTips, getSmartTip, createSmartTip, updateSmartTip, deleteSmartTip, publishSmartTip, unpublishSmartTip, archiveSmartTip, duplicateSmartTip
+4. **Negative margins:**
+   - `-my-8 -mx-8 lg:-mx-14` to break out of padding - math didn't add up correctly
 
-### 4. Sidebar Update
+### Current State of Files
 
-When ready, update `guidely-sidebar.tsx`:
+**`app/(dashboard)/g/layout.tsx`:**
 ```tsx
-{
-  title: "Smart Tips",
-  href: "/g/tips",
-  icon: Lightbulb,
-  description: "Contextual tooltips",
-  // Remove: comingSoon: true,
-},
+<div className="flex h-[calc(100vh-4rem-4rem)] -my-8 -mx-8 lg:-mx-14">
+  <GuidelySidebar />
+  <main className="flex-1 overflow-hidden py-8 px-8 lg:px-14">
+    {children}
+  </main>
+</div>
 ```
 
-### 5. Dashboard Card Update
+**`app/(dashboard)/g/tips/[id]/_components/smart-tips-builder.tsx`:**
+```tsx
+<div className="flex flex-col h-[calc(100vh-8rem)] -my-8 -mx-8 lg:-mx-14 overflow-hidden bg-background">
+```
 
-Update `/g/page.tsx` to fetch and display Smart Tips stats (currently shows "Coming soon").
-
-### 6. Redirects
-
-Add to `next.config.ts`:
-```ts
-{
-  source: '/tours/tips/:id',
-  destination: '/g/tips/:id',
-  permanent: true,
-},
+**List pages** (tips/page.tsx, etc.) were updated to have their own scroll wrappers:
+```tsx
+<div className="h-full overflow-auto -my-8 -mx-8 lg:-mx-14 py-8 px-8 lg:px-14">
 ```
 
 ---
 
-## Key Files to Reference
+## Investigation Needed
 
-| Purpose | File |
-|---------|------|
-| Sidebar with nav items | `app/(dashboard)/g/_components/guidely-sidebar.tsx` |
-| Dashboard with cards | `app/(dashboard)/g/page.tsx` |
-| List page pattern | `app/(dashboard)/g/banners/page.tsx` |
-| List client pattern | `app/(dashboard)/g/banners/_components/banners-list-client.tsx` |
-| Builder wrapper pattern | `app/(dashboard)/g/banners/[id]/page.tsx` |
-| Builder with backHref | `app/(dashboard)/tours/banners/[id]/_components/banner-builder.tsx` |
-| Server actions pattern | `app/(dashboard)/tours/_actions/banner-actions.ts` |
-| 3-column layout pattern | `app/(dashboard)/tours/checklists/[id]/_components/checklist-builder.tsx` |
-| Redirects config | `next.config.ts` |
+### Compare to Banners Builder
+The Banners builder (`/g/banners/[id]`) does NOT have this scroll issue. Need to:
 
----
+1. Read `app/(dashboard)/g/banners/[id]/_components/banner-builder.tsx`
+2. Compare its root element styling to SmartTipsBuilder
+3. See what height/overflow approach it uses
 
-## Database
-
-The `smart_tips` table should already exist from Feature 18 migration. Verify schema matches the spec in `docs/features/feature-28-29-smart-tips.md`.
+### Key Files to Compare
+- `app/(dashboard)/g/banners/[id]/_components/banner-builder.tsx` ← WORKING
+- `app/(dashboard)/g/tips/[id]/_components/smart-tips-builder.tsx` ← BROKEN
 
 ---
 
-## Reusable Components
+## Next Session Prompt
 
-From the spec, these can be imported directly:
-- `ElementSelectorField` from `tours/[id]/_components/element-selector-field.tsx`
-- `useElementSelector` hook from `tours/[id]/_hooks/use-element-selector.ts`
-- Theme selector pattern from `banner-settings-panel.tsx`
-- Targeting UI patterns from `checklist-settings-panel.tsx`
+```
+Continue fixing Smart Tips builder scroll issue.
 
----
+**Problem:** The Smart Tips builder page (/g/tips/[id]) has whole-page scrolling with white space at the bottom. The Banners builder does NOT have this issue.
 
-## Key Decisions Made
+**Action needed:**
+1. Read the Banners builder: app/(dashboard)/g/banners/[id]/_components/banner-builder.tsx
+2. Read the Smart Tips builder: app/(dashboard)/g/tips/[id]/_components/smart-tips-builder.tsx
+3. Compare the root element styling (height, overflow, margins)
+4. Apply whatever approach the Banners builder uses to the Smart Tips builder
 
-| Decision | Choice |
-|----------|--------|
-| **Content format** | Plain text + links only (no bold/italic). Links for Loom videos, help docs, courses. |
-| **Tips list** | Flat list with status filter (like banners) |
-| **Analytics** | Deferred to Phase 3 backlog (track views/clicks later) |
-| **Settings panel** | Collapsible - click ⚙ to open, preview expands when closed |
-| **Character limit** | 200 chars recommended, show counter (e.g., "142/200") |
+**Context:**
+- Both are 3-panel layouts (list | settings | preview)
+- Both are inside the Guidely layout which has its own height constraints
+- The Banners builder works correctly - copy that approach
 
----
+**Files to check:**
+- app/(dashboard)/g/layout.tsx (Guidely layout)
+- app/(dashboard)/g/banners/[id]/_components/banner-builder.tsx (WORKING)
+- app/(dashboard)/g/tips/[id]/_components/smart-tips-builder.tsx (BROKEN)
 
-## Checklist for Smart Tips Session
-
-1. [ ] Create database migration if `smart_tips` table doesn't exist
-2. [ ] Create `smart-tip-actions.ts` server actions
-3. [ ] Create builder components in `tours/tips/[id]/_components/`
-4. [ ] Create `/g/tips/page.tsx` list page
-5. [ ] Create `/g/tips/_components/tips-list-client.tsx`
-6. [ ] Create `/g/tips/[id]/page.tsx` builder wrapper
-7. [ ] Update sidebar to remove "Coming Soon" from Smart Tips
-8. [ ] Update dashboard `/g/page.tsx` to show Smart Tips stats
-9. [ ] Add redirect in `next.config.ts`
-10. [ ] Update embed.js to load and display smart tips
-11. [ ] Test all navigation paths
-12. [ ] Run build, fix any issues
+See docs/features/smart-tips-session-handoff.md for full context.
+```
 
 ---
 
-## Spec Document
+## Files Modified This Session
 
-Full specification: `docs/features/feature-28-29-smart-tips.md`
+| File | Changes |
+|------|---------|
+| `types/database.ts` | Added 'automatic' to SmartTipBeaconTarget |
+| `tip-preview.tsx` | Fixed beacon tooltip positioning, removed unused code |
+| `tip-settings-panel.tsx` | Replaced cards with dropdown, auto-switch to automatic |
+| `embed.js/route.ts` | Handle 'automatic' target (2 locations) |
+| `smart-tips-builder.tsx` | Various height/overflow attempts (current: broken) |
+| `g/layout.tsx` | Changed to overflow-hidden |
+| `g/tips/page.tsx` | Added scroll wrapper |
+| `g/page.tsx` | Added scroll wrapper |
+| `g/tours/page.tsx` | Added scroll wrapper |
+| `g/checklists/page.tsx` | Added scroll wrapper |
+| `g/banners/page.tsx` | Added scroll wrapper |
+| `g/themes/page.tsx` | Added scroll wrapper |
+| `g/analytics/page.tsx` | Added scroll wrapper |
+| `feature-28-29-smart-tips.md` | Updated with session 3 fixes |

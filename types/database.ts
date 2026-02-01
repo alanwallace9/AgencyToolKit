@@ -468,6 +468,7 @@ export interface Tour {
   settings: TourSettings;
   targeting: TourTargeting;
   theme_id: string | null;
+  tag_id: string | null;
   published_at: string | null;
   created_by: string | null;
   // Legacy fields (for backwards compatibility)
@@ -756,6 +757,7 @@ export interface Checklist {
   on_complete: ChecklistOnComplete;
   targeting: ChecklistTargeting;
   theme_id: string | null;
+  tag_id: string | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -810,6 +812,7 @@ export interface SmartTip {
   beacon?: SmartTipBeacon; // Optional beacon/hotspot indicator
   targeting: TourTargeting;
   theme_id: string | null;
+  tag_id: string | null;
   sort_order?: number;
   created_at: string;
   updated_at: string;
@@ -879,6 +882,7 @@ export interface Banner {
   style_preset: BannerStylePreset;
   custom_colors: BannerCustomColors | null;
   theme_id: string | null;
+  tag_id: string | null;
   dismissible: boolean;
   dismiss_duration: BannerDismissDuration;
   priority: BannerPriority;

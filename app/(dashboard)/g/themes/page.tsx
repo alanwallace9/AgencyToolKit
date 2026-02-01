@@ -72,10 +72,12 @@ function ThemesLoadingSkeleton() {
 
 export default function GuidelyThemesPage() {
   return (
-    <div className="space-y-6">
-      <Suspense fallback={<ThemesLoadingSkeleton />}>
-        <ThemesContent />
-      </Suspense>
+    <div className="h-full overflow-auto py-8 px-8 lg:px-14">
+      <div className="space-y-6">
+        <Suspense fallback={<ThemesLoadingSkeleton />}>
+          <ThemesContent />
+        </Suspense>
+      </div>
     </div>
   );
 }

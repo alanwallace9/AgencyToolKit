@@ -375,9 +375,9 @@ export function SmartTipsBuilder({
   const visibleTips = allTips.filter(t => t.status !== 'archived' || t.id === tip.id);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
             <Link href={backHref}>
@@ -475,9 +475,9 @@ export function SmartTipsBuilder({
       </div>
 
       {/* Main content - 3 panel layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Left panel - Tips List (scrolls only when many tips) */}
-        <div className="w-64 border-r bg-muted/30 flex flex-col">
+        <div className="w-64 border-r bg-muted/30 flex flex-col min-h-0">
           <div className="p-3 border-b shrink-0">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Tips</h3>
           </div>
@@ -528,7 +528,7 @@ export function SmartTipsBuilder({
 
         {/* Center panel - Settings (scrollable) */}
         {showSettingsPanel && (
-          <div className="w-96 border-r flex flex-col">
+          <div className="w-96 border-r flex flex-col min-h-0 overflow-hidden">
             <div className="flex items-center justify-between p-3 border-b bg-muted/30 shrink-0">
               <h3 className="font-medium">Tip Settings</h3>
               <Button

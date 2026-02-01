@@ -239,7 +239,7 @@ export function ThemesListClient({
               Customize the look of your Tours, Smart Tips, Banners, and Checklists
             </p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
             <Plus className="h-4 w-4 mr-2" />
             New Theme
           </Button>
@@ -329,7 +329,7 @@ export function ThemesListClient({
                     onClick={() => handleEditTheme(theme.id)}
                     onMouseEnter={() => loadUsage(theme.id)}
                     className={cn(
-                      'hover:border-primary/50 transition-colors cursor-pointer group',
+                      'hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group',
                       theme.is_default && 'ring-2 ring-primary/20 border-primary/50'
                     )}
                   >
@@ -497,7 +497,7 @@ export function ThemesListClient({
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate} disabled={isCreating}>
+              <Button onClick={handleCreate} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 text-white">
                 {isCreating ? 'Creating...' : 'Create Theme'}
               </Button>
             </DialogFooter>
@@ -522,7 +522,7 @@ function TemplateCard({
   const hasAvatar = template.avatar?.enabled;
 
   return (
-    <Card className="overflow-hidden hover:border-primary/50 transition-colors group">
+    <Card className="overflow-hidden hover:border-primary/50 hover:shadow-md transition-all duration-200 group">
       {/* Preview */}
       <div
         className="h-24 p-3 flex items-center justify-center"

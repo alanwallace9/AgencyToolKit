@@ -433,7 +433,7 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
   const StatusIcon = statusConfig[saveStatus].icon;
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b bg-background px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">

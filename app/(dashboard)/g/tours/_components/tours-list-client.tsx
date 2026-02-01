@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,15 +13,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Map, SlidersHorizontal, X, Plus, MoreHorizontal, Eye, CheckCircle2, XCircle } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Search, Map, SlidersHorizontal, X, Eye, CheckCircle2 } from 'lucide-react';
 import { AddTourDialog } from '@/app/(dashboard)/tours/_components/add-tour-dialog';
+import { ItemActionsMenu } from '@/components/guidely/item-actions-menu';
+import { ViewToggle, ViewMode } from '@/components/guidely/view-toggle';
+import { GuidelyDataTable, DateCell, NumberCell, PercentCell } from '@/components/guidely/guidely-data-table';
+import { cn } from '@/lib/utils';
+import {
+  updateTour,
+  duplicateTour,
+  archiveTour,
+  deleteTour,
+} from '@/app/(dashboard)/tours/_actions/tour-actions';
+import { assignTagToTour } from '@/app/(dashboard)/tours/_actions/tag-actions';
+import { type GuidelyTag, TAG_COLORS } from '@/app/(dashboard)/tours/_lib/tag-constants';
 import type { TourWithStats } from '@/app/(dashboard)/tours/_actions/tour-actions';
 import type { Customer, TourStatus, TourTheme } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,6 +43,7 @@ interface ToursListClientProps {
   tours: TourWithStats[];
   templates: Template[];
   themes: TourTheme[];
+  tags: GuidelyTag[];
   customers: Customer[];
 }
 
@@ -50,12 +56,18 @@ const statusConfig: Record<TourStatus, { label: string; className: string }> = {
   archived: { label: 'Archived', className: 'bg-zinc-500/10 text-zinc-500' },
 };
 
-export function ToursListClient({ tours, templates, themes, customers }: ToursListClientProps) {
+export function ToursListClient({ tours, templates, themes, tags, customers }: ToursListClientProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TourStatus | 'all'>('all');
+  const [tagFilter, setTagFilter] = useState<string | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+  const handleViewChange = useCallback((view: ViewMode) => {
+    setViewMode(view);
+  }, []);
 
   // Filter and sort tours
   const filteredTours = useMemo(() => {
@@ -72,6 +84,14 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
 
     if (statusFilter !== 'all') {
       result = result.filter((tour) => tour.status === statusFilter);
+    }
+
+    if (tagFilter !== 'all') {
+      if (tagFilter === 'untagged') {
+        result = result.filter((tour) => !tour.tag_id);
+      } else {
+        result = result.filter((tour) => tour.tag_id === tagFilter);
+      }
     }
 
     result.sort((a, b) => {
@@ -98,7 +118,7 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
     });
 
     return result;
-  }, [tours, search, statusFilter, sortField, sortOrder]);
+  }, [tours, search, statusFilter, tagFilter, sortField, sortOrder]);
 
   const statusCounts = useMemo(() => ({
     all: tours.length,
@@ -107,7 +127,62 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
     archived: tours.filter((t) => t.status === 'archived').length,
   }), [tours]);
 
-  const hasActiveFilters = search || statusFilter !== 'all';
+  const hasActiveFilters = search || statusFilter !== 'all' || tagFilter !== 'all';
+
+  // Table columns configuration
+  const tableColumns = useMemo(() => [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      render: (tour: TourWithStats) => tour.name,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      width: '100px',
+      render: (tour: TourWithStats) => tour.status,
+    },
+    {
+      key: 'views',
+      label: 'Views',
+      sortable: true,
+      width: '80px',
+      render: (tour: TourWithStats) => <NumberCell value={tour.stats.views} icon={Eye} />,
+    },
+    {
+      key: 'completion',
+      label: 'Completion',
+      sortable: true,
+      width: '100px',
+      render: (tour: TourWithStats) => {
+        const rate = tour.stats.views > 0
+          ? Math.round((tour.stats.completions / tour.stats.views) * 100)
+          : 0;
+        return <PercentCell value={rate} />;
+      },
+    },
+    {
+      key: 'steps',
+      label: 'Steps',
+      width: '70px',
+      render: (tour: TourWithStats) => (
+        <span className="text-sm text-muted-foreground">{tour.steps?.length || 0}</span>
+      ),
+    },
+    {
+      key: 'updated_at',
+      label: 'Updated',
+      sortable: true,
+      width: '120px',
+      render: (tour: TourWithStats) => <DateCell date={tour.updated_at} />,
+    },
+  ], []);
+
+  const getTagForTour = (tour: TourWithStats) => {
+    return tags.find((t) => t.id === tour.tag_id) || null;
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -134,6 +209,11 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
         </div>
 
         <div className="flex gap-2">
+          <ViewToggle
+            storageKey="guidely-tours-view"
+            onViewChange={handleViewChange}
+          />
+
           <Select
             value={statusFilter}
             onValueChange={(v) => setStatusFilter(v as TourStatus | 'all')}
@@ -148,6 +228,29 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
               <SelectItem value="archived">Archived ({statusCounts.archived})</SelectItem>
             </SelectContent>
           </Select>
+
+          {tags.length > 0 && (
+            <Select
+              value={tagFilter}
+              onValueChange={setTagFilter}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                <SelectItem value="untagged">Untagged</SelectItem>
+                {tags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    <span className="flex items-center gap-2">
+                      <span className={cn('h-2 w-2 rounded-full', TAG_COLORS[tag.color].stripe)} />
+                      {tag.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <Button
             variant="outline"
@@ -195,7 +298,7 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
           </div>
 
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setTagFilter('all'); }}>
               <X className="h-4 w-4 mr-1" />
               Clear filters
             </Button>
@@ -203,7 +306,7 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
         </div>
       )}
 
-      {/* Tours grid */}
+      {/* Tours display */}
       {filteredTours.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -220,19 +323,41 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
             </p>
           </CardContent>
         </Card>
+      ) : viewMode === 'table' ? (
+        <GuidelyDataTable
+          items={filteredTours}
+          columns={tableColumns}
+          itemType="tour"
+          basePath="/g/tours"
+          tags={tags}
+          getItemId={(tour) => tour.id}
+          getItemName={(tour) => tour.name}
+          getItemStatus={(tour) => tour.status}
+          getItemTagId={(tour) => tour.tag_id || null}
+          onRename={async (id, name) => { await updateTour(id, { name }); }}
+          onChangeTag={async (id, tagId) => { await assignTagToTour(id, tagId); }}
+          onDuplicate={async (id) => { await duplicateTour(id); }}
+          onArchive={async (id) => { await archiveTour(id); }}
+          onDelete={async (id) => { await deleteTour(id); }}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTours.map((tour) => {
             const status = statusConfig[tour.status];
+            const tag = getTagForTour(tour);
             const completionRate = tour.stats.views > 0
               ? Math.round((tour.stats.completions / tour.stats.views) * 100)
               : 0;
 
             return (
               <Link key={tour.id} href={`/g/tours/${tour.id}`}>
-                <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+                <Card className={cn(
+                  "hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer h-full group overflow-hidden",
+                  tag && "border-t-2",
+                  tag && TAG_COLORS[tag.color].stripe.replace('bg-', 'border-t-')
+                )}>
                   <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 flex-1 min-w-0">
                         <CardTitle className="text-base truncate">{tour.name}</CardTitle>
                         {tour.description && (
@@ -241,9 +366,21 @@ export function ToursListClient({ tours, templates, themes, customers }: ToursLi
                           </CardDescription>
                         )}
                       </div>
-                      <Badge variant="secondary" className={status.className}>
-                        {status.label}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <ItemActionsMenu
+                          item={{ id: tour.id, name: tour.name, status: tour.status, tag_id: tour.tag_id }}
+                          type="tour"
+                          tags={tags}
+                          onRename={async (id, name) => { await updateTour(id, { name }); }}
+                          onChangeTag={async (id, tagId) => { await assignTagToTour(id, tagId); }}
+                          onDuplicate={async (id) => { await duplicateTour(id); }}
+                          onArchive={async (id) => { await archiveTour(id); }}
+                          onDelete={async (id) => { await deleteTour(id); }}
+                        />
+                        <Badge variant="secondary" className={status.className}>
+                          {status.label}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>

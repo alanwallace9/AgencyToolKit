@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -26,11 +26,20 @@ import { Label } from '@/components/ui/label';
 import { Search, Megaphone, Plus, Eye, MousePointerClick, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ItemActionsMenu } from '@/components/guidely/item-actions-menu';
+import { ViewToggle, ViewMode } from '@/components/guidely/view-toggle';
+import { GuidelyDataTable, DateCell, NumberCell, PercentCell } from '@/components/guidely/guidely-data-table';
 import {
   createBanner,
   createBannerFromTemplate,
+  updateBanner,
+  duplicateBanner,
+  archiveBanner,
+  deleteBanner,
   type BannerWithStats,
 } from '@/app/(dashboard)/tours/_actions/banner-actions';
+import { assignTagToBanner } from '@/app/(dashboard)/tours/_actions/tag-actions';
+import { type GuidelyTag, TAG_COLORS } from '@/app/(dashboard)/tours/_lib/tag-constants';
 import { BANNER_TEMPLATES } from '@/app/(dashboard)/tours/_lib/banner-defaults';
 import type { TourTheme } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,6 +47,7 @@ import { formatDistanceToNow } from 'date-fns';
 interface BannersListClientProps {
   banners: BannerWithStats[];
   themes: TourTheme[];
+  tags: GuidelyTag[];
 }
 
 type BannerStatus = 'draft' | 'live' | 'archived';
@@ -48,14 +58,20 @@ const statusConfig: Record<BannerStatus, { label: string; className: string }> =
   archived: { label: 'Archived', className: 'bg-zinc-500/10 text-zinc-500' },
 };
 
-export function BannersListClient({ banners, themes }: BannersListClientProps) {
+export function BannersListClient({ banners, themes, tags }: BannersListClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<BannerStatus | 'all'>('all');
+  const [tagFilter, setTagFilter] = useState<string | 'all'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newBannerName, setNewBannerName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+  const handleViewChange = useCallback((view: ViewMode) => {
+    setViewMode(view);
+  }, []);
 
   const filteredBanners = useMemo(() => {
     let result = [...banners];
@@ -73,8 +89,16 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
       result = result.filter((banner) => banner.status === statusFilter);
     }
 
+    if (tagFilter !== 'all') {
+      if (tagFilter === 'untagged') {
+        result = result.filter((banner) => !banner.tag_id);
+      } else {
+        result = result.filter((banner) => banner.tag_id === tagFilter);
+      }
+    }
+
     return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [banners, search, statusFilter]);
+  }, [banners, search, statusFilter, tagFilter]);
 
   const statusCounts = useMemo(() => ({
     all: banners.length,
@@ -109,6 +133,62 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
     }
   };
 
+  const hasActiveFilters = search || statusFilter !== 'all' || tagFilter !== 'all';
+
+  // Table columns configuration
+  const tableColumns = useMemo(() => [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      render: (banner: BannerWithStats) => banner.name,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      width: '100px',
+      render: (banner: BannerWithStats) => banner.status,
+    },
+    {
+      key: 'views',
+      label: 'Views',
+      sortable: true,
+      width: '80px',
+      render: (banner: BannerWithStats) => <NumberCell value={banner.view_count || 0} icon={Eye} />,
+    },
+    {
+      key: 'clicks',
+      label: 'Clicks',
+      sortable: true,
+      width: '80px',
+      render: (banner: BannerWithStats) => <NumberCell value={banner.click_count || 0} icon={MousePointerClick} />,
+    },
+    {
+      key: 'ctr',
+      label: 'CTR',
+      sortable: true,
+      width: '80px',
+      render: (banner: BannerWithStats) => {
+        const ctr = banner.view_count && banner.view_count > 0
+          ? Math.round((banner.click_count || 0) / banner.view_count * 100)
+          : 0;
+        return <PercentCell value={ctr} />;
+      },
+    },
+    {
+      key: 'updated_at',
+      label: 'Updated',
+      sortable: true,
+      width: '120px',
+      render: (banner: BannerWithStats) => <DateCell date={banner.updated_at} />,
+    },
+  ], []);
+
+  const getTagForBanner = (banner: BannerWithStats) => {
+    return tags.find((t) => t.id === banner.tag_id) || null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Search, filters, and add button */}
@@ -124,6 +204,11 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
         </div>
 
         <div className="flex gap-2">
+          <ViewToggle
+            storageKey="guidely-banners-view"
+            onViewChange={handleViewChange}
+          />
+
           <Select
             value={statusFilter}
             onValueChange={(v) => setStatusFilter(v as BannerStatus | 'all')}
@@ -139,14 +224,37 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
             </SelectContent>
           </Select>
 
-          <Button onClick={() => setShowCreateDialog(true)}>
+          {tags.length > 0 && (
+            <Select
+              value={tagFilter}
+              onValueChange={setTagFilter}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                <SelectItem value="untagged">Untagged</SelectItem>
+                {tags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    <span className="flex items-center gap-2">
+                      <span className={cn('h-2 w-2 rounded-full', TAG_COLORS[tag.color].stripe)} />
+                      {tag.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
             <Plus className="h-4 w-4 mr-2" />
             New Banner
           </Button>
         </div>
       </div>
 
-      {/* Banners grid */}
+      {/* Banners display */}
       {filteredBanners.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -154,25 +262,47 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
               <Megaphone className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="font-medium text-lg">
-              {search || statusFilter !== 'all' ? 'No banners found' : 'No banners yet'}
+              {hasActiveFilters ? 'No banners found' : 'No banners yet'}
             </h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              {search || statusFilter !== 'all'
+              {hasActiveFilters
                 ? 'Try adjusting your search or filters'
                 : 'Create your first banner to announce features or promotions'}
             </p>
           </CardContent>
         </Card>
+      ) : viewMode === 'table' ? (
+        <GuidelyDataTable
+          items={filteredBanners}
+          columns={tableColumns}
+          itemType="banner"
+          basePath="/g/banners"
+          tags={tags}
+          getItemId={(banner) => banner.id}
+          getItemName={(banner) => banner.name}
+          getItemStatus={(banner) => banner.status}
+          getItemTagId={(banner) => banner.tag_id || null}
+          onRename={async (id, name) => { await updateBanner(id, { name }); }}
+          onChangeTag={async (id, tagId) => { await assignTagToBanner(id, tagId); }}
+          onDuplicate={async (id) => { await duplicateBanner(id); }}
+          onArchive={async (id) => { await archiveBanner(id); }}
+          onDelete={async (id) => { await deleteBanner(id); }}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredBanners.map((banner) => {
             const status = statusConfig[banner.status as BannerStatus];
+            const tag = getTagForBanner(banner);
 
             return (
               <Link key={banner.id} href={`/g/banners/${banner.id}`}>
-                <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+                <Card className={cn(
+                  "hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer h-full group overflow-hidden",
+                  tag && "border-t-2",
+                  tag && TAG_COLORS[tag.color].stripe.replace('bg-', 'border-t-')
+                )}>
                   <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 flex-1 min-w-0">
                         <CardTitle className="text-base truncate">{banner.name}</CardTitle>
                         {banner.content && (
@@ -181,9 +311,21 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
                           </CardDescription>
                         )}
                       </div>
-                      <Badge variant="secondary" className={status.className}>
-                        {status.label}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <ItemActionsMenu
+                          item={{ id: banner.id, name: banner.name, status: banner.status, tag_id: banner.tag_id }}
+                          type="banner"
+                          tags={tags}
+                          onRename={async (id, name) => { await updateBanner(id, { name }); }}
+                          onChangeTag={async (id, tagId) => { await assignTagToBanner(id, tagId); }}
+                          onDuplicate={async (id) => { await duplicateBanner(id); }}
+                          onArchive={async (id) => { await archiveBanner(id); }}
+                          onDelete={async (id) => { await deleteBanner(id); }}
+                        />
+                        <Badge variant="secondary" className={status.className}>
+                          {status.label}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -262,7 +404,7 @@ export function BannersListClient({ banners, themes }: BannersListClientProps) {
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isCreating}>
+            <Button onClick={handleCreate} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 text-white">
               {isCreating ? 'Creating...' : 'Create Banner'}
             </Button>
           </DialogFooter>

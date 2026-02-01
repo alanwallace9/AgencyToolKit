@@ -337,7 +337,7 @@ export function GuidelyThemeEditor({
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b bg-background sticky top-0 z-10">
         <div className="flex items-center justify-between h-14 px-4">
