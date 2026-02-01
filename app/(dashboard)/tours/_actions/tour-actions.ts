@@ -174,9 +174,7 @@ export async function createTour(data: {
     throw new Error('Unauthorized');
   }
 
-  if (agency.plan !== 'pro') {
-    throw new Error('Tours feature requires Pro plan');
-  }
+  // Soft gate: Allow creation, gate on publish (handled in UI)
 
   const supabase = await createClient();
   const adminClient = createAdminClient();

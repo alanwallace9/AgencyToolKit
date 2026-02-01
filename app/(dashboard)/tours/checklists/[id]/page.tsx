@@ -27,6 +27,7 @@ export default async function ChecklistPage({ params }: ChecklistPageProps) {
       checklist={checklist}
       themes={themes}
       tours={tours.filter(t => t.status === 'live')}
+      plan={agency.plan}
     />
   );
 }

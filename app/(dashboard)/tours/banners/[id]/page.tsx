@@ -30,6 +30,7 @@ export default async function BannerPage({ params }: BannerPageProps) {
       themes={themes}
       tours={tours.filter(t => t.status === 'live')}
       checklists={checklists.filter(c => c.status === 'live')}
+      plan={agency.plan}
     />
   );
 }

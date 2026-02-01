@@ -63,6 +63,8 @@ import {
   parseRadius,
   formatRadius,
 } from '@/lib/guidely-theme-defaults';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import type {
   GuidelyTheme,
   GuidelyThemeColors,
@@ -89,6 +91,7 @@ interface GuidelyThemeEditorProps {
   theme: GuidelyTheme;
   usage: ThemeUsage;
   canEdit: boolean;
+  plan: string;
 }
 
 type PreviewType = 'tour' | 'tip' | 'banner' | 'checklist';
@@ -114,8 +117,13 @@ export function GuidelyThemeEditor({
   theme,
   usage,
   canEdit,
+  plan,
 }: GuidelyThemeEditorProps) {
   const router = useRouter();
+  const { showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
+    plan,
+    feature: 'guidely',
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isSettingDefault, setIsSettingDefault] = useState(false);
   const [previewType, setPreviewType] = useState<PreviewType>('tour');
@@ -214,48 +222,54 @@ export function GuidelyThemeEditor({
   // Handle save
   const handleSave = async () => {
     if (!canEdit) return;
-    setIsSaving(true);
-    try {
-      await updateGuidelyTheme(theme.id, {
-        name: state.name,
-        description: state.description,
-        colors: state.colors,
-        typography: state.typography,
-        borders: state.borders,
-        shadows: state.shadows,
-        avatar: state.avatar,
-        buttons: state.buttons,
-        tour_overrides: state.tour_overrides,
-        smart_tip_overrides: state.smart_tip_overrides,
-        banner_overrides: state.banner_overrides,
-        checklist_overrides: state.checklist_overrides,
-      });
-      toast.success('Theme saved');
-      initialStateRef.current = { ...state };
-      router.refresh();
-    } catch (error) {
-      toast.error('Failed to save', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    // Soft gate: check if Pro before saving
+    await gatedAction(async () => {
+      setIsSaving(true);
+      try {
+        await updateGuidelyTheme(theme.id, {
+          name: state.name,
+          description: state.description,
+          colors: state.colors,
+          typography: state.typography,
+          borders: state.borders,
+          shadows: state.shadows,
+          avatar: state.avatar,
+          buttons: state.buttons,
+          tour_overrides: state.tour_overrides,
+          smart_tip_overrides: state.smart_tip_overrides,
+          banner_overrides: state.banner_overrides,
+          checklist_overrides: state.checklist_overrides,
+        });
+        toast.success('Theme saved');
+        initialStateRef.current = { ...state };
+        router.refresh();
+      } catch (error) {
+        toast.error('Failed to save', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    });
   };
 
   // Handle set as default
   const handleSetDefault = async () => {
-    setIsSettingDefault(true);
-    try {
-      await setDefaultGuidelyTheme(theme.id);
-      toast.success('Theme set as default');
-      router.refresh();
-    } catch (error) {
-      toast.error('Failed to set default', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsSettingDefault(false);
-    }
+    // Soft gate: check if Pro before setting default
+    await gatedAction(async () => {
+      setIsSettingDefault(true);
+      try {
+        await setDefaultGuidelyTheme(theme.id);
+        toast.success('Theme set as default');
+        router.refresh();
+      } catch (error) {
+        toast.error('Failed to set default', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        setIsSettingDefault(false);
+      }
+    });
   };
 
   // Copy color to clipboard
@@ -1019,6 +1033,13 @@ export function GuidelyThemeEditor({
           </div>
         </div>
       </div>
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="guidely"
+      />
     </div>
   );
 }

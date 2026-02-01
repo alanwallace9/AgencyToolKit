@@ -87,9 +87,7 @@ export async function createTheme(data: {
     throw new Error('Unauthorized');
   }
 
-  if (agency.plan !== 'pro') {
-    throw new Error('Tours feature requires Pro plan');
-  }
+  // Soft gate: Allow creation, gate on save (handled in UI)
 
   const supabase = createAdminClient();
 

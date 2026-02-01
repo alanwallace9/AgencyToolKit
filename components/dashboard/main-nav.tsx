@@ -3,33 +3,17 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, ImageIcon, Sparkles, Layers, BadgeCheck } from "lucide-react"
+import { Map, ImageIcon, Layers, BadgeCheck } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { ProBadgeSuperscript } from "@/components/shared/pro-badge"
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-
-const proItems = [
-  {
-    title: "Guidely",
-    href: "/g",
-    description: "Tours, checklists, tips & banners",
-    icon: Map,
-  },
-  {
-    title: "Image Personalization",
-    href: "/images",
-    description: "Dynamic branded images for customers",
-    icon: ImageIcon,
-  },
-]
 
 interface MainNavProps {
   agencyPlan?: string
@@ -116,35 +100,44 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
           </NavigationMenuLink>
         </NavigationMenuItem>
 
-        {/* Pro dropdown */}
+        {/* Guidely - direct link with PRO badge */}
         <NavigationMenuItem>
-          <NavigationMenuTrigger
-            className={cn(
-              "text-[14px] font-medium h-9 px-3 gap-1.5",
-              proItems.some((item) => pathname.startsWith(item.href))
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-            Pro
-          </NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid w-[420px] gap-2 p-3 md:grid-cols-2">
-              {proItems.map((item) => (
-                <ListItem
-                  key={item.href}
-                  title={item.title}
-                  href={isPro ? item.href : `/upgrade${item.href}`}
-                  icon={item.icon}
-                  isActive={pathname.startsWith(item.href)}
-                  isPro={!isPro}
-                >
-                  {item.description}
-                </ListItem>
-              ))}
-            </ul>
-          </NavigationMenuContent>
+          <NavigationMenuLink asChild>
+            <Link
+              href="/g"
+              className={cn(
+                navigationMenuTriggerStyle(),
+                "text-[14px] font-medium h-9 px-3 gap-1.5",
+                pathname.startsWith("/g")
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Map className="h-3.5 w-3.5" />
+              Guidely
+              {!isPro && <ProBadgeSuperscript />}
+            </Link>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+
+        {/* Images - direct link with PRO badge */}
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild>
+            <Link
+              href="/images"
+              className={cn(
+                navigationMenuTriggerStyle(),
+                "text-[14px] font-medium h-9 px-3 gap-1.5",
+                pathname.startsWith("/images")
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              Images
+              {!isPro && <ProBadgeSuperscript />}
+            </Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
 
         {/* Settings - direct link */}
@@ -168,55 +161,3 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
     </NavigationMenu>
   )
 }
-
-interface ListItemProps extends React.ComponentPropsWithoutRef<"a"> {
-  title: string
-  isActive?: boolean
-  icon?: React.ComponentType<{ className?: string }>
-  isPro?: boolean
-}
-
-const ListItem = React.forwardRef<React.ElementRef<"a">, ListItemProps>(
-  ({ className, title, children, isActive, href, icon: Icon, isPro, ...props }, ref) => {
-    return (
-      <li>
-        <NavigationMenuLink asChild>
-          <Link
-            ref={ref}
-            href={href || "#"}
-            className={cn(
-              "group flex items-start gap-3 select-none rounded-lg p-3 leading-none no-underline outline-none transition-all",
-              "hover:bg-muted/80",
-              isActive && "bg-muted",
-              className
-            )}
-            {...props}
-          >
-            {Icon && (
-              <div className={cn(
-                "flex-shrink-0 p-2 rounded-md transition-colors",
-                isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-              )}>
-                <Icon className="h-4 w-4" />
-              </div>
-            )}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium leading-none">{title}</span>
-                {isPro && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-600">
-                    PRO
-                  </span>
-                )}
-              </div>
-              <p className="text-xs leading-snug text-muted-foreground">
-                {children}
-              </p>
-            </div>
-          </Link>
-        </NavigationMenuLink>
-      </li>
-    )
-  }
-)
-ListItem.displayName = "ListItem"

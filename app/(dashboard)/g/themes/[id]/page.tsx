@@ -48,6 +48,7 @@ async function ThemeEditorContent({ id }: { id: string }) {
       theme={theme}
       usage={usage}
       canEdit={canEdit}
+      plan={agency.plan}
     />
   );
 }

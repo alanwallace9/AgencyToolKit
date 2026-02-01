@@ -60,7 +60,7 @@
   /* Plan badges - premium gradients */
   --plan-free: 215 16% 47%;
   --plan-toolkit: 217 91% 60%;
-  --plan-pro: 271 81% 56%;
+  --plan-pro: 43 96% 56%; /* Gold/amber */
 
   /* Sidebar - refined */
   --sidebar: hsl(210 40% 98%);
@@ -197,8 +197,8 @@ body {
 
   /* Premium badge styles */
   .badge-pro {
-    background: linear-gradient(135deg, hsl(var(--plan-pro)) 0%, hsl(var(--plan-pro) / 0.8) 100%);
-    @apply text-white font-medium;
+    background: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(48 96% 53%) 100%);
+    @apply text-amber-950 font-semibold;
   }
 
   .badge-toolkit {

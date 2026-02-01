@@ -215,9 +215,7 @@ export async function createGuidelyTheme(data: CreateGuidelyThemeInput): Promise
     throw new Error('Unauthorized');
   }
 
-  if (agency.plan !== 'pro') {
-    throw new Error('Themes feature requires Pro plan');
-  }
+  // Soft gate: Allow creation, gate on save (handled in UI)
 
   const supabase = createAdminClient();
 

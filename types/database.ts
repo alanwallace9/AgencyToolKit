@@ -6,7 +6,7 @@ export interface Agency {
   email: string;
   name: string;
   token: string;
-  plan: 'free' | 'toolkit' | 'pro';
+  plan: 'toolkit' | 'pro'; // toolkit = free tier
   settings: AgencySettings;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
@@ -1167,10 +1167,9 @@ export const SOCIAL_PROOF_EVENT_TYPE_TEXT: Record<SocialProofEventType, string> 
   custom: '',
 };
 
-// Widget limits by plan
+// Widget limits by plan (TrustSignal for agency's own site is free for all plans)
 export const SOCIAL_PROOF_WIDGET_LIMITS: Record<string, number> = {
-  free: 0,
-  toolkit: 5,
+  toolkit: Infinity, // Free for agency use
   pro: Infinity,
 };
 

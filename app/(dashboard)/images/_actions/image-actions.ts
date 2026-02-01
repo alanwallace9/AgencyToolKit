@@ -58,9 +58,7 @@ export async function createImageTemplate(input: {
     return { success: false, error: 'Unauthorized' };
   }
 
-  if (agency.plan !== 'pro') {
-    return { success: false, error: 'Image personalization requires Pro plan' };
-  }
+  // Soft gate: Allow creation, gate on save (handled in UI)
 
   const supabase = createAdminClient();
   const { data, error } = await supabase

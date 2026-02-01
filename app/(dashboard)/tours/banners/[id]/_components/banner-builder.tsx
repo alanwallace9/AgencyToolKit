@@ -39,6 +39,8 @@ import { BannerContentPanel } from './banner-content-panel';
 import { BannerSettingsPanel } from './banner-settings-panel';
 import { BannerPreview } from './banner-preview';
 import { BannerFullSettings } from './banner-full-settings';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import type { Banner, TourTheme, Checklist } from '@/types/database';
 import type { TourWithStats } from '../../../_actions/tour-actions';
 
@@ -48,10 +50,15 @@ interface BannerBuilderProps {
   tours: TourWithStats[];
   checklists: Checklist[];
   backHref?: string;
+  plan: string;
 }
 
-export function BannerBuilder({ banner: initialBanner, themes, tours, checklists, backHref = '/tours' }: BannerBuilderProps) {
+export function BannerBuilder({ banner: initialBanner, themes, tours, checklists, backHref = '/tours', plan }: BannerBuilderProps) {
   const router = useRouter();
+  const { showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
+    plan,
+    feature: 'guidely',
+  });
   const [banner, setBanner] = useState<Banner>(initialBanner);
   const [showFullSettings, setShowFullSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -99,16 +106,19 @@ export function BannerBuilder({ banner: initialBanner, themes, tours, checklists
   }, []);
 
   const handlePublish = async () => {
-    setIsUpdatingStatus(true);
-    try {
-      const updated = await publishBanner(banner.id);
-      setBanner(updated);
-      toast.success('Banner is now live');
-    } catch (error) {
-      toast.error('Failed to publish');
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    // Soft gate: check if Pro before publishing
+    await gatedAction(async () => {
+      setIsUpdatingStatus(true);
+      try {
+        const updated = await publishBanner(banner.id);
+        setBanner(updated);
+        toast.success('Banner is now live');
+      } catch (error) {
+        toast.error('Failed to publish');
+      } finally {
+        setIsUpdatingStatus(false);
+      }
+    });
   };
 
   const handleUnpublish = async () => {
@@ -322,6 +332,13 @@ export function BannerBuilder({ banner: initialBanner, themes, tours, checklists
         onOpenChange={setShowFullSettings}
         banner={banner}
         onUpdate={updateLocalBanner}
+      />
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="guidely"
       />
     </div>
   );

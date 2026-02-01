@@ -52,6 +52,7 @@ export default async function TourPage({ params }: TourPageProps) {
       customers={(customersResult.data as Customer[]) || []}
       ghlDomain={agency.ghl_domain}
       builderAutoClose={agency.builder_auto_close ?? true}
+      plan={agency.plan}
     />
   );
 }

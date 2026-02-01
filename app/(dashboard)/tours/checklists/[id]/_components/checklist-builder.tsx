@@ -40,6 +40,8 @@ import { ChecklistItemsPanel } from './checklist-items-panel';
 import { ChecklistItemSettings } from './checklist-item-settings';
 import { ChecklistSettingsPanel } from './checklist-settings-panel';
 import { ChecklistPreview } from './checklist-preview';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import type { Checklist, ChecklistItem, TourTheme } from '@/types/database';
 import type { TourWithStats } from '../../../_actions/tour-actions';
 
@@ -48,10 +50,15 @@ interface ChecklistBuilderProps {
   themes: TourTheme[];
   tours: TourWithStats[];
   backHref?: string;
+  plan: string;
 }
 
-export function ChecklistBuilder({ checklist: initialChecklist, themes, tours, backHref = '/tours' }: ChecklistBuilderProps) {
+export function ChecklistBuilder({ checklist: initialChecklist, themes, tours, backHref = '/tours', plan }: ChecklistBuilderProps) {
   const router = useRouter();
+  const { showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
+    plan,
+    feature: 'guidely',
+  });
   const [checklist, setChecklist] = useState<Checklist>(initialChecklist);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(
     initialChecklist.items.length > 0 ? initialChecklist.items[0].id : null
@@ -138,16 +145,19 @@ export function ChecklistBuilder({ checklist: initialChecklist, themes, tours, b
   }, []);
 
   const handlePublish = async () => {
-    setIsUpdatingStatus(true);
-    try {
-      const updated = await publishChecklist(checklist.id);
-      setChecklist(updated);
-      toast.success('Checklist is now live');
-    } catch (error) {
-      toast.error('Failed to publish');
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    // Soft gate: check if Pro before publishing
+    await gatedAction(async () => {
+      setIsUpdatingStatus(true);
+      try {
+        const updated = await publishChecklist(checklist.id);
+        setChecklist(updated);
+        toast.success('Checklist is now live');
+      } catch (error) {
+        toast.error('Failed to publish');
+      } finally {
+        setIsUpdatingStatus(false);
+      }
+    });
   };
 
   const handleUnpublish = async () => {
@@ -349,6 +359,13 @@ export function ChecklistBuilder({ checklist: initialChecklist, themes, tours, b
         checklist={checklist}
         themes={themes}
         onUpdate={updateLocalChecklist}
+      />
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="guidely"
       />
     </div>
   );

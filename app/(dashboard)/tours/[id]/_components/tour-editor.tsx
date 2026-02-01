@@ -49,6 +49,8 @@ import { StepPreviewModal } from './step-preview-modal';
 import { PreviewDropdown } from './preview-dropdown';
 import { ElementValidator, type ValidationResult } from './element-validator';
 import { updateTour, publishTour, unpublishTour, saveAsTemplate } from '../../_actions/tour-actions';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import type { Tour, TourStep, TourSettings, TourTargeting, TourTheme, Customer } from '@/types/database';
 
 interface TourEditorProps {
@@ -58,6 +60,7 @@ interface TourEditorProps {
   ghlDomain: string | null;
   builderAutoClose: boolean;
   backHref?: string;
+  plan: string;
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error';
@@ -81,8 +84,12 @@ const createDefaultStep = (order: number): TourStep => ({
   },
 });
 
-export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, builderAutoClose, backHref = '/tours' }: TourEditorProps) {
+export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, builderAutoClose, backHref = '/tours', plan }: TourEditorProps) {
   const router = useRouter();
+  const { isPro, showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
+    plan,
+    feature: 'guidely',
+  });
   const [tour, setTour] = useState(initialTour);
   const [steps, setSteps] = useState<TourStep[]>(
     (initialTour.steps as TourStep[]) || []
@@ -347,25 +354,29 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
 
   const handlePublishConfirm = async () => {
     setShowPublishDialog(false);
-    setIsPublishing(true);
-    try {
-      // Save first
-      await updateTour(tour.id, { name: tourName, steps, settings, targeting });
-      await publishTour(tour.id);
-      setTour({ ...tour, status: 'live' });
 
-      // Show celebratory toast
-      toast.success('Tour is now live!', {
-        description: `"${tourName}" is ready to guide your users.`,
-        duration: 5000,
-      });
-    } catch (error) {
-      toast.error('Failed to publish', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsPublishing(false);
-    }
+    // Soft gate: check if Pro before publishing
+    await gatedAction(async () => {
+      setIsPublishing(true);
+      try {
+        // Save first
+        await updateTour(tour.id, { name: tourName, steps, settings, targeting });
+        await publishTour(tour.id);
+        setTour({ ...tour, status: 'live' });
+
+        // Show celebratory toast
+        toast.success('Tour is now live!', {
+          description: `"${tourName}" is ready to guide your users.`,
+          duration: 5000,
+        });
+      } catch (error) {
+        toast.error('Failed to publish', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        setIsPublishing(false);
+      }
+    });
   };
 
   const handleUnpublish = async () => {
@@ -400,27 +411,30 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
   const handleSaveAsTemplate = async () => {
     if (!templateName.trim()) return;
 
-    setIsSavingTemplate(true);
-    try {
-      // Save current tour state first
-      await updateTour(tour.id, { name: tourName, steps, settings, targeting });
+    // Soft gate: check if Pro before saving template
+    await gatedAction(async () => {
+      setIsSavingTemplate(true);
+      try {
+        // Save current tour state first
+        await updateTour(tour.id, { name: tourName, steps, settings, targeting });
 
-      const template = await saveAsTemplate(tour.id, {
-        name: templateName.trim(),
-        description: templateDescription.trim() || undefined,
-      });
+        const template = await saveAsTemplate(tour.id, {
+          name: templateName.trim(),
+          description: templateDescription.trim() || undefined,
+        });
 
-      toast.success('Template saved', {
-        description: `"${template.name}" is now available in your templates.`,
-      });
-      setShowSaveTemplateDialog(false);
-    } catch (error) {
-      toast.error('Failed to save template', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsSavingTemplate(false);
-    }
+        toast.success('Template saved', {
+          description: `"${template.name}" is now available in your templates.`,
+        });
+        setShowSaveTemplateDialog(false);
+      } catch (error) {
+        toast.error('Failed to save template', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        setIsSavingTemplate(false);
+      }
+    });
   };
 
   const statusConfig = {
@@ -752,6 +766,13 @@ export function TourEditor({ tour: initialTour, themes, customers, ghlDomain, bu
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="guidely"
+      />
     </div>
   );
 }

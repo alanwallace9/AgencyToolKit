@@ -29,6 +29,7 @@ export default async function GuidelySmartTipPage({ params }: SmartTipPageProps)
       ghlDomain={agency.ghl_domain}
       builderAutoClose={agency.builder_auto_close ?? true}
       backHref="/g/tips"
+      plan={agency.plan}
     />
   );
 }

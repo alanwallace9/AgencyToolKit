@@ -1,7 +1,7 @@
 # Sprint Tracking
 
-## Progress: 90% Complete (36 of 40 Active Features)
-*5 features moved to backlog*
+## Progress: 92.5% Complete (37 of 40 Active Features)
+*5 features moved to backlog, Feature 34 deprioritized*
 
 ---
 
@@ -68,7 +68,7 @@
 - [x] Feature 42: Social Proof Widget - Events Management (TrustSignal)
 - [x] Feature 43: Social Proof Widget - Script (TrustSignal)
 - [ ] Feature 44: Settings Page Complete
-- [ ] Feature 45: Plan Gating & Upgrade Prompts
+- [x] Feature 45: Plan Gating & Upgrade Prompts (Soft Gate UX)
 
 ### Polish & Launch
 - [ ] Feature 46: Error Handling & Toasts
@@ -81,6 +81,7 @@
 - [ ] Feature 33: Resource Center Widget + Embed (Help Launcher)
 - [ ] Feature 40: GBP Dashboard - Customer Connection
 - [ ] Feature 41: GBP Dashboard - Embed Page
+- [ ] **Guidely Showcases**: Interactive screenshot-based demos for prospects (see `docs/features/feature-guidely-showcases.md`)
 
 ---
 
@@ -120,13 +121,24 @@
 - ✅ 2026-01-27: Features 28-29 - Smart Tips Builder + Embed (hover tooltips, beacons, element targeting)
 - ✅ 2026-01-27: Guidely Themes System - Full theme editor with component overrides, 5 system templates, per-feature defaults
 
-### In Progress
-- Final UI polish and refinements
-
 ### Completed This Session (2026-01-31)
 - ✅ Checklists Builder Redesign (Pattern B - 3-panel layout with slide-out)
 - ✅ Customer multi-select component for targeting
 - ✅ Customer segmentation & targeting system (documented for backlog)
+- ✅ Guidely UX Polish - Analytics, List Views, Tags System (committed)
+- ✅ **Feature 45: Plan Gating & Upgrade Prompts (COMPLETE)**
+  - Created docs/spec/PRICING_AND_PLANS.md - Complete pricing model documentation
+  - Database migration: Removed 'free' tier, now toolkit + pro only
+  - Created lib/plan-gating.ts - Central feature access utilities
+  - Updated types/database.ts - Removed 'free' from plan type
+  - Created components/shared/pro-badge.tsx - Gold PRO badge component
+  - Created components/shared/upgrade-banner.tsx - Sticky upgrade banner
+  - Created components/shared/upgrade-modal.tsx - Upgrade modal for save actions
+  - Updated main-nav.tsx - PRO badges on Guidely and Images
+  - Created hooks/use-soft-gate.ts - Reusable soft gate hook
+  - Wired soft gate into all Guidely builders (Tours, Checklists, Banners, Smart Tips, Themes)
+  - Wired soft gate into Images pages (list, editor)
+  - Soft gate UX: Users can explore/build freely, upgrade modal on Publish/Save actions
 
 ### Completed (2026-01-28)
 - ✅ Banner Builder Redesign (Pattern A - 3-panel layout)
@@ -149,11 +161,12 @@
 - RLS policies use Supabase Auth JWT, but we use Clerk - currently using admin client bypass (needs proper Clerk→Supabase JWT integration)
 
 ### Up Next
-- Feature 34: URL Pattern Tester UI
 - Feature 44: Settings Page Complete
-- Feature 45: Plan Gating & Upgrade Prompts
 - Feature 46: Error Handling & Toasts
 - Feature 47: Mobile Responsiveness
+- Feature 48: Documentation & Help
+
+*Note: Feature 34 (URL Pattern Tester) was deprioritized*
 
 ---
 
@@ -162,33 +175,46 @@
 **Copy this prompt to start the next session:**
 
 ```
-Debug and complete Phase 4: Features 38 & 39
+Continue self-dogfooding Guidely and system templates.
 
-## Current State
-Features 38 (Image Generation API) and 39 (URL Generator) are IMPLEMENTED but have a bug:
-- "Template not found" error when testing the OG API
+## Completed Last Session (2026-02-01)
+- Feature 45: Plan Gating & Upgrade Prompts - COMPLETE
+- Soft gate UX: Users can create/explore freely, upgrade modal on Publish
+- Gold PRO badge styling (was purple)
+- Removed all server-side hard gates
+- All builders now use useSoftGate hook
+- Upgrade banner shows on /g/* and /images pages
 
-## Files Created This Session
-1. `app/api/og/[templateId]/route.tsx` - Edge function for image generation
-2. `app/(dashboard)/images/[id]/_components/url-generator.tsx` - URL display section
-3. `app/(dashboard)/images/[id]/_components/copy-url-button.tsx` - Copy button component
+## Current Task: Self-Dogfooding Guidely
+Goal: Use Guidely to teach Guidely - a "Welcome to Guidely" tour on our own app.
 
-## Files Modified
-- `app/(dashboard)/images/[id]/_components/image-editor.tsx` - Added URLGenerator at bottom
-- `package.json` - Added @vercel/og ^0.8.6
+### Approach Decided: Self-Embed (NOT browser extension)
+Our builder mode uses a JS overlay on live sites (not iframe). To tour our own app:
+1. Add localhost:3000 and agencytoolkit.com to embed script domain whitelist
+2. Navigate to /g/tours?builder_mode=true
+3. Use existing element selector to build tour
+4. Embed script plays it back
 
-## Database Function Added
-```sql
-increment_render_count(p_template_id UUID)
+### Files to Modify
+- Embed script domain whitelist (check /public/embed.js or similar)
+- Builder mode URL validation
+- Possibly CORS settings
+
+## Secondary Task: System Templates
+Add pre-built starter templates for empty state:
+1. Add is_system column to tour_templates table
+2. Create 2-3 templates (Welcome Tour, Feature Discovery)
+3. Update empty state UI
+
+## Key Docs
+- /docs/features/feature-45-plan-gating-complete.md (full session notes)
+- /docs/spec/PRICING_AND_PLANS.md
+
+## Questions to Consider
+1. Should self-embed be configurable for customers (tour their own SaaS)?
+2. Browser extension as V2 feature?
+3. Auto-trigger meta-tour on first visit vs manual trigger?
 ```
-
-## Bug to Debug
-Test URL: http://localhost:3000/api/og/6acefd9c-ad1d-4ae3-add3-395d749cd571?name=Sarah
-Expected: PNG image with "Hi Sarah!" on precision-plumbing photo
-Actual: "Template not found" 404 error
-
-Possible causes:
-1. Supabase REST API auth failing in Edge runtime
 2. Environment variables not available (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_ANON_KEY)
 3. UUID format issue in the query
 
@@ -497,6 +523,8 @@ Reference docs/features/phase-4-image-personalization.md for the full spec.
 - 2026-01-10: GitHub repo: https://github.com/alanwallace9/AgencyToolKit
 - 2026-01-10: Vercel URL: https://agencytoolkit-alanwallace9-5200s-projects.vercel.app
 - 2026-01-11: Feature 14 implemented as drag-drop canvas designer (major differentiator vs competitors)
+- 2026-02-01: Phased release strategy confirmed - Theme Builder + TrustSignal free first, then Guidely, then Images, then Showcases
+- 2026-02-01: Guidely Showcases spec added to backlog - screenshot-based interactive demos for prospects (inspired by Supademo)
 
 ### Feature 14: Login Customizer Page (Canvas-based Designer)
 **Completed:** 2026-01-11

@@ -11,9 +11,11 @@ export default async function ThemeEditorPage({ params }: ThemeEditorPageProps) 
   const { id } = await params;
   const agency = await getCurrentAgency();
 
-  if (!agency || agency.plan !== 'pro') {
+  if (!agency) {
     notFound();
   }
+
+  // Soft gate: Allow access, gate on save (handled in UI)
 
   const theme = await getTheme(id);
 

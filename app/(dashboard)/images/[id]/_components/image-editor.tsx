@@ -10,6 +10,8 @@ import { PropertiesPanel } from './properties-panel';
 import { PreviewModal } from './preview-modal';
 import { URLGenerator } from './url-generator';
 import { updateImageTemplate } from '../../_actions/image-actions';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Eye, Undo2, Check, Pencil, Link2 } from 'lucide-react';
@@ -45,11 +47,16 @@ const PREVIEW_DEVICES = [
 interface ImageEditorProps {
   template: ImageTemplate;
   userName?: string; // From Clerk for "Try it with your name"
+  plan: string;
 }
 
-export function ImageEditor({ template, userName }: ImageEditorProps) {
+export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
   // Fabric canvas ref
   const fabricCanvasRef = useRef<FabricCanvasRef>(null);
+  const { showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
+    plan,
+    feature: 'images',
+  });
 
   // Core state
   const [textConfig, setTextConfig] = useState<ImageTemplateTextConfig>(
@@ -112,16 +119,19 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
 
   // Auto-save with debounce
   const saveChanges = useCallback(async (config: ImageTemplateTextConfig) => {
-    setIsSaving(true);
-    const result = await updateImageTemplate(template.id, { text_config: config });
-    setIsSaving(false);
+    // Soft gate: check if Pro before saving
+    await gatedAction(async () => {
+      setIsSaving(true);
+      const result = await updateImageTemplate(template.id, { text_config: config });
+      setIsSaving(false);
 
-    if (result.success) {
-      setLastSaved(new Date());
-    } else {
-      toast.error('Failed to save changes');
-    }
-  }, [template.id]);
+      if (result.success) {
+        setLastSaved(new Date());
+      } else {
+        toast.error('Failed to save changes');
+      }
+    });
+  }, [template.id, gatedAction]);
 
   // Debounced save
   const debouncedSave = useCallback((config: ImageTemplateTextConfig) => {
@@ -413,6 +423,13 @@ export function ImageEditor({ template, userName }: ImageEditorProps) {
         appliedCrop={null}
         flipH={false}
         flipV={false}
+      />
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="images"
       />
     </div>
   );

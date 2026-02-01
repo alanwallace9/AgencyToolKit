@@ -17,6 +17,8 @@ import { AddTemplateDialog } from './add-template-dialog';
 import { DeleteTemplateDialog } from './delete-template-dialog';
 import { EmptyState } from './empty-state';
 import { duplicateImageTemplate } from '../_actions/image-actions';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import { toast } from 'sonner';
 import type { ImageTemplate } from '@/types/database';
 
@@ -27,10 +29,15 @@ interface ImagesClientProps {
   templates: ImageTemplate[];
   customers: CustomerOption[];
   userName?: string;
+  plan: string;
 }
 
-export function ImagesClient({ templates, customers, userName }: ImagesClientProps) {
+export function ImagesClient({ templates, customers, userName, plan }: ImagesClientProps) {
   const router = useRouter();
+  const { showUpgradeModal, setShowUpgradeModal, gatedAction, gatedActionSync } = useSoftGate({
+    plan,
+    feature: 'images',
+  });
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterCustomer, setFilterCustomer] = useState<string>('all');
@@ -79,13 +86,23 @@ export function ImagesClient({ templates, customers, userName }: ImagesClientPro
   }, [templates, search, sortBy, filterCustomer]);
 
   const handleDuplicate = async (id: string) => {
-    const result = await duplicateImageTemplate(id);
-    if (result.success) {
-      toast.success('Template duplicated');
-      router.refresh();
-    } else {
-      toast.error(result.error);
-    }
+    // Soft gate: check if Pro before duplicating
+    await gatedAction(async () => {
+      const result = await duplicateImageTemplate(id);
+      if (result.success) {
+        toast.success('Template duplicated');
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  };
+
+  // Soft gate: check if Pro before opening add dialog
+  const handleOpenAddDialog = () => {
+    gatedActionSync(() => {
+      setShowAddDialog(true);
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -99,11 +116,17 @@ export function ImagesClient({ templates, customers, userName }: ImagesClientPro
   if (templates.length === 0) {
     return (
       <>
-        <EmptyState onCreateClick={() => setShowAddDialog(true)} userName={userName} />
+        <EmptyState onCreateClick={handleOpenAddDialog} userName={userName} />
         <AddTemplateDialog
           open={showAddDialog}
           onOpenChange={setShowAddDialog}
           customers={customers}
+        />
+        {/* Upgrade Modal for soft-gated actions */}
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature="images"
         />
       </>
     );
@@ -167,7 +190,7 @@ export function ImagesClient({ templates, customers, userName }: ImagesClientPro
           )}
 
           {/* Create Button */}
-          <Button onClick={() => setShowAddDialog(true)}>
+          <Button onClick={handleOpenAddDialog}>
             <Plus className="h-4 w-4 mr-2" />
             New Template
           </Button>
@@ -215,6 +238,13 @@ export function ImagesClient({ templates, customers, userName }: ImagesClientPro
         open={!!templateToDelete}
         onOpenChange={(open) => !open && setTemplateToDelete(null)}
         onDeleted={() => router.refresh()}
+      />
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="images"
       />
     </>
   );

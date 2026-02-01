@@ -65,6 +65,8 @@ import {
 import { TipSettingsPanel } from './tip-settings-panel';
 import { TipPreview } from './tip-preview';
 import { TipGlobalSettings } from './tip-global-settings';
+import { useSoftGate } from '@/hooks/use-soft-gate';
+import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import type { SmartTip, TourTheme } from '@/types/database';
 
 interface SmartTipsBuilderProps {
@@ -74,6 +76,7 @@ interface SmartTipsBuilderProps {
   ghlDomain: string | null;
   builderAutoClose: boolean;
   backHref?: string;
+  plan: string;
 }
 
 const triggerIcons = {
@@ -191,8 +194,13 @@ export function SmartTipsBuilder({
   ghlDomain,
   builderAutoClose,
   backHref = '/g/tips',
+  plan,
 }: SmartTipsBuilderProps) {
   const router = useRouter();
+  const { showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
+    plan,
+    feature: 'guidely',
+  });
   const [tip, setTip] = useState<SmartTip>(initialTip);
   const [allTips, setAllTips] = useState<SmartTip[]>(initialAllTips);
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
@@ -287,17 +295,20 @@ export function SmartTipsBuilder({
   };
 
   const handlePublish = async () => {
-    setIsUpdatingStatus(true);
-    try {
-      const updated = await publishSmartTip(tip.id);
-      setTip(updated);
-      setAllTips(prev => prev.map(t => t.id === tip.id ? updated : t));
-      toast.success('Smart tip is now live');
-    } catch (error) {
-      toast.error('Failed to publish');
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    // Soft gate: check if Pro before publishing
+    await gatedAction(async () => {
+      setIsUpdatingStatus(true);
+      try {
+        const updated = await publishSmartTip(tip.id);
+        setTip(updated);
+        setAllTips(prev => prev.map(t => t.id === tip.id ? updated : t));
+        toast.success('Smart tip is now live');
+      } catch (error) {
+        toast.error('Failed to publish');
+      } finally {
+        setIsUpdatingStatus(false);
+      }
+    });
   };
 
   const handleUnpublish = async () => {
@@ -568,6 +579,13 @@ export function SmartTipsBuilder({
         tip={tip}
         themes={themes}
         onUpdate={updateLocalTip}
+      />
+
+      {/* Upgrade Modal for soft-gated actions */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="guidely"
       />
     </div>
   );
