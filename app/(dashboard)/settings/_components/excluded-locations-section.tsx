@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, X, Copy, Info, Loader2 } from 'lucide-react';
+import { Plus, X, Copy, Info, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { addExcludedLocation, removeExcludedLocation } from '../_actions/settings-actions';
 
@@ -19,6 +19,7 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
   const [newLocation, setNewLocation] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const handleAdd = async () => {
     const locationId = newLocation.trim();
@@ -68,7 +69,8 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
       return;
     }
     navigator.clipboard.writeText(locations.join('\n'));
-    toast.success(`Copied ${locations.length} location ID${locations.length === 1 ? '' : 's'}`);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
   };
 
   return (
@@ -136,10 +138,17 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
                 <Label className="text-sm text-muted-foreground">
                   Excluded Location IDs
                 </Label>
-                <Button variant="ghost" size="sm" onClick={copyAll}>
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy All
-                </Button>
+                {copiedAll ? (
+                  <span className="flex items-center gap-1 text-emerald-600 text-sm">
+                    <Check className="h-3 w-3" />
+                    Copied
+                  </span>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={copyAll}>
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy All
+                  </Button>
+                )}
               </div>
               <div className="space-y-2">
                 {locations.map((locationId) => (
