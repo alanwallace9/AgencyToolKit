@@ -115,7 +115,11 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
                 }}
               />
             </div>
-            <Button onClick={handleAdd} disabled={isAdding || !newLocation.trim()}>
+            <Button
+              onClick={handleAdd}
+              disabled={isAdding || !newLocation.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
               {isAdding ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

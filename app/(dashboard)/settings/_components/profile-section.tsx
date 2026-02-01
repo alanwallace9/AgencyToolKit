@@ -23,6 +23,7 @@ interface ProfileSectionProps {
 
 export function ProfileSection({ agency }: ProfileSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [name, setName] = useState(agency.name || '');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -53,7 +54,8 @@ export function ProfileSection({ agency }: ProfileSectionProps) {
 
   const copyToken = () => {
     navigator.clipboard.writeText(agency.token);
-    toast.success('Token copied to clipboard');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -153,14 +155,21 @@ export function ProfileSection({ agency }: ProfileSectionProps) {
               <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
                 {agency.token}
               </code>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={copyToken}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
+              {copied ? (
+                <span className="flex items-center gap-1 text-emerald-600">
+                  <Check className="h-3 w-3" />
+                  <span className="text-xs font-medium">Copied</span>
+                </span>
+              ) : (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={copyToken}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Used in your embed script to identify your agency

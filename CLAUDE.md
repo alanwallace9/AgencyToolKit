@@ -97,19 +97,24 @@ RLS policies enforce multi-tenant isolation via `clerk_user_id` in JWT. Public r
 | `spec/COMPONENTS.md` | React component hierarchy, hooks, form patterns |
 | `spec/CONSTANTS.md` | GHL menu items, loading animations, color presets |
 | `spec/FEATURES.md` | Kanban-ready feature cards with acceptance criteria |
+| `spec/PRICING_AND_PLANS.md` | Complete pricing model, plan gating, TrustSignal billing |
 
 ## Pricing Tiers
 
-| Feature | Toolkit ($19) | Pro ($39) |
-|---------|---------------|-----------|
-| Menu Customizer | Yes | Yes |
-| Login/Loading/Colors | Yes | Yes |
-| Onboarding Tours | No | Yes |
-| Image Personalization | No | Yes |
-| GBP Dashboard | No | Yes |
-| Customer Limit | 25 | Unlimited |
+**Philosophy:** If it scales for free, give it for free. Only charge for real costs.
+
+| Feature | Toolkit (Free) | Pro ($49/mo) |
+|---------|----------------|--------------|
+| Menu Customizer | ✅ | ✅ |
+| Theme Builder (Login/Loading/Colors) | ✅ | ✅ |
+| Customer Management | ✅ Unlimited | ✅ Unlimited |
+| TrustSignal (agency site) | ✅ | ✅ |
+| **Guidely** (Tours, Checklists, Tips, Banners) | ❌ | ✅ |
+| **Image Personalization** | ❌ | ✅ |
+| TrustSignal for Customers | ❌ | +$5/customer/mo |
 
 Feature gating is implemented via `agency.plan` field in database.
+See `docs/spec/PRICING_AND_PLANS.md` for full details.
 
 ## Key Implementation Notes
 
