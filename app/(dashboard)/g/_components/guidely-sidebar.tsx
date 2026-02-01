@@ -12,7 +12,6 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -97,7 +96,7 @@ export function GuidelySidebar() {
               href="/g"
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Map className="h-4 w-4 text-primary" />
               <span className="font-semibold text-sm">Guidely</span>
             </Link>
           ) : (
@@ -107,7 +106,7 @@ export function GuidelySidebar() {
                   href="/g"
                   className="flex items-center justify-center hover:opacity-80 transition-opacity"
                 >
-                  <Sparkles className="h-5 w-5 text-primary" />
+                  <Map className="h-5 w-5 text-primary" />
                 </Link>
               </TooltipTrigger>
               <TooltipContent side="right">Guidely Dashboard</TooltipContent>
