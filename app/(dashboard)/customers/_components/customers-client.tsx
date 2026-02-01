@@ -9,6 +9,7 @@ import { CustomerTable } from './customer-table';
 import { AddCustomerDialog } from './add-customer-dialog';
 import { EmptyState } from './empty-state';
 import { CustomerFilterTabs } from './customer-filter-tabs';
+import { ExportCustomersButton } from './export-customers-button';
 import { ProgressStatus, CustomerWithProgress } from '../page';
 
 interface StatusCounts {
@@ -93,9 +94,10 @@ export function CustomersClient({
         </div>
       )}
 
-      {/* Add button (when customers exist and not filtering) */}
+      {/* Action buttons (when customers exist and not filtering) */}
       {customers.length > 0 && !tourFilter && (
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end gap-2 mb-4">
+          <ExportCustomersButton disabled={customers.length === 0} />
           <Button onClick={() => setShowAddDialog(true)} disabled={isAtLimit}>
             <Plus className="h-4 w-4 mr-2" />
             Add Customer

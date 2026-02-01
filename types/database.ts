@@ -14,6 +14,7 @@ export interface Agency {
   builder_auto_close: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null; // Soft delete timestamp. NULL = active
 }
 
 export interface AgencySettings {

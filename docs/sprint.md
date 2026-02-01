@@ -1,6 +1,6 @@
 # Sprint Tracking
 
-## Progress: 92.5% Complete (37 of 40 Active Features)
+## Progress: 95% Complete (38 of 40 Active Features)
 *5 features moved to backlog, Feature 34 deprioritized*
 
 ---
@@ -67,7 +67,7 @@
 ### Phase 5: Integrations
 - [x] Feature 42: Social Proof Widget - Events Management (TrustSignal)
 - [x] Feature 43: Social Proof Widget - Script (TrustSignal)
-- [ ] Feature 44: Settings Page Complete
+- [x] Feature 44: Settings Page Complete
 - [x] Feature 45: Plan Gating & Upgrade Prompts (Soft Gate UX)
 
 ### Polish & Launch
@@ -82,6 +82,9 @@
 - [ ] Feature 40: GBP Dashboard - Customer Connection
 - [ ] Feature 41: GBP Dashboard - Embed Page
 - [ ] **Guidely Showcases**: Interactive screenshot-based demos for prospects (see `docs/features/feature-guidely-showcases.md`)
+- [ ] **Guidely Chrome Extension**: Capture tours/showcases from any website, replaces Builder Mode (see `docs/features/feature-guidely-chrome-extension.md`)
+- [ ] **Customer Import from GHL**: API integration to pull customers from GHL instead of manual entry
+- [ ] **Share/Import with Affiliate Attribution**: Share menu presets, tours, themes via link; 90-day attribution window; if recipient upgrades to Pro, sharer gets affiliate credit (viral growth mechanism)
 
 ---
 
@@ -120,6 +123,16 @@
 - ✅ 2026-01-26: Features 30-31 - Banners Builder + Embed (3-panel layout, 5 style presets, scheduling, targeting, analytics)
 - ✅ 2026-01-27: Features 28-29 - Smart Tips Builder + Embed (hover tooltips, beacons, element targeting)
 - ✅ 2026-01-27: Guidely Themes System - Full theme editor with component overrides, 5 system templates, per-feature defaults
+
+### Completed (2026-02-01) - Feature 44: Settings Page Complete
+- [x] Database migration: added `deleted_at` column for soft delete
+- [x] Settings layout with collapsible sidebar (like Guidely pattern)
+- [x] Route-based navigation (`/settings/profile`, `/settings/embed`, etc.)
+- [x] Click-to-toggle sidebar expand/collapse (persisted in localStorage)
+- [x] Profile section with inline editable name + gold PRO badge
+- [x] Excluded locations section (add/remove/copy all)
+- [x] Danger zone section with delete account (soft delete, type DELETE)
+- [x] Customer export button on Customers page (CSV download)
 
 ### Completed This Session (2026-01-31)
 - ✅ Checklists Builder Redesign (Pattern B - 3-panel layout with slide-out)
@@ -175,45 +188,46 @@
 **Copy this prompt to start the next session:**
 
 ```
-Continue self-dogfooding Guidely and system templates.
+Implement Feature 44: Settings Page Complete
 
-## Completed Last Session (2026-02-01)
-- Feature 45: Plan Gating & Upgrade Prompts - COMPLETE
-- Soft gate UX: Users can create/explore freely, upgrade modal on Publish
-- Gold PRO badge styling (was purple)
-- Removed all server-side hard gates
-- All builders now use useSoftGate hook
-- Upgrade banner shows on /g/* and /images pages
+## Feature Doc
+See /docs/features/feature-44-settings-page-complete.md for full spec.
 
-## Current Task: Self-Dogfooding Guidely
-Goal: Use Guidely to teach Guidely - a "Welcome to Guidely" tour on our own app.
+## Summary
+Redesign Settings page with left nav layout (query param routing):
+- `/settings?section=profile` - Editable name, gold PRO badge
+- `/settings?section=embed` - Embed code + CSS export
+- `/settings?section=ghl` - GHL domain, builder settings
+- `/settings?section=photos` - Photo upload settings
+- `/settings?section=excluded` - Excluded Locations (was "whitelist")
+- `/settings?section=danger` - Delete account (soft delete, type "DELETE")
 
-### Approach Decided: Self-Embed (NOT browser extension)
-Our builder mode uses a JS overlay on live sites (not iframe). To tour our own app:
-1. Add localhost:3000 and agencytoolkit.com to embed script domain whitelist
-2. Navigate to /g/tours?builder_mode=true
-3. Use existing element selector to build tour
-4. Embed script plays it back
+## Key Decisions Made
+- Left nav with query params (not hash routes)
+- Soft delete for account deletion (sets deleted_at)
+- "Excluded Locations" naming (clearer than whitelist)
+- Customer export moved to Customers page (not Settings)
+- Gold PRO badge (matches rest of build)
+- Stripe cancellation stubbed for future
 
-### Files to Modify
-- Embed script domain whitelist (check /public/embed.js or similar)
-- Builder mode URL validation
-- Possibly CORS settings
+## Order of Operations
+1. Database migration: add deleted_at column
+2. Settings layout shell (left nav + content area)
+3. Migrate existing components into sections
+4. Profile section - inline editable name
+5. Excluded Locations section - add/remove/copy-all
+6. Danger Zone - delete account with typed confirmation
+7. Customer Export button on Customers page
 
-## Secondary Task: System Templates
-Add pre-built starter templates for empty state:
-1. Add is_system column to tour_templates table
-2. Create 2-3 templates (Welcome Tour, Feature Discovery)
-3. Update empty state UI
+## New Backlog Items Added
+- Customer Import from GHL (API integration)
+- Share/Import with Affiliate Attribution (90-day window, viral growth)
 
-## Key Docs
-- /docs/features/feature-45-plan-gating-complete.md (full session notes)
-- /docs/spec/PRICING_AND_PLANS.md
-
-## Questions to Consider
-1. Should self-embed be configurable for customers (tour their own SaaS)?
-2. Browser extension as V2 feature?
-3. Auto-trigger meta-tour on first visit vs manual trigger?
+## After Feature 44
+- Feature 46: Error Handling & Toasts
+- Feature 47: Mobile Responsiveness
+- Feature 48: Documentation & Help
+- Then: Self-dogfooding Guidely (meta-tour)
 ```
 2. Environment variables not available (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_ANON_KEY)
 3. UUID format issue in the query
