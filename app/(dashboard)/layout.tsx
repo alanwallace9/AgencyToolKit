@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Sparkles } from "lucide-react"
-import { UserButton } from "@clerk/nextjs"
+import Image from "next/image"
 
 import { Badge } from "@/components/ui/badge"
 import { MainNav } from "@/components/dashboard/main-nav"
 import { NotificationBell } from "@/components/dashboard/notification-bell"
+import { UserNav } from "@/components/dashboard/user-nav"
+import { HelpHeaderButton } from "@/components/dashboard/help-header-button"
 import { getCurrentAgency } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
@@ -27,15 +28,16 @@ export default async function DashboardLayout({
         <div className="flex h-16 items-center px-4 sm:px-6 lg:px-14 max-w-[1800px] mx-auto w-full">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2.5 mr-8 group"
+            className="flex items-center mr-8 shrink-0"
           >
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg blur-sm opacity-20 group-hover:opacity-40 transition-opacity" />
-              <div className="relative bg-gradient-to-br from-blue-500 to-cyan-500 p-1.5 rounded-lg">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-            </div>
-            <span className="font-semibold text-[15px] tracking-tight">Agency Toolkit</span>
+            <Image
+              src="/logo-v2.png"
+              alt="Agency Toolkit"
+              width={240}
+              height={60}
+              className="h-10 w-auto"
+              priority
+            />
           </Link>
           <MainNav agencyPlan={agency.plan} />
           <div className="ml-auto flex items-center gap-4">
@@ -50,18 +52,10 @@ export default async function DashboardLayout({
             >
               {agency.plan === "pro" ? "Pro" : "Toolkit"}
             </Badge>
+            <HelpHeaderButton />
             <NotificationBell />
             <div className="h-5 w-px bg-border/60" />
-            <div suppressHydrationWarning>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "h-8 w-8 ring-2 ring-border/30 ring-offset-2 ring-offset-background"
-                  }
-                }}
-              />
-            </div>
+            <UserNav />
           </div>
         </div>
       </header>

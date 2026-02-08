@@ -141,7 +141,7 @@ export function TagPicker({ tags, selectedTagId, onSelect, trigger, align = 'end
             </div>
             <Button
               size="sm"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full"
               onClick={handleCreateTag}
               disabled={isCreating}
             >

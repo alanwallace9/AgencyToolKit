@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, ImageIcon, Layers, BadgeCheck, Menu, Home, Users, Settings } from "lucide-react"
+import { Map, ImageIcon, Layers, BadgeCheck, Menu, Home, Users } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -35,7 +35,6 @@ const navItems = [
   { href: "/trustsignal", label: "TrustSignal", icon: BadgeCheck },
   { href: "/g", label: "Guidely", icon: Map, isPro: true },
   { href: "/images", label: "Images", icon: ImageIcon, isPro: true },
-  { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
@@ -203,24 +202,6 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
               <ImageIcon className="h-3.5 w-3.5" />
               Images
               {!isPro && <ProBadgeSuperscript />}
-            </Link>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-
-        {/* Settings - direct link */}
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild>
-            <Link
-              href="/settings"
-              className={cn(
-                navigationMenuTriggerStyle(),
-                "text-[14px] font-medium h-9 px-3",
-                pathname === "/settings"
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Settings
             </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>

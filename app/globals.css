@@ -20,9 +20,9 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  /* Primary - sophisticated slate blue */
-  --primary: 222 47% 11%;
-  --primary-foreground: 210 40% 98%;
+  /* Primary - brand blue for buttons & interactive elements */
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
 
   /* Secondary - refined light gray */
   --secondary: 210 40% 96.1%;
@@ -87,8 +87,8 @@
   --card-foreground: 210 40% 98%;
   --popover: 224 71% 4%;
   --popover-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222 47% 11%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 215 28% 17%;
   --secondary-foreground: 210 40% 98%;
   --muted: 215 28% 17%;

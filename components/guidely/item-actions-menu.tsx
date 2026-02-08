@@ -350,7 +350,6 @@ export function ItemActionsMenu({
             <Button
               onClick={handleRename}
               disabled={isLoading || !newName.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? 'Saving...' : 'Save'}
             </Button>
@@ -407,7 +406,6 @@ export function ItemActionsMenu({
             <Button
               onClick={handleCreateAndAssignTag}
               disabled={isLoading || !newTagName.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? 'Creating...' : 'Create & Assign'}
             </Button>
@@ -429,7 +427,7 @@ export function ItemActionsMenu({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isLoading}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isLoading ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

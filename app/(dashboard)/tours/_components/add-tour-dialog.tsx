@@ -119,7 +119,7 @@ export function AddTourDialog({ customers }: AddTourDialogProps) {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button>
           <Plus className="h-4 w-4 mr-2" />
           New Tour
         </Button>
@@ -255,7 +255,6 @@ export function AddTourDialog({ customers }: AddTourDialogProps) {
             </Button>
             <Button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
               disabled={
                 isLoading ||
                 !name.trim() ||

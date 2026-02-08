@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MenuClient } from '@/app/(dashboard)/menu/_components/menu-client';
 import { getMenuSettings } from '@/app/(dashboard)/menu/_actions/menu-actions';
+import { useThemeStatus } from '../../_context/theme-status-context';
 import type { MenuConfig, ColorConfig } from '@/types/database';
 import { Loader2 } from 'lucide-react';
 
@@ -10,6 +11,7 @@ export function MenuTabContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [menuConfig, setMenuConfig] = useState<MenuConfig | null>(null);
   const [colors, setColors] = useState<ColorConfig | null>(null);
+  const { markSaved, registerSaveHandler, setTabHasUnsavedChanges } = useThemeStatus();
 
   useEffect(() => {
     async function loadData() {
@@ -25,6 +27,24 @@ export function MenuTabContent() {
     loadData();
   }, []);
 
+  const handleSaveComplete = useCallback(() => {
+    markSaved();
+  }, [markSaved]);
+
+  const handleRegisterSaveHandler = useCallback(
+    (handler: (() => Promise<boolean>) | null) => {
+      registerSaveHandler('menu', handler);
+    },
+    [registerSaveHandler]
+  );
+
+  const handleUnsavedChangesChange = useCallback(
+    (hasChanges: boolean) => {
+      setTabHasUnsavedChanges('menu', hasChanges);
+    },
+    [setTabHasUnsavedChanges]
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
@@ -38,7 +58,13 @@ export function MenuTabContent() {
 
   return (
     <div className="menu-tab-wrapper">
-      <MenuClient initialConfig={menuConfig} colors={colors} />
+      <MenuClient
+        initialConfig={menuConfig}
+        colors={colors}
+        onSaveComplete={handleSaveComplete}
+        onRegisterSaveHandler={handleRegisterSaveHandler}
+        onUnsavedChangesChange={handleUnsavedChangesChange}
+      />
     </div>
   );
 }

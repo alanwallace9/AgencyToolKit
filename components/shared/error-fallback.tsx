@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, RefreshCw, ArrowLeft, Copy, Check } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ArrowLeft, Copy, Check, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { logError } from '@/lib/error-logging';
@@ -82,7 +83,7 @@ export function ErrorFallback({
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
-              <Button onClick={reset} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={reset}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Try Again
               </Button>
@@ -91,6 +92,15 @@ export function ErrorFallback({
                 Go Back
               </Button>
             </div>
+
+            {/* Help Link */}
+            <Link
+              href="/help/getting-started"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <HelpCircle className="h-3 w-3" />
+              Need help? Visit our Help Center
+            </Link>
 
             {/* Error Code */}
             {errorCode && (

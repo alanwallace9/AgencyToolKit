@@ -30,6 +30,9 @@ import { saveMenuSettings, getMenuPresets, createMenuPresetFromTemplate } from '
 interface MenuClientProps {
   initialConfig: MenuConfig | null;
   colors?: ColorConfig | null;
+  onSaveComplete?: () => void;
+  onRegisterSaveHandler?: (handler: (() => Promise<boolean>) | null) => void;
+  onUnsavedChangesChange?: (hasChanges: boolean) => void;
 }
 
 interface MenuItemConfig {
@@ -41,7 +44,7 @@ interface MenuItemConfig {
   dividerText?: string;
 }
 
-export function MenuClient({ initialConfig, colors }: MenuClientProps) {
+export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSaveHandler, onUnsavedChangesChange }: MenuClientProps) {
   const [dividerCounter, setDividerCounter] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -173,6 +176,8 @@ export function MenuClient({ initialConfig, colors }: MenuClientProps) {
 
   // Autosave with debounce
   const triggerAutosave = useCallback(() => {
+    onUnsavedChangesChange?.(true);
+
     // Clear any pending save
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -186,11 +191,14 @@ export function MenuClient({ initialConfig, colors }: MenuClientProps) {
 
       if (!result.success) {
         toast.error('Failed to save changes');
+      } else {
+        onUnsavedChangesChange?.(false);
+        onSaveComplete?.();
       }
 
       setIsSaving(false);
     }, 500);
-  }, [buildConfig]);
+  }, [buildConfig, onUnsavedChangesChange, onSaveComplete]);
 
   // On unmount: save immediately if there are pending changes
   // This fixes the bug where navigating away loses unsaved changes
@@ -204,6 +212,23 @@ export function MenuClient({ initialConfig, colors }: MenuClientProps) {
       }
     };
   }, [buildConfig]);
+
+  // Register save handler with theme context (for Theme Builder header Save button)
+  useEffect(() => {
+    if (!onRegisterSaveHandler) return;
+
+    const handler = async (): Promise<boolean> => {
+      const config = buildConfig();
+      const result = await saveMenuSettings(config);
+      if (result.success) {
+        onSaveComplete?.();
+      }
+      return result.success;
+    };
+
+    onRegisterSaveHandler(handler);
+    return () => onRegisterSaveHandler(null);
+  }, [buildConfig, onRegisterSaveHandler, onSaveComplete]);
 
   // Fetch user templates on mount
   useEffect(() => {

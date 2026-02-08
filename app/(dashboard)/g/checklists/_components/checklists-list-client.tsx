@@ -248,7 +248,7 @@ export function ChecklistsListClient({ checklists, themes, tags }: ChecklistsLis
             </Select>
           )}
 
-          <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Checklist
           </Button>
@@ -406,7 +406,7 @@ export function ChecklistsListClient({ checklists, themes, tags }: ChecklistsLis
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={handleCreate} disabled={isCreating}>
               {isCreating ? 'Creating...' : 'Create Checklist'}
             </Button>
           </DialogFooter>

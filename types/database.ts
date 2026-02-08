@@ -7,6 +7,7 @@ export interface Agency {
   name: string;
   token: string;
   plan: 'toolkit' | 'pro'; // toolkit = free tier
+  role: 'agency' | 'super_admin'; // super_admin = platform owner
   settings: AgencySettings;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;

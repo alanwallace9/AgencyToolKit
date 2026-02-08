@@ -71,28 +71,37 @@ export async function updateAgencyName(name: string) {
   return { success: true };
 }
 
-export async function addExcludedLocation(locationId: string) {
+// Extract a GHL Location ID from a URL or return the raw string
+function extractLocationId(input: string): string {
+  const trimmed = input.trim();
+  const match = trimmed.match(/\/location\/([a-zA-Z0-9]+)/);
+  return match ? match[1] : trimmed;
+}
+
+export async function addExcludedLocation(rawInput: string) {
   const agency = await getCurrentAgency();
   if (!agency) {
     throw new Error('Unauthorized');
   }
 
-  if (!locationId || locationId.trim().length === 0) {
+  const locationId = extractLocationId(rawInput);
+  if (!locationId) {
     throw new Error('Location ID cannot be empty');
   }
 
   const supabase = createAdminClient();
 
-  // Get current whitelisted locations
-  const currentLocations = agency.settings?.whitelisted_locations || [];
+  // Get current locations and normalize any that were stored as URLs
+  const currentLocations: string[] = agency.settings?.whitelisted_locations || [];
+  const normalizedCurrent = currentLocations.map(extractLocationId);
 
-  // Check if already exists
-  if (currentLocations.includes(locationId.trim())) {
+  // Check if already exists (comparing extracted IDs)
+  if (normalizedCurrent.includes(locationId)) {
     throw new Error('This location is already excluded');
   }
 
-  // Add new location
-  const updatedLocations = [...currentLocations, locationId.trim()];
+  // Save with normalized IDs (cleans up any old URL entries)
+  const updatedLocations = [...normalizedCurrent, locationId];
 
   const { error } = await supabase
     .from('agencies')
@@ -112,19 +121,21 @@ export async function addExcludedLocation(locationId: string) {
   return { success: true };
 }
 
-export async function removeExcludedLocation(locationId: string) {
+export async function removeExcludedLocation(rawInput: string) {
   const agency = await getCurrentAgency();
   if (!agency) {
     throw new Error('Unauthorized');
   }
 
+  const locationId = extractLocationId(rawInput);
+
   const supabase = createAdminClient();
 
-  // Get current whitelisted locations
-  const currentLocations = agency.settings?.whitelisted_locations || [];
-
-  // Remove the location
-  const updatedLocations = currentLocations.filter((id: string) => id !== locationId);
+  // Get current locations, normalize, then filter
+  const currentLocations: string[] = agency.settings?.whitelisted_locations || [];
+  const updatedLocations = currentLocations
+    .map(extractLocationId)
+    .filter((id) => id !== locationId);
 
   const { error } = await supabase
     .from('agencies')

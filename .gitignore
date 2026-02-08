@@ -6,6 +6,8 @@
 
 # Testing
 /coverage
+/test-screenshots/
+TEST_REPORT_*.md
 
 # Next.js
 /.next/

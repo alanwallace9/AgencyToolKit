@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function getCurrentAgency() {
@@ -14,4 +15,17 @@ export async function getCurrentAgency() {
     .single();
 
   return agency;
+}
+
+export async function requireSuperAdmin() {
+  const agency = await getCurrentAgency();
+  if (!agency || agency.role !== "super_admin") {
+    redirect("/dashboard");
+  }
+  return agency;
+}
+
+export async function isSuperAdmin() {
+  const agency = await getCurrentAgency();
+  return agency?.role === "super_admin";
 }

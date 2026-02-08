@@ -5,11 +5,15 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { SettingsSidebar } from './settings-sidebar';
 import { SettingsMobileNav } from './settings-mobile-nav';
 
+interface SettingsLayoutClientProps {
+  children: React.ReactNode;
+  isSuperAdmin: boolean;
+}
+
 export function SettingsLayoutClient({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  isSuperAdmin,
+}: SettingsLayoutClientProps) {
   const isMobile = useIsMobile();
 
   // On mobile: normal flow with sticky mobile nav
@@ -17,7 +21,7 @@ export function SettingsLayoutClient({
   if (isMobile) {
     return (
       <div className="min-h-[calc(100vh-4rem)]">
-        <SettingsMobileNav />
+        <SettingsMobileNav isSuperAdmin={isSuperAdmin} />
         <main className="p-4">
           {children}
         </main>
@@ -27,7 +31,7 @@ export function SettingsLayoutClient({
 
   return (
     <div className="fixed inset-0 top-16 flex">
-      <SettingsSidebar />
+      <SettingsSidebar isSuperAdmin={isSuperAdmin} />
       <main className="flex-1 overflow-y-auto">
         <div className="p-6">{children}</div>
       </main>

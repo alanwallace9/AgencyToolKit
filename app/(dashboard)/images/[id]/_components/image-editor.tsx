@@ -265,7 +265,6 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
 
           {/* Preview */}
           <Button
-            variant="default"
             size="sm"
             onClick={() => setIsPreviewModalOpen(true)}
           >

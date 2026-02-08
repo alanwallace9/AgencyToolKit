@@ -1,6 +1,7 @@
 'use client';
 
-import { ImageIcon, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ImageIcon, Sparkles, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -44,6 +45,13 @@ export function EmptyState({ onCreateClick, userName }: EmptyStateProps) {
           <p className="text-xs text-muted-foreground">
             Works with any GHL email or SMS workflow
           </p>
+          <Link
+            href="/help/images"
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1"
+          >
+            <HelpCircle className="h-3 w-3" />
+            View full guide
+          </Link>
         </div>
 
         {/* How it works */}

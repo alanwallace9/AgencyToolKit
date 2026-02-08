@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,44 +24,29 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const sidebarItems = [
-  {
-    title: 'Profile',
-    href: '/settings/profile',
-    icon: User,
-  },
-  {
-    title: 'Embed Code',
-    href: '/settings/embed',
-    icon: Code,
-  },
-  {
-    title: 'GHL Setup',
-    href: '/settings/ghl',
-    icon: Globe,
-  },
-  {
-    title: 'Photos',
-    href: '/settings/photos',
-    icon: Camera,
-  },
-  {
-    title: 'Excluded Locations',
-    href: '/settings/excluded',
-    icon: MapPin,
-  },
-  {
-    divider: true,
-  },
-  {
-    title: 'Danger Zone',
-    href: '/settings/danger',
-    icon: AlertTriangle,
-    danger: true,
-  },
+type NavItem = { title: string; href: string; icon: React.ComponentType<{ className?: string }>; danger?: boolean; adminOnly?: boolean };
+type SidebarItem = NavItem | { divider: true };
+
+const mainItems: SidebarItem[] = [
+  { title: 'Profile', href: '/settings/profile', icon: User },
+  { title: 'Embed Code', href: '/settings/embed', icon: Code },
+  { title: 'GHL Setup', href: '/settings/ghl', icon: Globe },
+  { title: 'Photos', href: '/settings/photos', icon: Camera },
+  { title: 'Excluded Locations', href: '/settings/excluded', icon: MapPin },
 ];
 
-export function SettingsSidebar() {
+const adminItems: SidebarItem[] = [
+  { divider: true },
+  { title: 'Admin Panel', href: '/settings/admin', icon: Shield, adminOnly: true },
+];
+
+// Danger Zone is rendered separately in the footer, not in the nav
+
+interface SettingsSidebarProps {
+  isSuperAdmin: boolean;
+}
+
+export function SettingsSidebar({ isSuperAdmin }: SettingsSidebarProps) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = React.useState(true);
 
@@ -77,6 +63,12 @@ export function SettingsSidebar() {
     setIsExpanded(newExpanded);
     localStorage.setItem('settings-sidebar-expanded', String(newExpanded));
   };
+
+  // Build nav items: main + admin (if super_admin)
+  const sidebarItems: SidebarItem[] = [
+    ...mainItems,
+    ...(isSuperAdmin ? adminItems : []),
+  ];
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -109,76 +101,115 @@ export function SettingsSidebar() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 py-2 px-2 space-y-1 overflow-y-auto">
-          {sidebarItems.map((item, index) => {
-            if ('divider' in item && item.divider) {
-              return (
-                <div
-                  key={`divider-${index}`}
-                  className="my-2 border-t border-border/50"
-                />
-              );
-            }
+        <nav className="flex-1 py-2 px-2 flex flex-col overflow-y-auto">
+          <div className="space-y-1">
+            {sidebarItems.map((item, index) => {
+              if ('divider' in item && item.divider) {
+                return (
+                  <div
+                    key={`divider-${index}`}
+                    className="my-2 border-t border-border/50"
+                  />
+                );
+              }
 
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon!;
-            const isDanger = 'danger' in item && item.danger;
+              const navItem = item as NavItem;
+              const isActive =
+                pathname === navItem.href || pathname.startsWith(`${navItem.href}/`);
+              const Icon = navItem.icon;
+              const isAdmin = navItem.adminOnly;
 
-            const linkContent = (
-              <Link
-                href={item.href!}
-                className={cn(
-                  'flex items-center gap-3 rounded-md transition-colors relative',
-                  isExpanded ? 'px-3 py-2' : 'px-0 py-2 justify-center',
-                  isActive
-                    ? isDanger
-                      ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                      : 'bg-primary/10 text-primary'
-                    : isDanger
-                      ? 'text-red-600/70 hover:bg-red-500/5 hover:text-red-600 dark:text-red-400/70 dark:hover:text-red-400'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                {/* Active indicator dot (when collapsed) */}
-                {isActive && !isExpanded && (
-                  <span
+              const linkContent = (
+                <Link
+                  href={navItem.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md transition-colors relative',
+                    isExpanded ? 'px-3 py-2' : 'px-0 py-2 justify-center',
+                    isActive
+                      ? isAdmin
+                        ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+                        : 'bg-primary/10 text-primary'
+                      : isAdmin
+                        ? 'text-violet-600/70 hover:bg-violet-500/5 hover:text-violet-600 dark:text-violet-400/70 dark:hover:text-violet-400'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {isActive && !isExpanded && (
+                    <span
+                      className={cn(
+                        'absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r',
+                        isAdmin ? 'bg-violet-500' : 'bg-primary'
+                      )}
+                    />
+                  )}
+
+                  <Icon
                     className={cn(
-                      'absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r',
-                      isDanger ? 'bg-red-500' : 'bg-primary'
+                      'flex-shrink-0',
+                      isExpanded ? 'h-4 w-4' : 'h-5 w-5'
                     )}
                   />
-                )}
 
-                <Icon
-                  className={cn(
-                    'flex-shrink-0',
-                    isExpanded ? 'h-4 w-4' : 'h-5 w-5'
+                  {isExpanded && (
+                    <span className="text-sm font-medium truncate">
+                      {navItem.title}
+                    </span>
                   )}
-                />
-
-                {isExpanded && (
-                  <span className="text-sm font-medium truncate">
-                    {item.title}
-                  </span>
-                )}
-              </Link>
-            );
-
-            // Show tooltip when collapsed
-            if (!isExpanded) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                  <TooltipContent side="right">
-                    <span className="font-medium">{item.title}</span>
-                  </TooltipContent>
-                </Tooltip>
+                </Link>
               );
-            }
 
-            return <div key={item.href}>{linkContent}</div>;
-          })}
+              if (!isExpanded) {
+                return (
+                  <Tooltip key={navItem.href}>
+                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                    <TooltipContent side="right">
+                      <span className="font-medium">{navItem.title}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return <div key={navItem.href}>{linkContent}</div>;
+            })}
+          </div>
+
+          {/* Spacer pushes Danger Zone to bottom of nav */}
+          <div className="flex-1" />
+
+          {/* Danger Zone — pinned to bottom of nav, above the footer */}
+          <div className="space-y-1">
+            {(() => {
+              const isDangerActive = pathname === '/settings/danger' || pathname.startsWith('/settings/danger/');
+              const dangerLink = (
+                <Link
+                  href="/settings/danger"
+                  className={cn(
+                    'flex items-center gap-3 rounded-md transition-colors relative',
+                    isExpanded ? 'px-3 py-2' : 'px-0 py-2 justify-center',
+                    isDangerActive
+                      ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                      : 'text-red-600/70 hover:bg-red-500/5 hover:text-red-600 dark:text-red-400/70 dark:hover:text-red-400'
+                  )}
+                >
+                  {isDangerActive && !isExpanded && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r bg-red-500" />
+                  )}
+                  <AlertTriangle className={cn('flex-shrink-0', isExpanded ? 'h-4 w-4' : 'h-5 w-5')} />
+                  {isExpanded && <span className="text-sm font-medium truncate">Danger Zone</span>}
+                </Link>
+              );
+
+              if (!isExpanded) {
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>{dangerLink}</TooltipTrigger>
+                    <TooltipContent side="right"><span className="font-medium">Danger Zone</span></TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return dangerLink;
+            })()}
+          </div>
         </nav>
 
         {/* Footer - Back to Dashboard */}

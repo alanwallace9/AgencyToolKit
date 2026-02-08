@@ -1,14 +1,15 @@
 import { EmbedCodeDisplay } from './embed-code-display';
 import { CssExportCard } from './css-export-card';
-import type { AgencySettings } from '@/types/database';
+import type { AgencySettings, LoginDesign } from '@/types/database';
 
 interface EmbedSectionProps {
   token: string;
   baseUrl: string;
   settings: AgencySettings;
+  loginDesign?: LoginDesign | null;
 }
 
-export function EmbedSection({ token, baseUrl, settings }: EmbedSectionProps) {
+export function EmbedSection({ token, baseUrl, settings, loginDesign }: EmbedSectionProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -23,7 +24,7 @@ export function EmbedSection({ token, baseUrl, settings }: EmbedSectionProps) {
         <EmbedCodeDisplay token={token} baseUrl={baseUrl} />
 
         {/* Generated CSS */}
-        <CssExportCard settings={settings} />
+        <CssExportCard settings={settings} loginDesign={loginDesign} />
       </div>
     </div>
   );

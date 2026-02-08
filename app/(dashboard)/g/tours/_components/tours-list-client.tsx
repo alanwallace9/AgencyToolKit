@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Map, SlidersHorizontal, X, Eye, CheckCircle2 } from 'lucide-react';
+import { Search, Map, SlidersHorizontal, X, Eye, CheckCircle2, HelpCircle } from 'lucide-react';
 import { AddTourDialog } from '@/app/(dashboard)/tours/_components/add-tour-dialog';
 import { ItemActionsMenu } from '@/components/guidely/item-actions-menu';
 import { ViewToggle, ViewMode } from '@/components/guidely/view-toggle';
@@ -321,6 +321,15 @@ export function ToursListClient({ tours, templates, themes, tags, customers }: T
                 ? 'Try adjusting your search or filters'
                 : 'Create your first tour to guide your customers through the platform'}
             </p>
+            {!hasActiveFilters && (
+              <Link
+                href="/help/guidely/first-tour"
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-3"
+              >
+                <HelpCircle className="h-3 w-3" />
+                Learn how to create tours
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : viewMode === 'table' ? (

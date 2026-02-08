@@ -360,25 +360,25 @@ export default async function GuidelyDashboard() {
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button asChild size="sm">
               <Link href="/g/tours?new=true">
                 <Map className="h-4 w-4 mr-2" />
                 New Tour
               </Link>
             </Button>
-            <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button asChild size="sm">
               <Link href="/g/checklists?new=true">
                 <CheckSquare className="h-4 w-4 mr-2" />
                 New Checklist
               </Link>
             </Button>
-            <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button asChild size="sm">
               <Link href="/g/tips?new=true">
                 <Lightbulb className="h-4 w-4 mr-2" />
                 New Tip
               </Link>
             </Button>
-            <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button asChild size="sm">
               <Link href="/g/banners?new=true">
                 <Megaphone className="h-4 w-4 mr-2" />
                 New Banner

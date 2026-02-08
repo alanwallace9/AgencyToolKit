@@ -9,9 +9,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, X, Copy, Info, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { addExcludedLocation, removeExcludedLocation } from '../_actions/settings-actions';
+import { HelpTip, helpTips } from '@/components/shared/help-tip';
 
 interface ExcludedLocationsSectionProps {
   locations: string[];
+}
+
+function extractLocationId(input: string): { id: string; wasUrl: boolean } {
+  const trimmed = input.trim();
+  const match = trimmed.match(/\/location\/([a-zA-Z0-9]+)/);
+  if (match) return { id: match[1], wasUrl: true };
+  return { id: trimmed, wasUrl: false };
 }
 
 export function ExcludedLocationsSection({ locations: initialLocations }: ExcludedLocationsSectionProps) {
@@ -22,9 +30,9 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
   const [copiedAll, setCopiedAll] = useState(false);
 
   const handleAdd = async () => {
-    const locationId = newLocation.trim();
+    const { id: locationId, wasUrl } = extractLocationId(newLocation);
     if (!locationId) {
-      toast.error('Please enter a location ID');
+      toast.error('Please enter a location ID or paste a GHL URL');
       return;
     }
 
@@ -38,7 +46,11 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
       await addExcludedLocation(locationId);
       setLocations([...locations, locationId]);
       setNewLocation('');
-      toast.success('Location added to exclusion list');
+      toast.success(
+        wasUrl
+          ? `Location ID extracted and added: ${locationId}`
+          : 'Location added to exclusion list'
+      );
     } catch (error) {
       toast.error('Failed to add location', {
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -85,14 +97,18 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Add GHL location IDs to exclude them from your customizations. Useful for demo accounts,
+          Add GHL location IDs to exclude them from your customizations. You can paste a full GHL
+          URL and we&apos;ll extract the Location ID automatically. Useful for demo accounts,
           test locations, or client accounts that shouldn&apos;t receive your branding.
         </AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle>Manage Excluded Locations</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Manage Excluded Locations
+            <HelpTip {...helpTips.excludedLocations} />
+          </CardTitle>
           <CardDescription>
             {locations.length === 0
               ? 'No locations excluded - embed script runs everywhere'
@@ -110,7 +126,7 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
                 id="new-location"
                 value={newLocation}
                 onChange={(e) => setNewLocation(e.target.value)}
-                placeholder="Enter GHL Location ID"
+                placeholder="Enter Location ID or paste GHL URL"
                 disabled={isAdding}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleAdd();
@@ -120,7 +136,6 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
             <Button
               onClick={handleAdd}
               disabled={isAdding || !newLocation.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isAdding ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
