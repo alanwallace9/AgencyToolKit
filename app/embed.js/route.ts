@@ -209,17 +209,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     });
   })();
 
-  // Check if we should skip customizations
+  // Check if we should skip customizations for excluded locations
   function shouldSkipCustomizations(config) {
-    // Check whitelisted locations
-    var whitelisted = config.whitelisted_locations || [];
-    if (whitelisted.length > 0) {
-      var currentLocation = window.location.hostname;
-      var isWhitelisted = whitelisted.some(function(loc) {
-        return currentLocation.indexOf(loc) !== -1;
+    var excluded = config.whitelisted_locations || [];
+    if (excluded.length > 0) {
+      // GHL URLs contain the location ID in the path: /v2/location/{locationId}/...
+      var currentUrl = window.location.href;
+      var isExcluded = excluded.some(function(locationId) {
+        return currentUrl.indexOf(locationId) !== -1;
       });
-      if (isWhitelisted) {
-        log('Location is whitelisted, skipping customizations');
+      if (isExcluded) {
+        log('Location is excluded, skipping customizations');
         return true;
       }
     }
