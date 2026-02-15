@@ -28,14 +28,8 @@ function generateLoginCss(design: LoginDesign): string {
   const bg = canvas.background;
   const formStyle = design.form_style;
 
-  // Find image elements (for split layouts)
-  const imageElement = design.elements.find(el => el.type === 'image' || el.type === 'gif');
   // Find the login form element for position-based CSS mapping
   const loginFormElement = design.elements.find(el => el.type === 'login-form');
-
-  // Determine if this is a split layout based on image position
-  const isSplitRight = imageElement && imageElement.x >= 40; // Image on right half
-  const isSplitLeft = imageElement && imageElement.x < 10;   // Image on left half
 
   // --- Background & Layout ---
   lines.push('/* -----------------------------------------');
@@ -45,12 +39,7 @@ function generateLoginCss(design: LoginDesign): string {
   } else if (bg.type === 'gradient' && bg.gradient) {
     lines.push(`   Background: Gradient ${bg.gradient.from} → ${bg.gradient.to}`);
   } else if (bg.type === 'image' && bg.image_url) {
-    lines.push('   Background: Image');
-  }
-  if (imageElement && isSplitRight) {
-    lines.push('   Layout: Image right, form left');
-  } else if (imageElement && isSplitLeft) {
-    lines.push('   Layout: Image left, form right');
+    lines.push(`   Background: Image (${bg.image_size || 'cover'}, ${bg.image_position || 'center'})`);
   }
   lines.push('   ----------------------------------------- */');
 
@@ -58,36 +47,21 @@ function generateLoginCss(design: LoginDesign): string {
 
   // Background color or gradient
   if (bg.type === 'solid' && bg.color) {
-    bgRules.push(`  background-color: ${bg.color} !important;`);
+    // Check if color is actually a gradient CSS string (from color picker)
+    if (bg.color.includes('gradient')) {
+      bgRules.push(`  background: ${bg.color} !important;`);
+    } else {
+      bgRules.push(`  background-color: ${bg.color} !important;`);
+    }
   } else if (bg.type === 'gradient' && bg.gradient) {
     bgRules.push(`  background: linear-gradient(${bg.gradient.angle}deg, ${bg.gradient.from}, ${bg.gradient.to}) !important;`);
   } else if (bg.type === 'image' && bg.image_url) {
     bgRules.push(`  background-image: url(${bg.image_url}) !important;`);
-    bgRules.push('  background-size: cover !important;');
-    bgRules.push('  background-position: center !important;');
+    bgRules.push(`  background-size: ${bg.image_size || 'cover'} !important;`);
+    bgRules.push(`  background-position: ${bg.image_position || 'center'} !important;`);
     bgRules.push('  background-repeat: no-repeat !important;');
     if (bg.image_blur && bg.image_blur > 0) {
-      // Note: blur on background needs a pseudo-element approach
       bgRules.push(`  /* Blur: ${bg.image_blur}px (applied via backdrop) */`);
-    }
-  }
-
-  // If there's a split image element, overlay it as the background image
-  // Use the image element's actual position and size for proportional CSS mapping
-  if (imageElement && 'url' in imageElement.props) {
-    const imgProps = imageElement.props as { url: string; opacity?: number };
-    if (imgProps.url) {
-      const widthPercent = Math.round((imageElement.width / canvas.width) * 100);
-      bgRules.push(`  background-image: url(${imgProps.url}) !important;`);
-      bgRules.push(`  background-size: ${widthPercent}% 100% !important;`);
-      if (imageElement.x < 5) {
-        bgRules.push('  background-position: left center !important;');
-      } else if (imageElement.x + widthPercent > 95) {
-        bgRules.push('  background-position: right center !important;');
-      } else {
-        bgRules.push(`  background-position: ${Math.round(imageElement.x)}% center !important;`);
-      }
-      bgRules.push('  background-repeat: no-repeat !important;');
     }
   }
 
@@ -115,11 +89,6 @@ function generateLoginCss(design: LoginDesign): string {
   lines.push('   LOGIN PAGE - Form Container');
   if (formStyle.form_bg) {
     lines.push(`   Background: ${formStyle.form_bg}`);
-  }
-  if (isSplitRight) {
-    lines.push('   Position: Left side');
-  } else if (isSplitLeft) {
-    lines.push('   Position: Right side');
   }
   lines.push('   ----------------------------------------- */');
 
@@ -202,6 +171,27 @@ function generateLoginCss(design: LoginDesign): string {
   lines.push(...visualRules);
   lines.push('}');
   lines.push('');
+
+  // --- Form Logo ---
+  if (formStyle.form_logo_url) {
+    const logoHeight = formStyle.form_logo_height ?? 60;
+    lines.push('/* -----------------------------------------');
+    lines.push('   LOGIN PAGE - Form Logo');
+    lines.push(`   URL: ${formStyle.form_logo_url}`);
+    lines.push(`   Height: ${logoHeight}px`);
+    lines.push('   ----------------------------------------- */');
+    lines.push('.hl_login .login-card-heading::before {');
+    lines.push("  content: '';");
+    lines.push('  display: block;');
+    lines.push(`  background-image: url(${formStyle.form_logo_url});`);
+    lines.push('  background-size: contain;');
+    lines.push('  background-repeat: no-repeat;');
+    lines.push('  background-position: center;');
+    lines.push(`  height: ${logoHeight}px;`);
+    lines.push('  margin-bottom: 12px;');
+    lines.push('}');
+    lines.push('');
+  }
 
   // --- Heading ---
   const headingColor = formStyle.form_heading_color || formStyle.label_color;

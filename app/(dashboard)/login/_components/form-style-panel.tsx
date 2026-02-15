@@ -1,51 +1,38 @@
 'use client';
 
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, Palette } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { FileUpload } from '@/components/shared/file-upload';
 import { CustomColorPicker } from '@/components/shared/custom-color-picker';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 import type { LoginDesignFormStyle, ColorConfig } from '@/types/database';
 
-// Parse rgba color to extract opacity (0-100)
-function parseOpacity(color: string | undefined): number {
-  if (!color) return 100;
-  const rgbaMatch = color.match(/rgba?\([\d\s,]+,\s*([\d.]+)\)/);
-  if (rgbaMatch) {
-    return Math.round(parseFloat(rgbaMatch[1]) * 100);
-  }
-  if (color.length === 9 && color.startsWith('#')) {
-    const alpha = parseInt(color.slice(7), 16);
-    return Math.round((alpha / 255) * 100);
-  }
-  return 100;
-}
-
-// Parse hex color from various formats
-function parseHex(color: string | undefined): string {
-  if (!color) return '#ffffff';
-  const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  if (rgbaMatch) {
-    const r = parseInt(rgbaMatch[1]);
-    const g = parseInt(rgbaMatch[2]);
-    const b = parseInt(rgbaMatch[3]);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  }
-  if (color.length === 9 && color.startsWith('#')) {
-    return color.slice(0, 7);
-  }
-  return color;
-}
-
-// Format color with opacity as rgba
-function formatWithOpacity(hex: string, opacity: number): string {
-  if (opacity >= 100) return hex;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
-}
+// Color items for the shared picker
+const COLOR_ITEMS: {
+  key: keyof LoginDesignFormStyle;
+  label: string;
+  defaultValue: string;
+  group: 'main' | 'advanced';
+}[] = [
+  { key: 'button_bg', label: 'Button BG', defaultValue: '#2563eb', group: 'main' },
+  { key: 'button_text', label: 'Button Text', defaultValue: '#ffffff', group: 'main' },
+  { key: 'input_bg', label: 'Input BG', defaultValue: '#ffffff', group: 'main' },
+  { key: 'input_border', label: 'Input Border', defaultValue: '#d1d5db', group: 'main' },
+  { key: 'input_text', label: 'Input Text', defaultValue: '#111827', group: 'main' },
+  { key: 'form_heading_color', label: 'Heading', defaultValue: '#111827', group: 'main' },
+  { key: 'label_color', label: 'Labels', defaultValue: 'rgba(255,255,255,0.6)', group: 'advanced' },
+  { key: 'link_color', label: 'Links', defaultValue: '#2563eb', group: 'advanced' },
+  { key: 'secondary_text_color', label: 'Secondary', defaultValue: 'rgba(255,255,255,0.6)', group: 'advanced' },
+];
 
 interface FormStylePanelProps {
   formStyle: LoginDesignFormStyle;
@@ -53,12 +40,34 @@ interface FormStylePanelProps {
   brandColors?: ColorConfig | null;
 }
 
+// Section header component
+function SectionTrigger({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <CollapsibleTrigger className="flex items-center justify-between w-full py-1.5 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors">
+      {children}
+      {open ? (
+        <ChevronDown className="h-3 w-3" />
+      ) : (
+        <ChevronRight className="h-3 w-3" />
+      )}
+    </CollapsibleTrigger>
+  );
+}
+
 export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePanelProps) {
-  const updateStyle = (key: keyof LoginDesignFormStyle, value: string | number) => {
+  const [logoOpen, setLogoOpen] = useState(!!formStyle.form_logo_url);
+  const [containerOpen, setContainerOpen] = useState(false);
+  const [headingOpen, setHeadingOpen] = useState(false);
+  const [colorsOpen, setColorsOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // Shared color picker state
+  const [selectedColorKey, setSelectedColorKey] = useState<keyof LoginDesignFormStyle | null>(null);
+
+  const updateStyle = (key: keyof LoginDesignFormStyle, value: string | number | boolean) => {
     onChange({ ...formStyle, [key]: value });
   };
 
-  // Brand colors for the picker
   const pickerBrandColors = brandColors ? {
     primary: brandColors.primary,
     accent: brandColors.accent,
@@ -66,251 +75,228 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
     sidebar_text: brandColors.sidebar_text,
   } : undefined;
 
+  // Get current value for selected color
+  const selectedColor = selectedColorKey
+    ? (formStyle[selectedColorKey] as string) ||
+      COLOR_ITEMS.find((c) => c.key === selectedColorKey)?.defaultValue ||
+      '#000000'
+    : null;
+
+  const selectedColorLabel = selectedColorKey
+    ? COLOR_ITEMS.find((c) => c.key === selectedColorKey)?.label
+    : null;
+
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Style the login form container, inputs, and button
-      </p>
-
-      {/* Logo */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Logo
-        </Label>
-        <div>
-          <Label className="text-xs">Logo Image</Label>
+    <div className="space-y-1">
+      {/* Form Logo */}
+      <Collapsible open={logoOpen} onOpenChange={setLogoOpen}>
+        <SectionTrigger open={logoOpen}>Form Logo</SectionTrigger>
+        <CollapsibleContent className="pt-1 pb-2 space-y-3">
           <FileUpload
-            value={formStyle.logo_url || ''}
-            onChange={(url) => updateStyle('logo_url', url)}
+            value={formStyle.form_logo_url || ''}
+            onChange={(url) => onChange({ ...formStyle, form_logo_url: url })}
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            placeholder="Enter URL or upload logo"
+            placeholder="Upload or paste logo URL"
           />
-        </div>
-      </div>
+          {formStyle.form_logo_url && (
+            <div>
+              <Label className="text-xs">Height ({formStyle.form_logo_height ?? 60}px)</Label>
+              <Slider
+                value={[formStyle.form_logo_height ?? 60]}
+                onValueChange={([v]) => onChange({ ...formStyle, form_logo_height: v })}
+                min={40}
+                max={100}
+                step={5}
+                className="mt-1"
+              />
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Ideal: 200x60px transparent PNG
+          </p>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Form Container */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Form Container
-        </Label>
-        <CustomColorPicker
-          label="Background"
-          value={formStyle.form_bg || 'rgba(255,255,255,0.05)'}
-          onChange={(color) => updateStyle('form_bg', color)}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={pickerBrandColors}
-        />
-        <div className="grid grid-cols-2 gap-2">
+      <hr />
+
+      {/* Container */}
+      <Collapsible open={containerOpen} onOpenChange={setContainerOpen}>
+        <SectionTrigger open={containerOpen}>Container</SectionTrigger>
+        <CollapsibleContent className="pt-1 pb-2 space-y-3">
           <CustomColorPicker
-            label="Border Color"
-            value={formStyle.form_border || '#000000'}
-            onChange={(color) => updateStyle('form_border', color)}
+            label="Background"
+            value={formStyle.form_bg || 'rgba(255,255,255,0.05)'}
+            onChange={(color) => updateStyle('form_bg', color)}
             showGradient={true}
             showTheme={!!brandColors}
             brandColors={pickerBrandColors}
           />
+          <div className="grid grid-cols-2 gap-2">
+            <CustomColorPicker
+              label="Border Color"
+              value={formStyle.form_border || '#000000'}
+              onChange={(color) => updateStyle('form_border', color)}
+              showGradient={false}
+              showTheme={!!brandColors}
+              brandColors={pickerBrandColors}
+            />
+            <div>
+              <Label className="text-xs">Border Width</Label>
+              <Input
+                type="number"
+                value={formStyle.form_border_width ?? 0}
+                onChange={(e) => updateStyle('form_border_width', Number(e.target.value))}
+                className="h-8"
+                min={0}
+                max={10}
+              />
+            </div>
+          </div>
           <div>
-            <Label className="text-xs">Border Width</Label>
-            <Input
-              type="number"
-              value={formStyle.form_border_width ?? 0}
-              onChange={(e) => updateStyle('form_border_width', Number(e.target.value))}
-              className="h-8"
+            <Label className="text-xs">Border Radius ({formStyle.form_border_radius ?? 8}px)</Label>
+            <Slider
+              value={[formStyle.form_border_radius ?? 8]}
+              onValueChange={([v]) => updateStyle('form_border_radius', v)}
               min={0}
-              max={10}
+              max={24}
+              step={1}
+              className="mt-1"
             />
           </div>
-        </div>
-        <div>
-          <Label className="text-xs">Border Radius ({formStyle.form_border_radius ?? 8}px)</Label>
-          <Slider
-            value={[formStyle.form_border_radius ?? 8]}
-            onValueChange={([v]) => updateStyle('form_border_radius', v)}
-            min={0}
-            max={24}
-            step={1}
-            className="mt-1"
-          />
-        </div>
-        <p className="text-[11px] text-muted-foreground">
-          Form width is controlled by resizing the form element on the canvas
-        </p>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Form Heading */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Form Heading
-        </Label>
-        <div>
-          <Label className="text-xs">Text</Label>
-          <Input
-            value={formStyle.form_heading || ''}
-            onChange={(e) => updateStyle('form_heading', e.target.value)}
-            placeholder="e.g., Welcome Back"
-            className="h-8"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {!formStyle.form_heading?.trim()
-              ? 'Leave blank to hide heading on the real login page'
-              : formStyle.form_heading.trim() === 'Sign into your account'
-                ? 'Default GHL heading — color will be applied'
-                : 'Custom text replaces "Sign into your account" via CSS'}
-          </p>
-        </div>
-        <CustomColorPicker
-          label="Color"
-          value={formStyle.form_heading_color || '#111827'}
-          onChange={(color) => updateStyle('form_heading_color', color)}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={pickerBrandColors}
+      <hr />
+
+      {/* Heading */}
+      <Collapsible open={headingOpen} onOpenChange={setHeadingOpen}>
+        <SectionTrigger open={headingOpen}>Heading</SectionTrigger>
+        <CollapsibleContent className="pt-1 pb-2 space-y-3">
+          <div>
+            <Label className="text-xs">Text</Label>
+            <Input
+              value={formStyle.form_heading || ''}
+              onChange={(e) => updateStyle('form_heading', e.target.value)}
+              placeholder="e.g., Welcome Back"
+              className="h-8"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {!formStyle.form_heading?.trim()
+                ? 'Blank = hidden on real page'
+                : formStyle.form_heading.trim() === 'Sign into your account'
+                  ? 'Default GHL heading — color applied'
+                  : 'Replaces default heading via CSS'}
+            </p>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <hr />
+
+      {/* Colors — shared picker approach */}
+      <Collapsible open={colorsOpen} onOpenChange={setColorsOpen}>
+        <SectionTrigger open={colorsOpen}>
+          <span className="flex items-center gap-1.5">
+            <Palette className="h-3 w-3" />
+            Colors
+          </span>
+        </SectionTrigger>
+        <CollapsibleContent className="pt-1 pb-2 space-y-3">
+          {/* Color swatches grid */}
+          <div className="grid grid-cols-2 gap-1.5">
+            {COLOR_ITEMS.filter((c) => c.group === 'main').map((item) => {
+              const value = (formStyle[item.key] as string) || item.defaultValue;
+              const isSelected = selectedColorKey === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setSelectedColorKey(isSelected ? null : item.key)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-1.5 py-1 rounded border text-[11px] transition-colors',
+                    isSelected
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'hover:border-primary/50'
+                  )}
+                >
+                  <div
+                    className="w-4 h-4 rounded border border-border flex-shrink-0"
+                    style={{ backgroundColor: value }}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Advanced colors */}
+          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+              {advancedOpen ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              Advanced Colors
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <div className="grid grid-cols-2 gap-1.5">
+                {COLOR_ITEMS.filter((c) => c.group === 'advanced').map((item) => {
+                  const value = (formStyle[item.key] as string) || item.defaultValue;
+                  const isSelected = selectedColorKey === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setSelectedColorKey(isSelected ? null : item.key)}
+                      className={cn(
+                        'flex items-center gap-1.5 px-1.5 py-1 rounded border text-[11px] transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'hover:border-primary/50'
+                      )}
+                    >
+                      <div
+                        className="w-4 h-4 rounded border border-border flex-shrink-0"
+                        style={{ backgroundColor: value }}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Shared color picker — shown when a swatch is selected */}
+          {selectedColorKey && selectedColor && (
+            <div className="border-t pt-3">
+              <CustomColorPicker
+                label={selectedColorLabel || 'Color'}
+                value={selectedColor}
+                onChange={(color) => updateStyle(selectedColorKey, color)}
+                showGradient={true}
+                showTheme={!!brandColors}
+                brandColors={pickerBrandColors}
+              />
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+
+      <hr />
+
+      {/* Google Sign-In toggle */}
+      <div className="flex items-center justify-between py-1.5">
+        <Label className="text-xs">Google Sign-In</Label>
+        <Switch
+          checked={!formStyle.hide_google_signin}
+          onCheckedChange={(checked) => onChange({ ...formStyle, hide_google_signin: !checked })}
         />
       </div>
 
-      {/* Field Labels */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Field Labels
-        </Label>
-        <CustomColorPicker
-          label="Label Color"
-          value={formStyle.label_color || 'rgba(255,255,255,0.6)'}
-          onChange={(color) => updateStyle('label_color', color)}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={pickerBrandColors}
-        />
-      </div>
+      <hr />
 
-      {/* Button Colors */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Button
-        </Label>
-        <div className="grid grid-cols-2 gap-2">
-          <CustomColorPicker
-            label="Background"
-            value={formStyle.button_bg}
-            onChange={(color) => updateStyle('button_bg', color)}
-            showGradient={true}
-            showTheme={!!brandColors}
-            brandColors={pickerBrandColors}
-          />
-          <CustomColorPicker
-            label="Text"
-            value={formStyle.button_text}
-            onChange={(color) => updateStyle('button_text', color)}
-            showGradient={true}
-            showTheme={!!brandColors}
-            brandColors={pickerBrandColors}
-          />
-        </div>
-      </div>
-
-      {/* Input Colors */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Inputs
-        </Label>
-        <div className="grid grid-cols-2 gap-2">
-          <CustomColorPicker
-            label="Background"
-            value={formStyle.input_bg}
-            onChange={(color) => updateStyle('input_bg', color)}
-            showGradient={true}
-            showTheme={!!brandColors}
-            brandColors={pickerBrandColors}
-          />
-          <CustomColorPicker
-            label="Border"
-            value={formStyle.input_border}
-            onChange={(color) => updateStyle('input_border', color)}
-            showGradient={true}
-            showTheme={!!brandColors}
-            brandColors={pickerBrandColors}
-          />
-        </div>
-        <CustomColorPicker
-          label="Text"
-          value={formStyle.input_text}
-          onChange={(color) => updateStyle('input_text', color)}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={pickerBrandColors}
-        />
-      </div>
-
-      {/* Link Color */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Links
-        </Label>
-        <CustomColorPicker
-          label="Color"
-          value={formStyle.link_color}
-          onChange={(color) => updateStyle('link_color', color)}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={pickerBrandColors}
-        />
-      </div>
-
-      {/* Secondary Text */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Secondary Text
-        </Label>
-        <CustomColorPicker
-          label="Color"
-          value={formStyle.secondary_text_color || formStyle.label_color || 'rgba(255,255,255,0.6)'}
-          onChange={(color) => updateStyle('secondary_text_color', color)}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={pickerBrandColors}
-        />
-        <p className="text-[11px] text-muted-foreground">
-          &quot;Or Continue with&quot; divider and Terms footer text
-        </p>
-      </div>
-
-      {/* Google Sign-In */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Google Sign-In
-        </Label>
-        <div className="flex items-center justify-between">
-          <Label className="text-xs">Show Google Sign-In</Label>
-          <Switch
-            checked={!formStyle.hide_google_signin}
-            onCheckedChange={(checked) => onChange({ ...formStyle, hide_google_signin: !checked })}
-          />
-        </div>
-        <p className="text-[11px] text-muted-foreground">
-          Hides Google button and &quot;Or Continue with&quot; divider
-        </p>
-      </div>
-
-      {/* Login Header */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium text-muted-foreground uppercase">
-          Login Header
-        </Label>
-        <div className="flex items-center justify-between">
-          <Label className="text-xs">Show Header Bar</Label>
-          <Switch
-            checked={!formStyle.hide_login_header}
-            onCheckedChange={(checked) => onChange({ ...formStyle, hide_login_header: !checked })}
-          />
-        </div>
-        <p className="text-[11px] text-muted-foreground">
-          Hides the logo and &quot;Platform Language&quot; bar at the top of the login page
-        </p>
-      </div>
-
-      {/* Style Presets */}
-      <div className="border-t pt-4">
+      {/* Quick Styles — always visible */}
+      <div className="pt-2">
         <Label className="text-xs font-medium text-muted-foreground uppercase mb-2 block">
           Quick Styles
         </Label>
@@ -330,7 +316,7 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
                 form_heading_color: '#2563eb',
               })
             }
-            className="text-xs px-3 py-2 rounded border hover:border-primary"
+            className="text-xs px-3 py-2 rounded border hover:border-primary transition-colors"
           >
             Default Blue
           </button>
@@ -349,7 +335,7 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
                 form_heading_color: '#fafafa',
               })
             }
-            className="text-xs px-3 py-2 rounded border hover:border-primary"
+            className="text-xs px-3 py-2 rounded border hover:border-primary transition-colors"
           >
             Dark Mode
           </button>
@@ -368,7 +354,7 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
                 form_heading_color: '#059669',
               })
             }
-            className="text-xs px-3 py-2 rounded border hover:border-primary"
+            className="text-xs px-3 py-2 rounded border hover:border-primary transition-colors"
           >
             Green
           </button>
@@ -387,7 +373,7 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
                 form_heading_color: '#7c3aed',
               })
             }
-            className="text-xs px-3 py-2 rounded border hover:border-primary"
+            className="text-xs px-3 py-2 rounded border hover:border-primary transition-colors"
           >
             Purple
           </button>

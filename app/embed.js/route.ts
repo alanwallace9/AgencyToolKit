@@ -5075,10 +5075,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
               applyColorConfig(config.colors);
               applied.push('colors');
             }
-            if (config.loading) {
-              applyLoadingConfig(config.loading);
-              applied.push('loading');
-            }
+            // Loading animation removed from embed — now managed via CSS export only
+            // The applyLoadingConfig function is preserved in codebase for potential future use
             // Login page customization is delivered via CSS export only
             // (Custom JS doesn't run on the GHL login page)
 

@@ -8,6 +8,71 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-02-15 — Login Designer: Panel Architecture Overhaul
+
+Full details: `docs/features/login-designer-refactor.md`
+
+### What I did
+- Moved background image controls from left panel to right Properties panel (URL, layout presets, position/size, blur, overlay)
+- Removed Form tab — left panel is now single Elements view with clickable Login Form card
+- Moved form style controls to right Properties panel (context-dependent: form props when form selected, bg props when deselected)
+- Added form logo feature: `form_logo_url` + `form_logo_height` with CSS `::before` export on `.login-card-heading`
+- Rewrote form-style-panel with collapsible sections: Form Logo, Container, Heading, Colors, Quick Styles
+- Built shared color picker: 6 main + 3 advanced swatches in 2-col grid, click to open single picker
+- Fixed blur bleeding onto form — isolated to separate absolutely-positioned div
+- Removed layer controls (not useful for CSS-only, one element type)
+- Filtered old image elements from canvas rendering
+- Removed chevron carets from position centering buttons for more input space
+- Created `docs/features/login-designer-refactor.md` tracking all 3 sessions of work
+
+### What's next
+1. Browser test collapsible sections, shared color picker, blur isolation
+2. GHL CSS test — paste generated CSS, verify form logo renders via `::before`
+3. Commit all uncommitted files (~15 modified)
+4. Preview mode badge — ensure visible on all presets
+5. Vertical position fine-tuning (0.55 scale factor)
+
+### Blockers
+- Lint command misconfigured (`pnpm lint` interprets "lint" as directory) — needs package.json fix
+- GHL 2FA login cycle makes CSS testing slow
+
+### Cross-project notes
+- None
+
+---
+
+## 2026-02-15 — Login Editor Tab Restructure + Project Tooling
+
+### What I did
+- **Committed previous session's work** in 2 commits: login CSS-only overhaul (e0ca362) + project tooling (7b859f2)
+- **Fixed build error**: `activation-toggle.tsx` referenced removed `loading` tab — removed stale entries
+- **Restructured login editor tabs** from 3 (Elements/Background/Form) → 2 (Elements/Form)
+  - Merged Background panel into Elements tab as collapsible section
+  - Moved Login Header toggle + agency logo override from Form tab to Elements tab
+  - Added image position presets: Full Cover, Left Half, Right Half, Above Form
+  - Custom position/size text inputs for advanced CSS values
+- **Removed draggable image element** — background images now use CSS `background-position`/`background-size` via presets + inputs instead of drag-and-drop
+- **Updated CSS export** to use new `image_position`/`image_size` background fields; fixed gradient CSS export
+- **Removed loading animation from embed.js** — call disabled, function preserved for potential future use
+- **Researched form logo CSS injection** — YES it works via `::before` + `background-image` on `.login-card-heading`
+- **Added project tooling**: CLAUDE.md Session Workflow + Key Files sections, beginsession/endsession skills, .claude-rules.md, SESSION_LOG.md
+- **Added `image_position` and `image_size` fields** to `LoginDesignBackground` type
+
+### What's next
+1. **Test the new Elements tab** in browser — verify background presets, header toggle, and collapsible sections work
+2. **Implement form logo CSS export** — use `::before` + `background-image` on `.login-card-heading`
+3. **Preview Mode badge** — ensure visible on all presets
+4. **Vertical position fine-tuning** — 0.55 scale factor may need adjustment
+5. **GHL testing** — paste generated CSS, verify background position presets map correctly
+6. **Commit this session's work** (not yet committed — 9 modified files)
+
+### Blockers
+- GHL 2FA login cycle makes CSS testing slow
+- Form logo needs live GHL DOM testing to confirm `::before` approach
+
+### Cross-project notes
+- Created reusable beginsession/endsession skill pattern at `.claude/skills/` — could be templated for other projects
+
 ## 2026-02-14 / 2026-02-15 — Login Editor Redesign: CSS-Only Reality Check
 
 ### Summary

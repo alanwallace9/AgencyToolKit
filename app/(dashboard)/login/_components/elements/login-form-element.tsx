@@ -42,7 +42,6 @@ export function LoginFormElement({ props, formStyle, width = BASE_WIDTH, contain
   // Scaled heights
   const inputHeight = `${Math.round(36 * scale)}px`;
   const buttonHeight = `${Math.round(40 * scale)}px`;
-  const logoHeight = `${Math.round(40 * scale)}px`;
   const padding = `${Math.round(24 * scale)}px`;
 
   // Border radius (default 8px, matching GHL)
@@ -65,30 +64,17 @@ export function LoginFormElement({ props, formStyle, width = BASE_WIDTH, contain
         border: borderWidth > 0 ? `${borderWidth}px solid ${formStyle.form_border || '#000000'}` : undefined,
       }}
     >
-      {/* Logo */}
-      {formStyle.logo_url ? (
+      {/* Form Logo — rendered via CSS ::before on .login-card-heading */}
+      {formStyle.form_logo_url && (
         <img
-          src={formStyle.logo_url}
+          src={formStyle.form_logo_url}
           alt="Logo"
           className="w-auto mx-auto object-contain"
-          style={{ height: logoHeight, marginBottom: `${Math.round(16 * scale)}px` }}
-        />
-      ) : (
-        <div
-          className="rounded-lg mx-auto flex items-center justify-center"
           style={{
-            width: logoHeight,
-            height: logoHeight,
-            marginBottom: `${Math.round(16 * scale)}px`,
-            backgroundColor: hasTransparency(formBg) ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            height: `${Math.round((formStyle.form_logo_height ?? 60) * scale)}px`,
+            marginBottom: `${Math.round(12 * scale)}px`,
           }}
-        >
-          <span
-            style={{ fontSize: fontXs, color: hasTransparency(formBg) ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)' }}
-          >
-            Logo
-          </span>
-        </div>
+        />
       )}
 
       {/* Heading — hidden when blank (matches CSS export behavior) */}

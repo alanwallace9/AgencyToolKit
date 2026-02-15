@@ -3,7 +3,6 @@
 import { useRef, useMemo, useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
-import { ImageElement } from './elements/image-element';
 import { LoginFormElement } from './elements/login-form-element';
 import type {
   CanvasElement,
@@ -98,9 +97,9 @@ export function DesignCanvas({
       case 'image':
         return {
           backgroundImage: bg.image_url ? `url(${bg.image_url})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: bg.image_blur ? `blur(${bg.image_blur}px)` : undefined,
+          backgroundSize: bg.image_size || 'cover',
+          backgroundPosition: bg.image_position || 'center',
+          backgroundRepeat: 'no-repeat',
         };
       default:
         return { backgroundColor: '#1e293b' };
@@ -122,13 +121,27 @@ export function DesignCanvas({
             'ring-1 ring-border',
             isOver && 'ring-2 ring-primary'
           )}
-          style={backgroundStyle}
+          style={canvas.background.image_blur ? undefined : backgroundStyle}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               onSelectElement(null);
             }
           }}
         >
+          {/* Blurred background layer — separate div so blur doesn't affect children */}
+          {canvas.background.image_blur ? (
+            <div
+              className="absolute inset-0"
+              style={{
+                ...backgroundStyle,
+                filter: `blur(${canvas.background.image_blur}px)`,
+                // Extend slightly to prevent blur edge artifacts
+                margin: `-${canvas.background.image_blur}px`,
+                padding: `${canvas.background.image_blur}px`,
+              }}
+            />
+          ) : null}
+
           {/* Image overlay for background images */}
           {canvas.background.type === 'image' && canvas.background.image_overlay && (
             <div
@@ -151,8 +164,9 @@ export function DesignCanvas({
             />
           )}
 
-          {/* Elements */}
+          {/* Elements — only login-form is renderable (other types were removed) */}
           {elements
+            .filter((el) => el.type === 'login-form')
             .sort((a, b) => a.zIndex - b.zIndex)
             .map((element) => (
               <CanvasElementWrapper
@@ -395,7 +409,6 @@ function CanvasElementWrapper({
       {...(isResizing ? {} : { ...attributes, ...listeners })}
     >
       {/* Render element based on type */}
-      {(element.type === 'image' || element.type === 'gif') && <ImageElement props={element.props as any} />}
       {element.type === 'login-form' && (
         <LoginFormElement props={element.props as any} formStyle={formStyle} width={element.width} containerScale={canvasScale} />
       )}

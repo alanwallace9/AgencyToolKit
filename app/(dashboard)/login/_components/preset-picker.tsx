@@ -73,26 +73,12 @@ const PRESETS: Preset[] = [
     description: 'Hero image left, form right',
     icon: SplitSquareHorizontal,
     background: {
-      type: 'solid',
-      color: getTheme('blue-light')?.sidebar_bg || '#f0f9ff',
+      type: 'image',
+      image_url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=900&fit=crop',
+      image_position: 'left center',
+      image_size: '50% 100%',
     },
-    elements: [
-      {
-        id: 'preset-image-1',
-        type: 'image',
-        x: 0,
-        y: 0,
-        width: 800,
-        height: 900,
-        zIndex: 1,
-        props: {
-          url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=900&fit=crop',
-          opacity: 100,
-          borderRadius: 0,
-          objectFit: 'cover' as const,
-        },
-      },
-    ],
+    elements: [],
     preview: {
       bgClass: 'bg-sky-50',
       layoutClass: '',
@@ -105,26 +91,12 @@ const PRESETS: Preset[] = [
     description: 'Form left, hero image right',
     icon: SplitSquareHorizontal,
     background: {
-      type: 'solid',
-      color: getTheme('green-dark')?.sidebar_bg || '#14532d',
+      type: 'image',
+      image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=900&fit=crop',
+      image_position: 'right center',
+      image_size: '50% 100%',
     },
-    elements: [
-      {
-        id: 'preset-image-1',
-        type: 'image',
-        x: 50,
-        y: 0,
-        width: 800,
-        height: 900,
-        zIndex: 1,
-        props: {
-          url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=900&fit=crop',
-          opacity: 100,
-          borderRadius: 0,
-          objectFit: 'cover' as const,
-        },
-      },
-    ],
+    elements: [],
     preview: {
       bgClass: 'bg-green-950',
       layoutClass: '',

@@ -87,6 +87,8 @@ export interface LoginDesignBackground {
   image_url?: string;
   image_blur?: number;
   image_overlay?: string;
+  image_position?: string; // CSS background-position (e.g., 'center', 'left center', '50% 20%')
+  image_size?: string;     // CSS background-size (e.g., 'cover', 'contain', '50% 100%')
 }
 
 export interface LoginDesignFormStyle {
@@ -101,7 +103,9 @@ export interface LoginDesignFormStyle {
   form_border_width?: number; // Form container border width in px
   form_border_radius?: number; // Form container border radius in px
   label_color?: string; // Form field label color (Email, Password)
-  logo_url?: string; // Custom logo URL for the form
+  logo_url?: string; // Agency logo override for the GHL header bar (CSS content: url)
+  form_logo_url?: string; // Logo inside the form card, above heading (CSS ::before on .login-card-heading)
+  form_logo_height?: number; // Form logo height in px (40-100, default 60)
   form_heading?: string; // Heading text displayed above form fields
   form_heading_color?: string; // Heading text color
   form_width?: number; // Form container width in px (GHL default: 370)

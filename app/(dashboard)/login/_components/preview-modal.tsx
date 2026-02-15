@@ -3,13 +3,11 @@
 import { useMemo, useState, useLayoutEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ImageElement } from './elements/image-element';
 import { LoginFormElement } from './elements/login-form-element';
 import type {
   CanvasElement,
   LoginDesignBackground,
   LoginDesignFormStyle,
-  ImageElementProps,
   LoginFormElementProps,
 } from '@/types/database';
 
@@ -73,9 +71,9 @@ export function PreviewModal({
       case 'image':
         return {
           backgroundImage: bg.image_url ? `url(${bg.image_url})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: bg.image_blur ? `blur(${bg.image_blur}px)` : undefined,
+          backgroundSize: bg.image_size || 'cover',
+          backgroundPosition: bg.image_position || 'center',
+          backgroundRepeat: 'no-repeat',
         };
       default:
         return { backgroundColor: '#1e293b' };
@@ -112,8 +110,21 @@ export function PreviewModal({
           <div
             ref={containerRef}
             className="absolute inset-0 rounded-lg overflow-hidden shadow-2xl"
-            style={backgroundStyle}
+            style={canvas.background.image_blur ? undefined : backgroundStyle}
           >
+            {/* Blurred background layer — separate div so blur doesn't affect children */}
+            {canvas.background.image_blur ? (
+              <div
+                className="absolute inset-0"
+                style={{
+                  ...backgroundStyle,
+                  filter: `blur(${canvas.background.image_blur}px)`,
+                  margin: `-${canvas.background.image_blur}px`,
+                  padding: `${canvas.background.image_blur}px`,
+                }}
+              />
+            ) : null}
+
             {/* Image overlay for background images */}
             {canvas.background.type === 'image' && canvas.background.image_overlay && (
               <div
@@ -124,6 +135,7 @@ export function PreviewModal({
 
             {/* Elements */}
             {elements
+              .filter((el) => el.type === 'login-form')
               .sort((a, b) => a.zIndex - b.zIndex)
               .map((element) => (
                 <PreviewElement
@@ -188,7 +200,6 @@ function PreviewElement({
 
   return (
     <div style={style}>
-      {(element.type === 'image' || element.type === 'gif') && <ImageElement props={element.props as ImageElementProps} />}
       {element.type === 'login-form' && (
         <LoginFormElement
           props={element.props as LoginFormElementProps}

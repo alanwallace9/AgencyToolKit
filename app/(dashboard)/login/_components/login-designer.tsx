@@ -9,8 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { Save, Eye, Undo2, Redo2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3X3, ChevronDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -28,8 +27,6 @@ import { ElementPanel } from './element-panel';
 import { DesignCanvas } from './canvas';
 import { PropertiesPanel } from './properties-panel';
 import { PresetPicker } from './preset-picker';
-import { BackgroundPanel } from './background-panel';
-import { FormStylePanel } from './form-style-panel';
 import { PreviewModal } from './preview-modal';
 import { createLoginDesign, updateLoginDesign } from '../_actions/login-actions';
 import {
@@ -76,7 +73,6 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
 
   // UI state
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'elements' | 'background' | 'form'>('elements');
   const [isSaving, setIsSaving] = useState(false);
   const [activePreset, setActivePreset] = useState<LoginLayoutType | null>(currentDesign?.layout || null);
   const [showPreview, setShowPreview] = useState(false);
@@ -134,16 +130,9 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
 
   const selectedElement = elements.find((el) => el.id === selectedElementId);
 
-  // Handle element selection - auto-switch to Form tab for login-form
   const handleSelectElement = useCallback((id: string | null) => {
     setSelectedElementId(id);
-    if (id) {
-      const element = elements.find((el) => el.id === id);
-      if (element?.type === 'login-form') {
-        setActiveTab('form');
-      }
-    }
-  }, [elements]);
+  }, []);
 
   // Keyboard handler for delete, undo/redo, escape, and arrow key micro-move
   useEffect(() => {
@@ -338,12 +327,8 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
     toast.success('Preset applied');
   }, [canvas]);
 
-  // Handle adding new element from panel
-  const handleAddElement = useCallback((type: CanvasElement['type']) => {
-    const newElement = createNewElement(type, elements.length);
-    setElements([...elements, newElement]);
-    setSelectedElementId(newElement.id);
-  }, [elements]);
+  // handleAddElement removed — no user-addable elements remain
+  // Background images are now controlled via CSS properties in the Elements tab
 
   // Handle element updates
   const handleUpdateElement = useCallback((id: string, updates: Partial<CanvasElement>) => {
@@ -378,82 +363,6 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
     );
   }, []);
 
-  // Layer control handlers
-  const handleBringToFront = useCallback(() => {
-    if (!selectedElementId) return;
-    setElements((prev) => {
-      const maxZ = Math.max(...prev.map((el) => el.zIndex));
-      return prev.map((el) =>
-        el.id === selectedElementId ? { ...el, zIndex: maxZ + 1 } : el
-      );
-    });
-  }, [selectedElementId]);
-
-  const handleBringForward = useCallback(() => {
-    if (!selectedElementId) return;
-    setElements((prev) => {
-      const selected = prev.find((el) => el.id === selectedElementId);
-      if (!selected) return prev;
-
-      // Find elements with higher zIndex
-      const higherElements = prev.filter((el) => el.zIndex > selected.zIndex);
-      if (higherElements.length === 0) return prev; // Already at top
-
-      // Find the next element above
-      const nextAbove = higherElements.reduce((closest, el) =>
-        el.zIndex < closest.zIndex ? el : closest
-      );
-
-      // Swap zIndex values
-      return prev.map((el) => {
-        if (el.id === selectedElementId) return { ...el, zIndex: nextAbove.zIndex };
-        if (el.id === nextAbove.id) return { ...el, zIndex: selected.zIndex };
-        return el;
-      });
-    });
-  }, [selectedElementId]);
-
-  const handleSendBackward = useCallback(() => {
-    if (!selectedElementId) return;
-    setElements((prev) => {
-      const selected = prev.find((el) => el.id === selectedElementId);
-      if (!selected) return prev;
-
-      // Find elements with lower zIndex
-      const lowerElements = prev.filter((el) => el.zIndex < selected.zIndex);
-      if (lowerElements.length === 0) return prev; // Already at bottom
-
-      // Find the next element below
-      const nextBelow = lowerElements.reduce((closest, el) =>
-        el.zIndex > closest.zIndex ? el : closest
-      );
-
-      // Swap zIndex values
-      return prev.map((el) => {
-        if (el.id === selectedElementId) return { ...el, zIndex: nextBelow.zIndex };
-        if (el.id === nextBelow.id) return { ...el, zIndex: selected.zIndex };
-        return el;
-      });
-    });
-  }, [selectedElementId]);
-
-  const handleSendToBack = useCallback(() => {
-    if (!selectedElementId) return;
-    setElements((prev) => {
-      const minZ = Math.min(...prev.map((el) => el.zIndex));
-      return prev.map((el) =>
-        el.id === selectedElementId ? { ...el, zIndex: minZ - 1 } : el
-      );
-    });
-  }, [selectedElementId]);
-
-  // Determine if selected element is at top or bottom layer
-  const selectedElementLayer = selectedElement
-    ? {
-        isTop: selectedElement.zIndex === Math.max(...elements.map((el) => el.zIndex)),
-        isBottom: selectedElement.zIndex === Math.min(...elements.map((el) => el.zIndex)),
-      }
-    : { isTop: false, isBottom: false };
 
   // Save design
   const handleSave = useCallback(async () => {
@@ -605,34 +514,19 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
               <PresetPicker onSelect={handlePresetSelect} activePreset={activePreset} />
 
               <Card>
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-                  <CardHeader className="pb-3">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="elements">Elements</TabsTrigger>
-                      <TabsTrigger value="background">Background</TabsTrigger>
-                      <TabsTrigger value="form">Form</TabsTrigger>
-                    </TabsList>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <TabsContent value="elements" className="mt-0">
-                      <ElementPanel onAddElement={handleAddElement} />
-                    </TabsContent>
-                    <TabsContent value="background" className="mt-0">
-                      <BackgroundPanel
-                        background={canvas.background}
-                        onChange={(bg) => setCanvas({ ...canvas, background: bg })}
-                        brandColors={brandColors || undefined}
-                      />
-                    </TabsContent>
-                    <TabsContent value="form" className="mt-0">
-                      <FormStylePanel
-                        formStyle={formStyle}
-                        onChange={setFormStyle}
-                        brandColors={brandColors}
-                      />
-                    </TabsContent>
-                  </CardContent>
-                </Tabs>
+                <CardContent className="pt-4">
+                  <ElementPanel
+                    background={canvas.background}
+                    onBackgroundChange={(bg) => setCanvas({ ...canvas, background: bg })}
+                    formStyle={formStyle}
+                    onFormStyleChange={setFormStyle}
+                    brandColors={brandColors}
+                    onSelectForm={() => {
+                      const formEl = elements.find((el) => el.type === 'login-form');
+                      if (formEl) setSelectedElementId(formEl.id);
+                    }}
+                  />
+                </CardContent>
               </Card>
             </div>
           </div>
@@ -732,12 +626,9 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
                 canvasHeight={canvas.height}
                 formStyle={formStyle}
                 onFormStyleChange={setFormStyle}
-                onBringToFront={handleBringToFront}
-                onBringForward={handleBringForward}
-                onSendBackward={handleSendBackward}
-                onSendToBack={handleSendToBack}
-                isTopLayer={selectedElementLayer.isTop}
-                isBottomLayer={selectedElementLayer.isBottom}
+                background={canvas.background}
+                onBackgroundChange={(bg) => setCanvas({ ...canvas, background: bg })}
+                brandColors={brandColors}
                 activePreset={activePreset}
               />
             </div>
@@ -757,40 +648,3 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
   );
 }
 
-// Helper to create new elements with percentage-based sizing for 16:9 canvas
-function createNewElement(type: CanvasElement['type'], count: number): CanvasElement {
-  const id = `${type}-${Date.now()}`;
-  const base = {
-    id,
-    type,
-    x: 10 + (count * 3) % 40,
-    y: 10 + (count * 3) % 40,
-    zIndex: count + 1,
-  };
-
-  // Using 1600x900 base canvas (16:9)
-  switch (type) {
-    case 'image':
-      return {
-        ...base,
-        width: 320, // 20% of 1600
-        height: 180, // 20% of 900
-        props: {
-          url: '',
-          opacity: 100,
-          borderRadius: 8,
-          objectFit: 'cover' as const,
-        },
-      };
-    case 'login-form':
-    default:
-      return {
-        ...base,
-        width: 400, // 25% of 1600
-        height: 360, // 40% of 900
-        props: {
-          variant: 'default' as const,
-        },
-      };
-  }
-}
