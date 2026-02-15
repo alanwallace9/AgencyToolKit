@@ -22,7 +22,7 @@ interface CssExportCardProps {
  * Generates login page CSS from a LoginDesign using GHL's .hl_login selectors.
  * GHL Custom CSS loads on ALL pages including the login page (unlike Custom JS).
  */
-function generateLoginCss(design: LoginDesign): string {
+export function generateLoginCss(design: LoginDesign): string {
   const lines: string[] = [];
   const canvas = design.canvas;
   const bg = canvas.background;
@@ -56,6 +56,7 @@ function generateLoginCss(design: LoginDesign): string {
   } else if (bg.type === 'gradient' && bg.gradient) {
     bgRules.push(`  background: linear-gradient(${bg.gradient.angle}deg, ${bg.gradient.from}, ${bg.gradient.to}) !important;`);
   } else if (bg.type === 'image' && bg.image_url) {
+    bgRules.push('  background-color: #ffffff !important;');
     bgRules.push(`  background-image: url(${bg.image_url}) !important;`);
     bgRules.push(`  background-size: ${bg.image_size || 'cover'} !important;`);
     bgRules.push(`  background-position: ${bg.image_position || 'center'} !important;`);
@@ -118,8 +119,9 @@ function generateLoginCss(design: LoginDesign): string {
   // .card-body is the actual form (~376px). It gets all visual styling.
   // Both X and Y from the canvas element map to CSS positioning.
   const formWidth = loginFormElement?.width ?? formStyle.form_width ?? 420;
+  const formWidthPercent = Math.round((formWidth / canvas.width) * 100);
   const layoutRules: string[] = [];
-  layoutRules.push(`  max-width: ${formWidth}px !important;`);
+  layoutRules.push(`  max-width: ${formWidthPercent}% !important;`);
 
   // Map the form's canvas position proportionally to CSS
   // Canvas element has x, y as percentage-like coordinates of canvas width/height
@@ -150,7 +152,7 @@ function generateLoginCss(design: LoginDesign): string {
   // A form at Y=50% on a 16:9 canvas should be roughly centered on a tall viewport.
   // Factor: canvas aspect ratio (height/width) maps to viewport proportions.
   // Clamp to max 40vh so the form + its content never gets pushed off-screen.
-  const paddingTopVh = Math.max(0, Math.min(40, Math.round(formYPercent * 0.55)));
+  const paddingTopVh = Math.max(0, Math.min(35, Math.round(formYPercent * 0.4)));
   lines.push('.hl_login--body {');
   lines.push(`  padding-top: ${paddingTopVh}vh !important;`);
   lines.push('  min-height: 100vh !important;');

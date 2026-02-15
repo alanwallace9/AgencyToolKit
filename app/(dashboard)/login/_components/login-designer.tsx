@@ -370,7 +370,7 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
     try {
       const data = {
         name: designName,
-        layout: 'blank' as LoginLayoutType,
+        layout: activePreset || 'centered' as LoginLayoutType,
         canvas,
         elements,
         form_style: formStyle,

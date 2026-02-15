@@ -106,6 +106,7 @@ export async function createLoginDesign(
     }
 
     revalidatePath('/login');
+    revalidatePath('/settings');
     return { success: true, data: design };
   } catch (error) {
     console.error('Error creating login design:', error);
@@ -141,6 +142,7 @@ export async function updateLoginDesign(
     }
 
     revalidatePath('/login');
+    revalidatePath('/settings');
     return { success: true, data: design };
   } catch (error) {
     console.error('Error updating login design:', error);

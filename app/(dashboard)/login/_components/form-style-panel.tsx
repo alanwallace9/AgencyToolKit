@@ -285,12 +285,17 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
       <hr />
 
       {/* Google Sign-In toggle */}
-      <div className="flex items-center justify-between py-1.5">
-        <Label className="text-xs">Google Sign-In</Label>
-        <Switch
-          checked={!formStyle.hide_google_signin}
-          onCheckedChange={(checked) => onChange({ ...formStyle, hide_google_signin: !checked })}
-        />
+      <div className="space-y-1 py-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Google Sign-In</Label>
+          <Switch
+            checked={!formStyle.hide_google_signin}
+            onCheckedChange={(checked) => onChange({ ...formStyle, hide_google_signin: !checked })}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Google sign-in must be enabled in your GHL settings to appear.
+        </p>
       </div>
 
       <hr />

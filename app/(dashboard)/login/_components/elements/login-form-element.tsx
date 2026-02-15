@@ -190,9 +190,9 @@ export function LoginFormElement({ props, formStyle, width = BASE_WIDTH, contain
                 height: buttonHeight,
                 minHeight: buttonHeight,
                 fontSize: fontSm,
-                backgroundColor: 'transparent',
-                color: labelColor,
-                border: `1px solid ${formStyle.input_border}`,
+                backgroundColor: formStyle.button_bg || '#2563eb',
+                color: formStyle.button_text || '#ffffff',
+                border: 'none',
                 gap: `${Math.round(8 * scale)}px`,
                 cursor: 'default',
               }}
