@@ -36,6 +36,7 @@ import {
   DEFAULT_CANVAS,
   DEFAULT_FORM_STYLE,
   DEFAULT_LOGIN_FORM_ELEMENT,
+  GHL_NATIVE_FORM_STYLE,
 } from '../_lib/defaults';
 import type {
   LoginDesign,
@@ -292,6 +293,7 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
     layout: LoginLayoutType;
     elements: CanvasElement[];
     background: LoginDesignBackground;
+    resetFormStyle?: boolean;
   }) => {
     setCanvas({
       ...canvas,
@@ -303,13 +305,13 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
     let formY = 20; // Default slightly higher than center for better visual balance
 
     if (preset.layout === 'split-left') {
-      // Image on left, form on right
+      // Image on left, form on right — vertically centered below heading
       formX = 62;
-      formY = 18; // Slightly higher for split layouts
+      formY = 28;
     } else if (preset.layout === 'split-right') {
-      // Form on left, image on right
+      // Form on left, image on right — vertically centered below heading
       formX = 12;
-      formY = 18; // Slightly higher for split layouts
+      formY = 28;
     } else if (preset.layout === 'centered' || preset.layout === 'gradient-overlay') {
       // Centered layouts - position form below any header text
       formY = 25;
@@ -325,6 +327,12 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
       positionedForm,
       ...preset.elements.filter((el) => el.type !== 'login-form'),
     ]);
+
+    // Reset form style to GHL-native look when selecting blank canvas
+    if (preset.resetFormStyle) {
+      setFormStyle(GHL_NATIVE_FORM_STYLE);
+    }
+
     setSelectedElementId(null);
     setActivePreset(preset.layout);
     toast.success('Preset applied');
@@ -731,7 +739,6 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
                 isTopLayer={selectedElementLayer.isTop}
                 isBottomLayer={selectedElementLayer.isBottom}
                 activePreset={activePreset}
-                brandColors={brandColors}
               />
             </div>
           </div>
@@ -773,69 +780,6 @@ function createNewElement(type: CanvasElement['type'], count: number): CanvasEle
           opacity: 100,
           borderRadius: 8,
           objectFit: 'cover' as const,
-        },
-      };
-    case 'text':
-      return {
-        ...base,
-        width: 400, // 25% of 1600
-        height: 72, // 8% of 900
-        props: {
-          text: 'Welcome back!',
-          fontSize: 32,
-          fontFamily: 'Inter',
-          fontWeight: 600,
-          color: '#ffffff',
-          textAlign: 'center' as const,
-        },
-      };
-    case 'gif':
-      return {
-        ...base,
-        width: 320,
-        height: 180,
-        props: {
-          url: '',
-          opacity: 100,
-          borderRadius: 8,
-        },
-      };
-    case 'testimonial':
-      return {
-        ...base,
-        width: 480, // 30% of 1600
-        height: 180,
-        props: {
-          quote: '"This platform changed our business!"',
-          author: 'Jane Smith, CEO',
-          variant: 'card' as const,
-          bgColor: 'rgba(255,255,255,0.1)',
-          textColor: '#ffffff',
-        },
-      };
-    case 'shape':
-      return {
-        ...base,
-        width: 160,
-        height: 160,
-        props: {
-          shapeType: 'rectangle' as const,
-          color: '#3b82f6',
-          opacity: 50,
-          borderWidth: 0,
-        },
-      };
-    case 'button':
-      return {
-        ...base,
-        width: 192, // 12% of 1600
-        height: 54, // 6% of 900
-        props: {
-          text: 'Learn More',
-          url: '#',
-          bgColor: '#3b82f6',
-          textColor: '#ffffff',
-          borderRadius: 8,
         },
       };
     case 'login-form':

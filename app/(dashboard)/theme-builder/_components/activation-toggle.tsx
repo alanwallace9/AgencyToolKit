@@ -16,14 +16,12 @@ interface ActivationToggleProps {
 
 const TAB_LABELS: Record<TabId, string> = {
   login: 'Login Page',
-  loading: 'Loading Animation',
   menu: 'Menu Customization',
   colors: 'Dashboard Colors',
 };
 
 const TAB_DESCRIPTIONS: Record<TabId, string> = {
   login: 'Apply custom login page design to your subaccounts',
-  loading: 'Apply custom loading animation to your subaccounts',
   menu: 'Apply menu customizations to your subaccounts',
   colors: 'Apply color theme to your subaccounts',
 };

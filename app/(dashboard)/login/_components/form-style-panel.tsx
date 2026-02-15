@@ -3,6 +3,7 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { FileUpload } from '@/components/shared/file-upload';
 import { CustomColorPicker } from '@/components/shared/custom-color-picker';
 import type { LoginDesignFormStyle, ColorConfig } from '@/types/database';
@@ -113,7 +114,7 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
             <Label className="text-xs">Border Width</Label>
             <Input
               type="number"
-              value={formStyle.form_border_width ?? 1}
+              value={formStyle.form_border_width ?? 0}
               onChange={(e) => updateStyle('form_border_width', Number(e.target.value))}
               className="h-8"
               min={0}
@@ -121,6 +122,20 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
             />
           </div>
         </div>
+        <div>
+          <Label className="text-xs">Border Radius ({formStyle.form_border_radius ?? 8}px)</Label>
+          <Slider
+            value={[formStyle.form_border_radius ?? 8]}
+            onValueChange={([v]) => updateStyle('form_border_radius', v)}
+            min={0}
+            max={24}
+            step={1}
+            className="mt-1"
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Form width is controlled by resizing the form element on the canvas
+        </p>
       </div>
 
       {/* Form Heading */}
@@ -136,6 +151,13 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
             placeholder="e.g., Welcome Back"
             className="h-8"
           />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {!formStyle.form_heading?.trim()
+              ? 'Leave blank to hide heading on the real login page'
+              : formStyle.form_heading.trim() === 'Sign into your account'
+                ? 'Default GHL heading — color will be applied'
+                : 'Custom text replaces "Sign into your account" via CSS'}
+          </p>
         </div>
         <CustomColorPicker
           label="Color"
@@ -233,6 +255,58 @@ export function FormStylePanel({ formStyle, onChange, brandColors }: FormStylePa
           showTheme={!!brandColors}
           brandColors={pickerBrandColors}
         />
+      </div>
+
+      {/* Secondary Text */}
+      <div className="space-y-3">
+        <Label className="text-xs font-medium text-muted-foreground uppercase">
+          Secondary Text
+        </Label>
+        <CustomColorPicker
+          label="Color"
+          value={formStyle.secondary_text_color || formStyle.label_color || 'rgba(255,255,255,0.6)'}
+          onChange={(color) => updateStyle('secondary_text_color', color)}
+          showGradient={true}
+          showTheme={!!brandColors}
+          brandColors={pickerBrandColors}
+        />
+        <p className="text-[11px] text-muted-foreground">
+          &quot;Or Continue with&quot; divider and Terms footer text
+        </p>
+      </div>
+
+      {/* Google Sign-In */}
+      <div className="space-y-3">
+        <Label className="text-xs font-medium text-muted-foreground uppercase">
+          Google Sign-In
+        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Show Google Sign-In</Label>
+          <Switch
+            checked={!formStyle.hide_google_signin}
+            onCheckedChange={(checked) => onChange({ ...formStyle, hide_google_signin: !checked })}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Hides Google button and &quot;Or Continue with&quot; divider
+        </p>
+      </div>
+
+      {/* Login Header */}
+      <div className="space-y-3">
+        <Label className="text-xs font-medium text-muted-foreground uppercase">
+          Login Header
+        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Show Header Bar</Label>
+          <Switch
+            checked={!formStyle.hide_login_header}
+            onCheckedChange={(checked) => onChange({ ...formStyle, hide_login_header: !checked })}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Hides the logo and &quot;Platform Language&quot; bar at the top of the login page
+        </p>
       </div>
 
       {/* Style Presets */}

@@ -4,22 +4,12 @@ import { useMemo, useState, useLayoutEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageElement } from './elements/image-element';
-import { TextElement } from './elements/text-element';
-import { GifElement } from './elements/gif-element';
 import { LoginFormElement } from './elements/login-form-element';
-import { TestimonialElement } from './elements/testimonial-element';
-import { ShapeElement } from './elements/shape-element';
-import { ButtonElement } from './elements/button-element';
 import type {
   CanvasElement,
   LoginDesignBackground,
   LoginDesignFormStyle,
   ImageElementProps,
-  TextElementProps,
-  GifElementProps,
-  TestimonialElementProps,
-  ShapeElementProps,
-  ButtonElementProps,
   LoginFormElementProps,
 } from '@/types/database';
 
@@ -185,21 +175,20 @@ function PreviewElement({
   const widthPercent = (element.width / canvasWidth) * 100;
   const heightPercent = (element.height / canvasHeight) * 100;
 
+  const isLoginForm = element.type === 'login-form';
+
   const style: React.CSSProperties = {
     position: 'absolute',
     left: `${element.x}%`,
     top: `${element.y}%`,
     width: `${widthPercent}%`,
-    height: `${heightPercent}%`,
+    height: isLoginForm ? 'auto' : `${heightPercent}%`,
     zIndex: element.zIndex,
-    overflow: element.type === 'login-form' ? 'visible' : undefined,
   };
 
   return (
     <div style={style}>
-      {element.type === 'image' && <ImageElement props={element.props as ImageElementProps} />}
-      {element.type === 'text' && <TextElement props={element.props as TextElementProps} />}
-      {element.type === 'gif' && <GifElement props={element.props as GifElementProps} />}
+      {(element.type === 'image' || element.type === 'gif') && <ImageElement props={element.props as ImageElementProps} />}
       {element.type === 'login-form' && (
         <LoginFormElement
           props={element.props as LoginFormElementProps}
@@ -208,11 +197,6 @@ function PreviewElement({
           containerScale={canvasScale}
         />
       )}
-      {element.type === 'testimonial' && (
-        <TestimonialElement props={element.props as TestimonialElementProps} />
-      )}
-      {element.type === 'shape' && <ShapeElement props={element.props as ShapeElementProps} />}
-      {element.type === 'button' && <ButtonElement props={element.props as ButtonElementProps} />}
     </div>
   );
 }

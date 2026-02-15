@@ -104,6 +104,10 @@ export interface LoginDesignFormStyle {
   logo_url?: string; // Custom logo URL for the form
   form_heading?: string; // Heading text displayed above form fields
   form_heading_color?: string; // Heading text color
+  form_width?: number; // Form container width in px (GHL default: 370)
+  hide_google_signin?: boolean; // Hide Google sign-in button + "Or Continue with" divider
+  hide_login_header?: boolean; // Hide GHL header (logo + language picker)
+  secondary_text_color?: string; // "Or Continue with" and footer text color
 }
 
 export interface CanvasElementBase {

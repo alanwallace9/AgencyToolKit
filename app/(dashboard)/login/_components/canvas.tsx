@@ -4,12 +4,7 @@ import { useRef, useMemo, useEffect, useState, useCallback, useLayoutEffect } fr
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { ImageElement } from './elements/image-element';
-import { TextElement } from './elements/text-element';
-import { GifElement } from './elements/gif-element';
 import { LoginFormElement } from './elements/login-form-element';
-import { TestimonialElement } from './elements/testimonial-element';
-import { ShapeElement } from './elements/shape-element';
-import { ButtonElement } from './elements/button-element';
 import type {
   CanvasElement,
   LoginDesignBackground,
@@ -233,21 +228,20 @@ function CanvasElementWrapper({
   const widthPercent = (element.width / canvasWidth) * 100;
   const heightPercent = (element.height / canvasHeight) * 100;
 
+  const isLoginForm = element.type === 'login-form';
+
   const style: React.CSSProperties = {
     position: 'absolute',
     left: `${element.x}%`,
     top: `${element.y}%`,
     width: `${widthPercent}%`,
-    // Use consistent height for all elements including login-form
-    // This ensures centering calculations work correctly
-    height: `${heightPercent}%`,
+    // Login form uses auto height (content-driven, like real GHL)
+    height: isLoginForm ? 'auto' : `${heightPercent}%`,
     zIndex: element.zIndex,
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    cursor: isDragging ? 'grabbing' : isResizing ? 'nwse-resize' : 'grab',
-    // For login-form, allow content to overflow visually but position accurately
-    overflow: element.type === 'login-form' ? 'visible' : undefined,
+    cursor: isDragging ? 'grabbing' : isResizing ? 'ew-resize' : 'grab',
   };
 
   const handleClick = (e: React.MouseEvent) => {
@@ -282,12 +276,26 @@ function CanvasElementWrapper({
       const start = resizeStartRef.current;
 
       // Calculate delta in pixels
-      const deltaX = e.clientX - start.mouseX;
+      let deltaX = e.clientX - start.mouseX;
       const deltaY = e.clientY - start.mouseY;
 
       // Convert pixel delta to canvas units (using the ratio between container and canvas)
       const scaleX = canvasWidth / containerRect.width;
       const scaleY = canvasHeight / containerRect.height;
+
+      const isLoginFormResize = element.type === 'login-form';
+      const minWidth = isLoginFormResize ? 320 : 50;
+
+      // Login form: fold vertical drag into horizontal so pulling any corner
+      // outward makes the form wider (height follows from auto content)
+      if (isLoginFormResize) {
+        switch (start.handle) {
+          case 'se': deltaX += deltaY; break; // down-right = grow
+          case 'sw': deltaX -= deltaY; break; // down-left = grow
+          case 'ne': deltaX -= deltaY; break; // up-right = grow
+          case 'nw': deltaX += deltaY; break; // up-left = grow
+        }
+      }
 
       let newWidth = start.width;
       let newHeight = start.height;
@@ -301,12 +309,12 @@ function CanvasElementWrapper({
       // Apply resize based on handle - anchor opposite corner
       switch (start.handle) {
         case 'se': // Anchor NW (top-left stays fixed)
-          newWidth = Math.max(50, start.width + deltaX * scaleX);
+          newWidth = Math.max(minWidth, start.width + deltaX * scaleX);
           newHeight = Math.max(50, start.height + deltaY * scaleY);
           // x, y stay the same
           break;
         case 'sw': { // Anchor NE (top-right stays fixed)
-          newWidth = Math.max(50, start.width - deltaX * scaleX);
+          newWidth = Math.max(minWidth, start.width - deltaX * scaleX);
           newHeight = Math.max(50, start.height + deltaY * scaleY);
           // Calculate new x to keep right edge fixed
           const fixedRightEdge = start.elemX + startWidthPercent;
@@ -315,7 +323,7 @@ function CanvasElementWrapper({
           break;
         }
         case 'ne': { // Anchor SW (bottom-left stays fixed)
-          newWidth = Math.max(50, start.width + deltaX * scaleX);
+          newWidth = Math.max(minWidth, start.width + deltaX * scaleX);
           newHeight = Math.max(50, start.height - deltaY * scaleY);
           // Calculate new y to keep bottom edge fixed
           const fixedBottomEdge = start.elemY + startHeightPercent;
@@ -324,7 +332,7 @@ function CanvasElementWrapper({
           break;
         }
         case 'nw': { // Anchor SE (bottom-right stays fixed)
-          newWidth = Math.max(50, start.width - deltaX * scaleX);
+          newWidth = Math.max(minWidth, start.width - deltaX * scaleX);
           // Calculate new x to keep right edge fixed
           const fixedRight = start.elemX + startWidthPercent;
           const newWPercent = (newWidth / canvasWidth) * 100;
@@ -336,6 +344,12 @@ function CanvasElementWrapper({
           newY = fixedBottom - newHPercent;
           break;
         }
+      }
+
+      // Login form: width-only resize — height is content-driven
+      if (isLoginFormResize) {
+        newHeight = start.height;
+        newY = start.elemY;
       }
 
       // Clamp position to canvas bounds
@@ -381,15 +395,10 @@ function CanvasElementWrapper({
       {...(isResizing ? {} : { ...attributes, ...listeners })}
     >
       {/* Render element based on type */}
-      {element.type === 'image' && <ImageElement props={element.props as any} />}
-      {element.type === 'text' && <TextElement props={element.props as any} />}
-      {element.type === 'gif' && <GifElement props={element.props as any} />}
+      {(element.type === 'image' || element.type === 'gif') && <ImageElement props={element.props as any} />}
       {element.type === 'login-form' && (
         <LoginFormElement props={element.props as any} formStyle={formStyle} width={element.width} containerScale={canvasScale} />
       )}
-      {element.type === 'testimonial' && <TestimonialElement props={element.props as any} />}
-      {element.type === 'shape' && <ShapeElement props={element.props as any} />}
-      {element.type === 'button' && <ButtonElement props={element.props as any} />}
 
       {/* Selection indicator */}
       {isSelected && (
@@ -401,22 +410,22 @@ function CanvasElementWrapper({
         <>
           {/* NW handle */}
           <div
-            className={cn(handleStyle, '-top-1.5 -left-1.5 cursor-nwse-resize')}
+            className={cn(handleStyle, '-top-1.5 -left-1.5', isLoginForm ? 'cursor-ew-resize' : 'cursor-nwse-resize')}
             onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'nw'); }}
           />
           {/* NE handle */}
           <div
-            className={cn(handleStyle, '-top-1.5 -right-1.5 cursor-nesw-resize')}
+            className={cn(handleStyle, '-top-1.5 -right-1.5', isLoginForm ? 'cursor-ew-resize' : 'cursor-nesw-resize')}
             onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'ne'); }}
           />
           {/* SW handle */}
           <div
-            className={cn(handleStyle, '-bottom-1.5 -left-1.5 cursor-nesw-resize')}
+            className={cn(handleStyle, '-bottom-1.5 -left-1.5', isLoginForm ? 'cursor-ew-resize' : 'cursor-nesw-resize')}
             onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'sw'); }}
           />
           {/* SE handle */}
           <div
-            className={cn(handleStyle, '-bottom-1.5 -right-1.5 cursor-nwse-resize')}
+            className={cn(handleStyle, '-bottom-1.5 -right-1.5', isLoginForm ? 'cursor-ew-resize' : 'cursor-nwse-resize')}
             onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'se'); }}
           />
         </>

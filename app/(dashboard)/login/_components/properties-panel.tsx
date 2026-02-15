@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -40,16 +39,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { FileUpload } from '@/components/shared/file-upload';
-import { CustomColorPicker } from '@/components/shared/custom-color-picker';
 import type {
-  ColorConfig,
   CanvasElement,
   ImageElementProps,
-  TextElementProps,
-  GifElementProps,
-  TestimonialElementProps,
-  ShapeElementProps,
-  ButtonElementProps,
   LoginDesignFormStyle,
   LoginLayoutType,
 } from '@/types/database';
@@ -58,11 +50,6 @@ import type {
 const ELEMENT_DEFAULTS: Record<string, { width: number; height: number; x: number; y: number }> = {
   'login-form': { width: 400, height: 400, x: 37.5, y: 25 },
   'image': { width: 320, height: 192, x: 10, y: 10 },
-  'text': { width: 400, height: 80, x: 10, y: 10 },
-  'gif': { width: 320, height: 192, x: 10, y: 10 },
-  'testimonial': { width: 480, height: 192, x: 10, y: 10 },
-  'shape': { width: 160, height: 160, x: 10, y: 10 },
-  'button': { width: 192, height: 64, x: 10, y: 10 },
 };
 
 // Login form positions based on preset layout
@@ -85,11 +72,6 @@ const getLoginFormPosition = (layout: LoginLayoutType | null): { x: number; y: n
 // Default element props by type
 const ELEMENT_PROP_DEFAULTS: Record<string, any> = {
   'image': { url: '', opacity: 100, borderRadius: 8, objectFit: 'cover' },
-  'text': { text: 'Welcome back!', fontSize: 32, fontFamily: 'Inter', fontWeight: 600, color: '#ffffff', textAlign: 'center' },
-  'gif': { url: '', opacity: 100, borderRadius: 8 },
-  'testimonial': { quote: '"This platform changed our business!"', author: 'Jane Smith, CEO', variant: 'card', bgColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff' },
-  'shape': { shapeType: 'rectangle', color: '#3b82f6', opacity: 50, borderWidth: 0 },
-  'button': { text: 'Learn More', url: '#', bgColor: '#3b82f6', textColor: '#ffffff', borderRadius: 8 },
   'login-form': { variant: 'default' },
 };
 
@@ -110,8 +92,6 @@ interface PropertiesPanelProps {
   isBottomLayer?: boolean;
   // Active preset for calculating reset positions
   activePreset?: LoginLayoutType | null;
-  // Brand colors for color picker
-  brandColors?: ColorConfig | null;
 }
 
 export function PropertiesPanel({
@@ -129,15 +109,7 @@ export function PropertiesPanel({
   isTopLayer = false,
   isBottomLayer = false,
   activePreset = null,
-  brandColors,
 }: PropertiesPanelProps) {
-  // Brand colors for the picker
-  const pickerBrandColors = brandColors ? {
-    primary: brandColors.primary,
-    accent: brandColors.accent,
-    sidebar_bg: brandColors.sidebar_bg,
-    sidebar_text: brandColors.sidebar_text,
-  } : undefined;
   if (!element) {
     return (
       <Card>
@@ -286,7 +258,7 @@ export function PropertiesPanel({
             <Move className="h-3 w-3" />
             POSITION
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">X (%)</Label>
               <div className="flex gap-1">
@@ -294,7 +266,7 @@ export function PropertiesPanel({
                   type="number"
                   value={Math.round(element.x)}
                   onChange={(e) => onUpdate({ x: Number(e.target.value) })}
-                  className="h-8 flex-1 min-w-0"
+                  className="h-8 flex-1 min-w-[3.5rem]"
                   min={0}
                   max={100}
                 />
@@ -331,7 +303,7 @@ export function PropertiesPanel({
                   type="number"
                   value={Math.round(element.y)}
                   onChange={(e) => onUpdate({ y: Number(e.target.value) })}
-                  className="h-8 flex-1 min-w-0"
+                  className="h-8 flex-1 min-w-[3.5rem]"
                   min={0}
                   max={100}
                 />
@@ -370,7 +342,7 @@ export function PropertiesPanel({
             <Layers className="h-3 w-3" />
             SIZE
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className={element.type === 'login-form' ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-4'}>
             <div>
               <Label className="text-xs">Width (px)</Label>
               <Input
@@ -378,19 +350,21 @@ export function PropertiesPanel({
                 value={element.width}
                 onChange={(e) => onUpdate({ width: Number(e.target.value) })}
                 className="h-8"
-                min={50}
+                min={element.type === 'login-form' ? 320 : 50}
               />
             </div>
-            <div>
-              <Label className="text-xs">Height (px)</Label>
-              <Input
-                type="number"
-                value={element.height}
-                onChange={(e) => onUpdate({ height: Number(e.target.value) })}
-                className="h-8"
-                min={50}
-              />
-            </div>
+            {element.type !== 'login-form' && (
+              <div>
+                <Label className="text-xs">Height (px)</Label>
+                <Input
+                  type="number"
+                  value={element.height}
+                  onChange={(e) => onUpdate({ height: Number(e.target.value) })}
+                  className="h-8"
+                  min={50}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -483,56 +457,10 @@ export function PropertiesPanel({
               onChange={updateProps}
             />
           )}
-          {element.type === 'text' && (
-            <TextProperties
-              props={element.props as TextElementProps}
-              onChange={updateProps}
-              brandColors={pickerBrandColors}
-            />
-          )}
-          {element.type === 'gif' && (
-            <GifProperties
-              props={element.props as GifElementProps}
-              onChange={updateProps}
-            />
-          )}
-          {element.type === 'testimonial' && (
-            <TestimonialProperties
-              props={element.props as TestimonialElementProps}
-              onChange={updateProps}
-              brandColors={pickerBrandColors}
-            />
-          )}
-          {element.type === 'shape' && (
-            <ShapeProperties
-              props={element.props as ShapeElementProps}
-              onChange={updateProps}
-              brandColors={pickerBrandColors}
-            />
-          )}
-          {element.type === 'button' && (
-            <ButtonProperties
-              props={element.props as ButtonElementProps}
-              onChange={updateProps}
-              brandColors={pickerBrandColors}
-            />
-          )}
-          {element.type === 'login-form' && formStyle && onFormStyleChange && (
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs">Corner Radius ({formStyle.form_border_radius ?? 12}px)</Label>
-                <Slider
-                  value={[formStyle.form_border_radius ?? 12]}
-                  onValueChange={([v]) => onFormStyleChange({ ...formStyle, form_border_radius: v })}
-                  min={0}
-                  max={32}
-                  step={2}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Colors and other form styling in the Form tab
-              </p>
-            </div>
+          {element.type === 'login-form' && (
+            <p className="text-xs text-muted-foreground">
+              Form styling (colors, border, radius) in the Form tab
+            </p>
           )}
         </div>
       </CardContent>
@@ -596,329 +524,3 @@ function ImageProperties({
   );
 }
 
-// Brand colors type for sub-components
-type PickerBrandColors = {
-  primary: string;
-  accent: string;
-  sidebar_bg: string;
-  sidebar_text: string;
-};
-
-// Text Properties
-function TextProperties({
-  props,
-  onChange,
-  brandColors,
-}: {
-  props: TextElementProps;
-  onChange: (updates: Partial<TextElementProps>) => void;
-  brandColors?: PickerBrandColors;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-xs">Text</Label>
-        <Textarea
-          value={props.text}
-          onChange={(e) => onChange({ text: e.target.value })}
-          rows={2}
-          className="resize-none"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-xs">Font Size</Label>
-          <Input
-            type="number"
-            value={props.fontSize}
-            onChange={(e) => onChange({ fontSize: Number(e.target.value) })}
-            className="h-8"
-            min={8}
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Weight</Label>
-          <Select
-            value={String(props.fontWeight)}
-            onValueChange={(v) => onChange({ fontWeight: Number(v) })}
-          >
-            <SelectTrigger className="h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="400">Normal</SelectItem>
-              <SelectItem value="500">Medium</SelectItem>
-              <SelectItem value="600">Semibold</SelectItem>
-              <SelectItem value="700">Bold</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <CustomColorPicker
-        label="Color"
-        value={props.color}
-        onChange={(color) => onChange({ color })}
-        showGradient={true}
-        showTheme={!!brandColors}
-        brandColors={brandColors}
-      />
-      <div>
-        <Label className="text-xs">Alignment</Label>
-        <Select value={props.textAlign} onValueChange={(v) => onChange({ textAlign: v as any })}>
-          <SelectTrigger className="h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="left">Left</SelectItem>
-            <SelectItem value="center">Center</SelectItem>
-            <SelectItem value="right">Right</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
-}
-
-// GIF Properties
-function GifProperties({
-  props,
-  onChange,
-}: {
-  props: GifElementProps;
-  onChange: (updates: Partial<GifElementProps>) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-xs">GIF</Label>
-        <FileUpload
-          value={props.url}
-          onChange={(url) => onChange({ url })}
-          accept="image/gif"
-          placeholder="Enter URL or upload GIF"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Opacity ({props.opacity}%)</Label>
-        <Slider
-          value={[props.opacity]}
-          onValueChange={([v]) => onChange({ opacity: v })}
-          min={0}
-          max={100}
-          step={5}
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Border Radius (px)</Label>
-        <Input
-          type="number"
-          value={props.borderRadius}
-          onChange={(e) => onChange({ borderRadius: Number(e.target.value) })}
-          className="h-8"
-          min={0}
-        />
-      </div>
-    </div>
-  );
-}
-
-// Testimonial Properties
-function TestimonialProperties({
-  props,
-  onChange,
-  brandColors,
-}: {
-  props: TestimonialElementProps;
-  onChange: (updates: Partial<TestimonialElementProps>) => void;
-  brandColors?: PickerBrandColors;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-xs">Quote</Label>
-        <Textarea
-          value={props.quote}
-          onChange={(e) => onChange({ quote: e.target.value })}
-          rows={2}
-          className="resize-none"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Author</Label>
-        <Input
-          value={props.author}
-          onChange={(e) => onChange({ author: e.target.value })}
-          className="h-8"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Style</Label>
-        <Select value={props.variant} onValueChange={(v) => onChange({ variant: v as any })}>
-          <SelectTrigger className="h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="card">Card</SelectItem>
-            <SelectItem value="minimal">Minimal</SelectItem>
-            <SelectItem value="quote-only">Quote Only</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <CustomColorPicker
-          label="Background"
-          value={props.bgColor}
-          onChange={(color) => onChange({ bgColor: color })}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={brandColors}
-        />
-        <CustomColorPicker
-          label="Text"
-          value={props.textColor}
-          onChange={(color) => onChange({ textColor: color })}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={brandColors}
-        />
-      </div>
-    </div>
-  );
-}
-
-// Shape Properties
-function ShapeProperties({
-  props,
-  onChange,
-  brandColors,
-}: {
-  props: ShapeElementProps;
-  onChange: (updates: Partial<ShapeElementProps>) => void;
-  brandColors?: PickerBrandColors;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-xs">Shape Type</Label>
-        <Select value={props.shapeType} onValueChange={(v) => onChange({ shapeType: v as any })}>
-          <SelectTrigger className="h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="rectangle">Rectangle</SelectItem>
-            <SelectItem value="circle">Circle</SelectItem>
-            <SelectItem value="line">Line</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <CustomColorPicker
-        label="Color"
-        value={props.color}
-        onChange={(color) => onChange({ color })}
-        showGradient={true}
-        showTheme={!!brandColors}
-        brandColors={brandColors}
-      />
-      <div>
-        <Label className="text-xs">Opacity ({props.opacity}%)</Label>
-        <Slider
-          value={[props.opacity]}
-          onValueChange={([v]) => onChange({ opacity: v })}
-          min={0}
-          max={100}
-          step={5}
-        />
-      </div>
-      {props.shapeType === 'line' && (
-        <>
-          <div>
-            <Label className="text-xs">Line Width</Label>
-            <Input
-              type="number"
-              value={props.borderWidth || 2}
-              onChange={(e) => onChange({ borderWidth: Number(e.target.value) })}
-              className="h-8"
-              min={1}
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Orientation</Label>
-            <Select
-              value={props.orientation || 'horizontal'}
-              onValueChange={(v) => onChange({ orientation: v as 'horizontal' | 'vertical' })}
-            >
-              <SelectTrigger className="h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="horizontal">Horizontal</SelectItem>
-                <SelectItem value="vertical">Vertical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// Button Properties
-function ButtonProperties({
-  props,
-  onChange,
-  brandColors,
-}: {
-  props: ButtonElementProps;
-  onChange: (updates: Partial<ButtonElementProps>) => void;
-  brandColors?: PickerBrandColors;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-xs">Button Text</Label>
-        <Input
-          value={props.text}
-          onChange={(e) => onChange({ text: e.target.value })}
-          className="h-8"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Link URL</Label>
-        <Input
-          value={props.url}
-          onChange={(e) => onChange({ url: e.target.value })}
-          placeholder="https://..."
-          className="h-8"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <CustomColorPicker
-          label="Background"
-          value={props.bgColor}
-          onChange={(color) => onChange({ bgColor: color })}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={brandColors}
-        />
-        <CustomColorPicker
-          label="Text"
-          value={props.textColor}
-          onChange={(color) => onChange({ textColor: color })}
-          showGradient={true}
-          showTheme={!!brandColors}
-          brandColors={brandColors}
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Border Radius (px)</Label>
-        <Input
-          type="number"
-          value={props.borderRadius}
-          onChange={(e) => onChange({ borderRadius: Number(e.target.value) })}
-          className="h-8"
-          min={0}
-        />
-      </div>
-    </div>
-  );
-}

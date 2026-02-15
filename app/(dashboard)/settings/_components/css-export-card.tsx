@@ -29,7 +29,9 @@ function generateLoginCss(design: LoginDesign): string {
   const formStyle = design.form_style;
 
   // Find image elements (for split layouts)
-  const imageElement = design.elements.find(el => el.type === 'image');
+  const imageElement = design.elements.find(el => el.type === 'image' || el.type === 'gif');
+  // Find the login form element for position-based CSS mapping
+  const loginFormElement = design.elements.find(el => el.type === 'login-form');
 
   // Determine if this is a split layout based on image position
   const isSplitRight = imageElement && imageElement.x >= 40; // Image on right half
@@ -70,18 +72,21 @@ function generateLoginCss(design: LoginDesign): string {
     }
   }
 
-  // If there's a split image element, overlay it as the background image on the appropriate side
+  // If there's a split image element, overlay it as the background image
+  // Use the image element's actual position and size for proportional CSS mapping
   if (imageElement && 'url' in imageElement.props) {
     const imgProps = imageElement.props as { url: string; opacity?: number };
-    if (isSplitRight) {
+    if (imgProps.url) {
+      const widthPercent = Math.round((imageElement.width / canvas.width) * 100);
       bgRules.push(`  background-image: url(${imgProps.url}) !important;`);
-      bgRules.push('  background-size: 50% 100% !important;');
-      bgRules.push('  background-position: right center !important;');
-      bgRules.push('  background-repeat: no-repeat !important;');
-    } else if (isSplitLeft) {
-      bgRules.push(`  background-image: url(${imgProps.url}) !important;`);
-      bgRules.push('  background-size: 50% 100% !important;');
-      bgRules.push('  background-position: left center !important;');
+      bgRules.push(`  background-size: ${widthPercent}% 100% !important;`);
+      if (imageElement.x < 5) {
+        bgRules.push('  background-position: left center !important;');
+      } else if (imageElement.x + widthPercent > 95) {
+        bgRules.push('  background-position: right center !important;');
+      } else {
+        bgRules.push(`  background-position: ${Math.round(imageElement.x)}% center !important;`);
+      }
       bgRules.push('  background-repeat: no-repeat !important;');
     }
   }
@@ -118,52 +123,124 @@ function generateLoginCss(design: LoginDesign): string {
   }
   lines.push('   ----------------------------------------- */');
 
-  const formRules: string[] = [];
+  // --- Visual styling rules (background, border, radius) → .card-body ---
+  const visualRules: string[] = [];
 
   if (formStyle.form_bg) {
-    formRules.push(`  background: ${formStyle.form_bg} !important;`);
+    visualRules.push(`  background: ${formStyle.form_bg} !important;`);
   }
-  if (formStyle.form_border) {
-    const borderWidth = formStyle.form_border_width || 1;
-    formRules.push(`  border: ${borderWidth}px solid ${formStyle.form_border} !important;`);
+  if (formStyle.form_border_width && formStyle.form_border_width > 0) {
+    visualRules.push(`  border: ${formStyle.form_border_width}px solid ${formStyle.form_border || '#000000'} !important;`);
+  } else {
+    visualRules.push('  border: none !important;');
   }
   if (formStyle.form_border_radius !== undefined) {
-    formRules.push(`  border-radius: ${formStyle.form_border_radius}px !important;`);
+    visualRules.push(`  border-radius: ${formStyle.form_border_radius}px !important;`);
   } else {
-    formRules.push('  border-radius: 12px !important;');
+    visualRules.push('  border-radius: 8px !important;');
   }
-
-  // Position the form based on layout
-  if (isSplitRight) {
-    formRules.push('  max-width: 420px !important;');
-    formRules.push('  margin-left: 8% !important;');
-    formRules.push('  margin-right: auto !important;');
-  } else if (isSplitLeft) {
-    formRules.push('  max-width: 420px !important;');
-    formRules.push('  margin-left: auto !important;');
-    formRules.push('  margin-right: 8% !important;');
-  }
-
   // Backdrop blur for glass effect
   if (formStyle.form_bg && formStyle.form_bg.includes('rgba')) {
-    formRules.push('  backdrop-filter: blur(4px) !important;');
+    visualRules.push('  backdrop-filter: blur(4px) !important;');
   }
 
-  lines.push('div.hl_login--body {');
-  lines.push(...formRules);
+  // --- Layout: position the form to match the editor canvas ---
+  // .card is the outer wrapper (~550px). We reset its visuals and use it for positioning.
+  // .card-body is the actual form (~376px). It gets all visual styling.
+  // Both X and Y from the canvas element map to CSS positioning.
+  const formWidth = loginFormElement?.width ?? formStyle.form_width ?? 420;
+  const layoutRules: string[] = [];
+  layoutRules.push(`  max-width: ${formWidth}px !important;`);
+
+  // Map the form's canvas position proportionally to CSS
+  // Canvas element has x, y as percentage-like coordinates of canvas width/height
+  let formYPercent = 30; // default: roughly centered-upper
+
+  if (loginFormElement) {
+    const formX = loginFormElement.x;
+    const formWidthPercent = (loginFormElement.width / canvas.width) * 100;
+
+    // Horizontal: derive from X position
+    if (formX < 25) {
+      layoutRules.push(`  margin-left: ${Math.max(2, Math.round(formX))}% !important;`);
+      layoutRules.push('  margin-right: auto !important;');
+    } else if (formX > 50) {
+      const rightMargin = Math.max(2, Math.round(100 - formX - formWidthPercent));
+      layoutRules.push('  margin-left: auto !important;');
+      layoutRules.push(`  margin-right: ${rightMargin}% !important;`);
+    }
+    // else centered — GHL default margin: 0 auto handles it
+
+    // Vertical: y is already a percentage (0-100) of canvas height
+    formYPercent = Math.round(loginFormElement.y);
+  }
+
+  // .hl_login--body: pad from top to position the form vertically
+  // The canvas is 16:9 (~56% as tall as wide), but the GHL viewport is taller.
+  // Scale the canvas Y% down so the form stays on-screen.
+  // A form at Y=50% on a 16:9 canvas should be roughly centered on a tall viewport.
+  // Factor: canvas aspect ratio (height/width) maps to viewport proportions.
+  // Clamp to max 40vh so the form + its content never gets pushed off-screen.
+  const paddingTopVh = Math.max(0, Math.min(40, Math.round(formYPercent * 0.55)));
+  lines.push('.hl_login--body {');
+  lines.push(`  padding-top: ${paddingTopVh}vh !important;`);
+  lines.push('  min-height: 100vh !important;');
+  lines.push('}');
+  lines.push('');
+
+  // .card: reset visuals + horizontal positioning
+  lines.push('.hl_login .card {');
+  lines.push('  border: none !important;');
+  lines.push('  background: transparent !important;');
+  lines.push('  box-shadow: none !important;');
+  lines.push(...layoutRules);
+  lines.push('}');
+  lines.push('');
+
+  // .card-body: all visual form styling
+  lines.push('.hl_login .card-body {');
+  lines.push(...visualRules);
   lines.push('}');
   lines.push('');
 
   // --- Heading ---
   const headingColor = formStyle.form_heading_color || formStyle.label_color;
-  if (headingColor) {
+  const headingText = formStyle.form_heading?.trim();
+  const isDefaultHeading = !headingText || headingText === 'Sign into your account';
+
+  if (!headingText) {
+    // Heading blank → hide it entirely
+    lines.push('/* -----------------------------------------');
+    lines.push('   LOGIN PAGE - Heading (Hidden)');
+    lines.push('   ----------------------------------------- */');
+    lines.push('.hl_login .login-card-heading {');
+    lines.push('  display: none !important;');
+    lines.push('}');
+    lines.push('');
+  } else if (!isDefaultHeading) {
+    // Custom heading text → CSS text replacement
+    lines.push('/* -----------------------------------------');
+    lines.push('   LOGIN PAGE - Heading');
+    lines.push(`   Text: "${headingText}"`);
+    lines.push(`   Color: ${headingColor}`);
+    lines.push('   ----------------------------------------- */');
+    lines.push('.hl_login .heading2 {');
+    lines.push('  font-size: 0 !important;');
+    lines.push('  color: transparent !important;');
+    lines.push('}');
+    lines.push('.hl_login .heading2::after {');
+    lines.push(`  content: "${headingText.replace(/"/g, '\\"')}";`);
+    lines.push('  font-size: 24px !important;');
+    lines.push(`  color: ${headingColor} !important;`);
+    lines.push('}');
+    lines.push('');
+  } else if (headingColor) {
+    // Default heading text — just apply color
     lines.push('/* -----------------------------------------');
     lines.push('   LOGIN PAGE - Heading');
     lines.push(`   Color: ${headingColor}`);
     lines.push('   ----------------------------------------- */');
-    lines.push('.hl_login--body .heading2,');
-    lines.push('.hl_login--body h2,');
-    lines.push('.hl_login--header {');
+    lines.push('.hl_login .heading2 {');
     lines.push(`  color: ${headingColor} !important;`);
     lines.push('}');
     lines.push('');
@@ -176,10 +253,9 @@ function generateLoginCss(design: LoginDesign): string {
   lines.push(`   Text: ${formStyle.input_text}`);
   lines.push(`   Border: ${formStyle.input_border}`);
   lines.push('   ----------------------------------------- */');
-  lines.push('.hl_login .form-control,');
+  lines.push('.hl_login .hl-text-input,');
   lines.push('.hl_login input[type="email"],');
-  lines.push('.hl_login input[type="password"],');
-  lines.push('.hl_login input[type="text"] {');
+  lines.push('.hl_login input[type="password"] {');
   lines.push(`  background-color: ${formStyle.input_bg} !important;`);
   lines.push(`  color: ${formStyle.input_text} !important;`);
   lines.push(`  border: 1px solid ${formStyle.input_border} !important;`);
@@ -193,8 +269,7 @@ function generateLoginCss(design: LoginDesign): string {
     lines.push('   LOGIN PAGE - Labels');
     lines.push(`   Color: ${formStyle.label_color}`);
     lines.push('   ----------------------------------------- */');
-    lines.push('.hl_login label,');
-    lines.push('.hl_login .form-label {');
+    lines.push('.hl_login .hl-text-input-label {');
     lines.push(`  color: ${formStyle.label_color} !important;`);
     lines.push('}');
     lines.push('');
@@ -206,9 +281,8 @@ function generateLoginCss(design: LoginDesign): string {
   lines.push(`   Background: ${formStyle.button_bg}`);
   lines.push(`   Text: ${formStyle.button_text}`);
   lines.push('   ----------------------------------------- */');
-  lines.push('.hl_login .btn.btn-blue,');
-  lines.push('.hl_login button[type="submit"],');
-  lines.push('.hl_login .btn-primary {');
+  lines.push('.hl_login button.hl-btn,');
+  lines.push('.hl_login button[type="submit"] {');
   lines.push(`  background-color: ${formStyle.button_bg} !important;`);
   lines.push(`  border-color: ${formStyle.button_bg} !important;`);
   lines.push(`  color: ${formStyle.button_text} !important;`);
@@ -222,11 +296,54 @@ function generateLoginCss(design: LoginDesign): string {
   lines.push(`   Color: ${formStyle.link_color}`);
   lines.push('   "Forgot password?", "Terms and Conditions"');
   lines.push('   ----------------------------------------- */');
-  lines.push('.hl_login a,');
-  lines.push('.hl_login .text-link {');
+  lines.push('.hl_login a:not(.btn):not([class*="button"]),');
+  lines.push('.hl_login .text-link,');
+  lines.push('.hl_login--body a {');
   lines.push(`  color: ${formStyle.link_color} !important;`);
   lines.push('}');
   lines.push('');
+
+  // --- Secondary Text (Or Continue with, Footer) ---
+  if (formStyle.secondary_text_color) {
+    lines.push('/* -----------------------------------------');
+    lines.push('   LOGIN PAGE - Secondary Text');
+    lines.push(`   Color: ${formStyle.secondary_text_color}`);
+    lines.push('   "Or Continue with", Terms footer');
+    lines.push('   ----------------------------------------- */');
+    lines.push('.hl_login .card-body span.bg-white {');
+    lines.push(`  color: ${formStyle.secondary_text_color} !important;`);
+    lines.push('}');
+    lines.push('p.foot-note,');
+    lines.push('p.foot-note a {');
+    lines.push(`  color: ${formStyle.secondary_text_color} !important;`);
+    lines.push('}');
+    lines.push('');
+  }
+
+  // --- Google Sign-In (Hide) ---
+  if (formStyle.hide_google_signin) {
+    lines.push('/* -----------------------------------------');
+    lines.push('   LOGIN PAGE - Hide Google Sign-In');
+    lines.push('   ----------------------------------------- */');
+    lines.push('#wl_google_login_button,');
+    lines.push('#g_id_signin,');
+    lines.push('.hl_login .card-body .mt-6 {');
+    lines.push('  display: none !important;');
+    lines.push('}');
+    lines.push('');
+  }
+
+  // --- Login Header (Hide) ---
+  if (formStyle.hide_login_header) {
+    lines.push('/* -----------------------------------------');
+    lines.push('   LOGIN PAGE - Hide Header Bar');
+    lines.push('   Logo + Platform Language picker');
+    lines.push('   ----------------------------------------- */');
+    lines.push('.hl_login--header {');
+    lines.push('  display: none !important;');
+    lines.push('}');
+    lines.push('');
+  }
 
   // --- Logo ---
   if (formStyle.logo_url) {

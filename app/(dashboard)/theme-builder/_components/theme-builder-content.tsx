@@ -11,21 +11,20 @@ import { saveTabActivation } from '../_actions/theme-actions';
 import type { ThemeSettings } from '../_actions/theme-actions';
 import { toast } from 'sonner';
 import { LoginTabContent } from './tabs/login-tab-content';
-import { LoadingTabContent } from './tabs/loading-tab-content';
+
 import { MenuTabContent } from './tabs/menu-tab-content';
 import { ColorsTabContent } from './tabs/colors-tab-content';
 import { Button } from '@/components/ui/button';
 import { Settings, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 
-const validTabs: TabId[] = ['login', 'loading', 'menu', 'colors'];
+const validTabs: TabId[] = ['login', 'menu', 'colors'];
 
 // Map number keys to tab indices
 const TAB_KEYS: Record<string, number> = {
   '1': 0,
   '2': 1,
   '3': 2,
-  '4': 3,
 };
 
 interface ThemeBuilderContentProps {
@@ -219,7 +218,6 @@ function TabContent({ tabId }: TabContentProps) {
       {/* Tab-specific content */}
       <div className="min-h-[400px]">
         {tabId === 'login' && <LoginTabContent />}
-        {tabId === 'loading' && <LoadingTabContent />}
         {tabId === 'menu' && <MenuTabContent />}
         {tabId === 'colors' && <ColorsTabContent />}
       </div>
@@ -229,7 +227,6 @@ function TabContent({ tabId }: TabContentProps) {
 
 const TAB_DISPLAY_NAMES: Record<TabId, string> = {
   login: 'Login Page',
-  loading: 'Loading Animation',
   menu: 'Menu Customization',
   colors: 'Dashboard Colors',
 };
@@ -241,6 +238,8 @@ interface EmbedCodeReminderProps {
 }
 
 function EmbedCodeReminder({ tabId }: EmbedCodeReminderProps) {
+  const isLogin = tabId === 'login';
+
   return (
     <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border/50 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -248,14 +247,25 @@ function EmbedCodeReminder({ tabId }: EmbedCodeReminderProps) {
           <Settings className="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
-          <p className="text-sm font-medium">Your theme is included in your embed code</p>
-          <p className="text-sm text-muted-foreground">
-            Changes are saved automatically and will be applied the next time your GHL dashboard loads. No need to copy any CSS - it's all handled by your embed script.
-          </p>
+          {isLogin ? (
+            <>
+              <p className="text-sm font-medium">Login page styling requires CSS</p>
+              <p className="text-sm text-muted-foreground">
+                GHL doesn&apos;t run Custom JS on the login page. After saving, go to Settings to copy the generated CSS and paste it into GHL&apos;s Custom CSS field.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium">Your theme is included in your embed code</p>
+              <p className="text-sm text-muted-foreground">
+                Changes are saved automatically and will be applied the next time your GHL dashboard loads. No need to copy any CSS - it&apos;s all handled by your embed script.
+              </p>
+            </>
+          )}
         </div>
       </div>
       <Button variant="outline" size="sm" asChild className="shrink-0">
-        <Link href="/settings">
+        <Link href="/settings/embed">
           Go to Settings
           <ArrowUpRight className="h-4 w-4 ml-1.5" />
         </Link>

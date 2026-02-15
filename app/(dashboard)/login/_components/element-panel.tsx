@@ -2,12 +2,8 @@
 
 import {
   Image,
-  Type,
-  Video,
   RectangleHorizontal,
-  Quote,
-  Shapes,
-  MousePointerClick,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CanvasElementType } from '@/types/database';
@@ -24,39 +20,9 @@ const ELEMENTS: {
 }[] = [
   {
     type: 'image',
-    label: 'Image',
-    description: 'Upload or URL',
+    label: 'Image / GIF',
+    description: 'Split layout background (static or animated)',
     icon: Image,
-  },
-  {
-    type: 'text',
-    label: 'Text Block',
-    description: 'Headlines, labels',
-    icon: Type,
-  },
-  {
-    type: 'gif',
-    label: 'GIF / Animation',
-    description: 'Animated content',
-    icon: Video,
-  },
-  {
-    type: 'testimonial',
-    label: 'Testimonial',
-    description: 'Quote + author',
-    icon: Quote,
-  },
-  {
-    type: 'shape',
-    label: 'Shape / Divider',
-    description: 'Lines, boxes',
-    icon: Shapes,
-  },
-  {
-    type: 'button',
-    label: 'Button',
-    description: 'Custom CTA',
-    icon: MousePointerClick,
   },
 ];
 
@@ -64,7 +30,7 @@ export function ElementPanel({ onAddElement }: ElementPanelProps) {
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground mb-3">
-        Click to add elements to your canvas
+        Add elements that export to CSS
       </p>
       <div className="grid gap-2">
         {ELEMENTS.map((element) => (
@@ -72,7 +38,7 @@ export function ElementPanel({ onAddElement }: ElementPanelProps) {
             key={element.type}
             onClick={() => onAddElement(element.type)}
             className={cn(
-              'flex items-center gap-3 p-3 rounded-lg border bg-background',
+              'flex items-center gap-3 p-3 rounded-lg border bg-background overflow-hidden',
               'hover:border-primary/50 hover:bg-accent/50 transition-colors',
               'cursor-pointer text-left w-full'
             )}
@@ -89,14 +55,25 @@ export function ElementPanel({ onAddElement }: ElementPanelProps) {
       </div>
 
       {/* Login Form Info */}
-      <div className="mt-4 p-3 rounded-lg border border-dashed bg-muted/50">
+      <div className="mt-4 p-3 rounded-lg border border-dashed bg-muted/50 overflow-hidden">
         <div className="flex items-center gap-2 mb-1">
           <RectangleHorizontal className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">Login Form</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          The login form is required and always present. Drag it to reposition.
+          Always present. Drag to reposition — the form&apos;s position maps to CSS margins on the real page.
         </p>
+      </div>
+
+      {/* What the editor controls */}
+      <div className="mt-3 p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 overflow-hidden">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">CSS-only customization</p>
+            <p>GHL login pages can only be styled via CSS — no HTML injection. This editor controls: background, form colors, input/button styles, heading text, and layout position.</p>
+          </div>
+        </div>
       </div>
     </div>
   );

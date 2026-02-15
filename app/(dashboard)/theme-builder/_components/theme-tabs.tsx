@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils"
 
 const tabs = [
   { id: "login", label: "Login Page" },
-  { id: "loading", label: "Loading Screen" },
   { id: "menu", label: "Sidebar Menu" },
   { id: "colors", label: "Brand Colors" },
 ] as const

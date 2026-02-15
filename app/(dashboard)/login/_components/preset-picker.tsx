@@ -27,6 +27,7 @@ interface PresetPickerProps {
     layout: LoginLayoutType;
     elements: CanvasElement[];
     background: LoginDesignBackground;
+    resetFormStyle?: boolean;
   }) => void;
   activePreset?: LoginLayoutType | null;
 }
@@ -38,6 +39,7 @@ interface Preset {
   icon: React.ComponentType<{ className?: string }>;
   background: LoginDesignBackground;
   elements: CanvasElement[];
+  resetFormStyle?: boolean;
   preview: {
     bgClass: string;
     layoutClass: string;
@@ -58,27 +60,7 @@ const PRESETS: Preset[] = [
       type: 'solid',
       color: getTheme('blue-dark')?.sidebar_bg || '#0f172a',
     },
-    elements: [
-      {
-        id: 'preset-text-1',
-        type: 'text',
-        // "Welcome Back" at 36px bold needs ~300px width
-        // 300px = 18.75% of 1600, centered: (100 - 18.75) / 2 = 40.625
-        x: 40.625,
-        y: 8, // Rule of four
-        width: 300,
-        height: 48, // Rule of four
-        zIndex: 1,
-        props: {
-          text: 'Welcome Back',
-          fontSize: 36,
-          fontFamily: 'Inter',
-          fontWeight: 700,
-          color: getTheme('blue-dark')?.sidebar_text || '#e2e8f0',
-          textAlign: 'center' as const,
-        },
-      },
-    ],
+    elements: [],
     preview: {
       bgClass: 'bg-slate-900',
       layoutClass: 'items-center justify-center',
@@ -108,25 +90,6 @@ const PRESETS: Preset[] = [
           opacity: 100,
           borderRadius: 0,
           objectFit: 'cover' as const,
-        },
-      },
-      {
-        id: 'preset-text-1',
-        type: 'text',
-        // "Sign In" at 32px semibold needs ~160px width
-        // Right half center: 50 + (50 - 10) / 2 = 70% for 160px (10% of 1600)
-        x: 70,
-        y: 8, // Rule of four
-        width: 160,
-        height: 44, // Rule of four
-        zIndex: 2,
-        props: {
-          text: 'Sign In',
-          fontSize: 32,
-          fontFamily: 'Inter',
-          fontWeight: 600,
-          color: getTheme('blue-light')?.sidebar_text || '#0c4a6e',
-          textAlign: 'center' as const,
         },
       },
     ],
@@ -161,25 +124,6 @@ const PRESETS: Preset[] = [
           objectFit: 'cover' as const,
         },
       },
-      {
-        id: 'preset-text-1',
-        type: 'text',
-        // "Sign In" at 32px semibold needs ~160px width
-        // Left half center: (50 - 10) / 2 = 20% for 160px (10% of 1600)
-        x: 20,
-        y: 8, // Rule of four
-        width: 160,
-        height: 44, // Rule of four
-        zIndex: 2,
-        props: {
-          text: 'Sign In',
-          fontSize: 32,
-          fontFamily: 'Inter',
-          fontWeight: 600,
-          color: getTheme('green-dark')?.sidebar_text || '#dcfce7',
-          textAlign: 'center' as const,
-        },
-      },
     ],
     preview: {
       bgClass: 'bg-green-950',
@@ -197,46 +141,7 @@ const PRESETS: Preset[] = [
       image_url: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920&h=1080&fit=crop',
       image_overlay: 'rgba(67, 20, 7, 0.8)', // Sunset Ember sidebar_bg with alpha
     },
-    elements: [
-      {
-        id: 'preset-text-1',
-        type: 'text',
-        // "Welcome" at 40px bold needs ~220px width
-        // 220px = 13.75% of 1600, centered: (100 - 13.75) / 2 = 43.125
-        x: 43.125,
-        y: 8, // Rule of four
-        width: 220,
-        height: 52, // Rule of four
-        zIndex: 1,
-        props: {
-          text: 'Welcome',
-          fontSize: 40,
-          fontFamily: 'Inter',
-          fontWeight: 700,
-          color: getTheme('orange-dark')?.sidebar_text || '#fed7aa',
-          textAlign: 'center' as const,
-        },
-      },
-      {
-        id: 'preset-text-2',
-        type: 'text',
-        // "Sign in to continue" at 18px needs ~240px width
-        // 240px = 15% of 1600, centered: (100 - 15) / 2 = 42.5
-        x: 42.5,
-        y: 16, // Rule of four (8 + 4 spacing from above)
-        width: 240,
-        height: 28, // Rule of four
-        zIndex: 2,
-        props: {
-          text: 'Sign in to continue',
-          fontSize: 18,
-          fontFamily: 'Inter',
-          fontWeight: 400,
-          color: getTheme('orange-dark')?.accent || '#f59e0b',
-          textAlign: 'center' as const,
-        },
-      },
-    ],
+    elements: [],
     preview: {
       bgClass: 'bg-gradient-to-br from-orange-900 to-amber-950',
       layoutClass: 'items-center justify-center',
@@ -262,15 +167,16 @@ const PRESETS: Preset[] = [
     // Uses: Clean Slate theme (neutral light)
     id: 'blank',
     name: 'Blank Canvas',
-    description: 'Start from scratch',
+    description: 'GHL default — no custom CSS',
     icon: Maximize2,
     background: {
       type: 'solid',
-      color: getTheme('neutral-light')?.sidebar_bg || '#f8fafc',
+      color: '#ffffff',
     },
     elements: [],
+    resetFormStyle: true,
     preview: {
-      bgClass: 'bg-slate-50',
+      bgClass: 'bg-white',
       layoutClass: 'items-center justify-center',
     },
   },
@@ -284,6 +190,7 @@ export function PresetPicker({ onSelect, activePreset }: PresetPickerProps) {
       layout: preset.id,
       elements: preset.elements,
       background: preset.background,
+      resetFormStyle: preset.resetFormStyle,
     });
     setOpen(false);
   };
@@ -352,6 +259,9 @@ function PresetCard({
   const isSplitLeft = preset.id === 'split-left';
   const isSplitRight = preset.id === 'split-right';
   const isSplit = isSplitLeft || isSplitRight;
+  const isBlank = preset.id === 'blank';
+  // Light backgrounds need darker form preview elements
+  const isLightBg = isSplitLeft || isBlank;
 
   return (
     <button
@@ -385,14 +295,17 @@ function PresetCard({
         {/* Mini form preview */}
         <div
           className={cn(
-            'w-16 h-20 bg-white/10 rounded-md backdrop-blur flex flex-col items-center justify-center gap-1 p-1',
+            'w-16 h-20 rounded-md flex flex-col items-center justify-center gap-1 p-1',
+            isLightBg
+              ? 'bg-white border border-gray-200 shadow-sm'
+              : 'bg-white/10 backdrop-blur',
             // For split layouts, don't shrink and position correctly
             isSplit && 'flex-shrink-0',
             isSplitRight && 'order-1'
           )}
         >
-          <div className="w-10 h-1.5 bg-white/30 rounded" />
-          <div className="w-10 h-1.5 bg-white/30 rounded" />
+          <div className={cn('w-10 h-1.5 rounded', isLightBg ? 'bg-gray-200' : 'bg-white/30')} />
+          <div className={cn('w-10 h-1.5 rounded', isLightBg ? 'bg-gray-200' : 'bg-white/30')} />
           <div className="w-8 h-2 bg-blue-500/50 rounded mt-1" />
         </div>
       </div>
