@@ -8,6 +8,92 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains **specification documents only** - no implementation code exists yet. The specs are designed for use with AI-assisted development tools.
 
+## Session Workflow
+
+### Start of Session
+1. Read this file (`CLAUDE.md`) for project context and rules
+2. Read the last entry in `SESSION_LOG.md` to understand where we left off, what was built, and what's next
+
+### End of Session
+Follow the checklist in `.claude-rules.md`:
+1. Run `pnpm lint` and `pnpm build` — fix any failures
+2. Append a new entry to `SESSION_LOG.md` (most recent first) with: what was done, what's next, blockers, and cross-project notes
+3. Stage and commit all changes including the session log update
+
+## Key Files
+
+### Config & Infrastructure
+| File | Purpose |
+|------|---------|
+| `proxy.ts` | Clerk middleware — **DO NOT rename or delete** |
+| `next.config.ts` | Next.js config, redirects, iframe headers |
+| `app/layout.tsx` | Root layout with ClerkProvider, fonts, Toaster |
+| `app/(dashboard)/layout.tsx` | Dashboard shell with header, nav, auth |
+| `.claude-rules.md` | End-of-session checklist |
+| `SESSION_LOG.md` | Session handoff log (most recent first) |
+
+### Auth & Database
+| File | Purpose |
+|------|---------|
+| `lib/auth.ts` | `getCurrentAgency()` and auth helpers |
+| `lib/supabase/server.ts` | Server-side Supabase client with cookies |
+| `lib/supabase/admin.ts` | Admin client with service role key |
+| `lib/supabase/client.ts` | Client-side Supabase client |
+| `types/database.ts` | Full TypeScript types for all DB tables |
+| `app/api/webhooks/clerk/route.ts` | Creates agency record on Clerk signup |
+
+### Embed System (How Customizations Reach GHL)
+| File | Purpose |
+|------|---------|
+| `app/embed.js/route.ts` | Dynamic JS embed script served to GHL pages |
+| `app/ts.js/route.ts` | TrustSignal embed script |
+| `app/api/config/route.ts` | Public config endpoint — embed fetches this |
+| `lib/css-generator.ts` | Generates CSS from agency settings |
+| `app/(dashboard)/settings/_components/css-export-card.tsx` | Login CSS export (maps editor → GHL selectors) |
+
+### Feature Modules (each is self-contained under `app/(dashboard)/`)
+| Module | Key Files | Purpose |
+|--------|-----------|---------|
+| `theme-builder/` | `_components/theme-builder-content.tsx`, `_actions/theme-actions.ts` | Unified theme editing with auto-save |
+| `login/` | `_components/login-designer.tsx`, `_components/canvas.tsx` | Canvas-based login page editor |
+| `menu/` | `[id]/_components/menu-editor.tsx`, `_actions/menu-actions.ts` | Menu item toggle/reorder with drag-drop |
+| `colors/` | `_components/color-studio.tsx`, `_actions/color-actions.ts` | Brand color customization |
+| `loading/` | `_components/loading-client.tsx`, `_actions/loading-actions.ts` | Loading animation picker |
+| `customers/` | `_components/customer-table.tsx`, `_actions/customer-actions.ts` | Customer CRUD management |
+| `g/` (Guidely) | `tours/`, `checklists/`, `tips/`, `banners/` sub-routes | Onboarding tours, checklists, tips, banners |
+| `trustsignal/` | `[id]/_components/widget-editor.tsx`, `_actions/social-proof-actions.ts` | Social proof notification widgets |
+| `images/` | `[id]/_components/fabric-canvas.tsx`, `_actions/image-actions.ts` | Personalized image template editor |
+| `settings/` | Multiple sub-pages: `profile/`, `ghl/`, `embed/`, `excluded/`, `photos/`, `danger/`, `admin/` | All app settings |
+| `help/` | 25 articles across 6 categories | In-app help center |
+
+### Shared Components
+| File | Purpose |
+|------|---------|
+| `components/ui/` | All shadcn/ui components (40+ files) |
+| `components/shared/custom-color-picker/` | Advanced color picker (solid, gradient, theme, saved) |
+| `components/shared/upgrade-modal.tsx` | Pro plan upgrade prompt |
+| `components/shared/page-header.tsx` | Reusable page header |
+| `components/dashboard/main-nav.tsx` | Main navigation component |
+
+### Utilities
+| File | Purpose |
+|------|---------|
+| `lib/utils.ts` | General utilities, `cn()` helper |
+| `lib/constants.ts` | App-wide constants |
+| `lib/plan-gating.ts` | Feature gating by plan tier |
+| `lib/security/` | Input validation, sanitization, URL/selector checks |
+| `lib/tour-engine/` | Tour runtime: state, targeting, theme presets |
+
+### Specs & Docs
+| File | Purpose |
+|------|---------|
+| `docs/spec/DATABASE.md` | Complete SQL schema, RLS policies |
+| `docs/spec/API.md` | All API routes with request/response types |
+| `docs/spec/FEATURES.md` | Feature cards with acceptance criteria |
+| `docs/spec/PRICING_AND_PLANS.md` | Plan tiers and feature gating rules |
+| `docs/sprint.md` | Sprint tracking (status only) |
+| `docs/features/feature-N-*.md` | Individual feature specs and implementation notes |
+
 ## Tech Stack
 
 - **Framework**: Next.js 15.5 (App Router, Server Actions, Turbopack)
