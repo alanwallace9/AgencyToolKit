@@ -4,21 +4,27 @@ import { useEffect, useState, useCallback } from 'react';
 import { MenuClient } from '@/app/(dashboard)/menu/_components/menu-client';
 import { getMenuSettings } from '@/app/(dashboard)/menu/_actions/menu-actions';
 import { useThemeStatus } from '../../_context/theme-status-context';
+import { SectionHeader } from '../section-header';
+import { Button } from '@/components/ui/button';
 import type { MenuConfig, ColorConfig } from '@/types/database';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 
 export function MenuTabContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [menuConfig, setMenuConfig] = useState<MenuConfig | null>(null);
   const [colors, setColors] = useState<ColorConfig | null>(null);
-  const { markSaved, registerSaveHandler, setTabHasUnsavedChanges } = useThemeStatus();
+  const [ghlDomain, setGhlDomain] = useState<string | null>(null);
+  const [sampleLocationId, setSampleLocationId] = useState<string | null>(null);
+  const { saveStatus, lastSaved, markSaved, setSaveStatus, registerSaveHandler, setTabHasUnsavedChanges, saveTab } = useThemeStatus();
 
   useEffect(() => {
     async function loadData() {
       try {
-        const { menu, colors: fetchedColors } = await getMenuSettings();
+        const { menu, colors: fetchedColors, ghlDomain: domain, sampleLocationId: locId } = await getMenuSettings();
         setMenuConfig(menu);
         setColors(fetchedColors);
+        setGhlDomain(domain);
+        setSampleLocationId(locId);
       } finally {
         setIsLoading(false);
       }
@@ -41,8 +47,11 @@ export function MenuTabContent() {
   const handleUnsavedChangesChange = useCallback(
     (hasChanges: boolean) => {
       setTabHasUnsavedChanges('menu', hasChanges);
+      if (hasChanges) {
+        setSaveStatus('saving');
+      }
     },
-    [setTabHasUnsavedChanges]
+    [setTabHasUnsavedChanges, setSaveStatus]
   );
 
   if (isLoading) {
@@ -58,9 +67,22 @@ export function MenuTabContent() {
 
   return (
     <div className="menu-tab-wrapper">
+      <SectionHeader
+        title="Sidebar Menu"
+        isSaving={saveStatus === 'saving'}
+        lastSaved={lastSaved}
+        actions={
+          <Button onClick={() => saveTab('menu')} disabled={saveStatus === 'saving'} size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            {saveStatus === 'saving' ? 'Saving...' : 'Save'}
+          </Button>
+        }
+      />
       <MenuClient
         initialConfig={menuConfig}
         colors={colors}
+        ghlDomain={ghlDomain}
+        sampleLocationId={sampleLocationId}
         onSaveComplete={handleSaveComplete}
         onRegisterSaveHandler={handleRegisterSaveHandler}
         onUnsavedChangesChange={handleUnsavedChangesChange}

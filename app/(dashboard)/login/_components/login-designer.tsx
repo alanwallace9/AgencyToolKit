@@ -44,6 +44,13 @@ import type {
   ColorConfig,
 } from '@/types/database';
 
+// Combined state tracked by undo/redo history
+interface DesignState {
+  elements: CanvasElement[];
+  formStyle: LoginDesignFormStyle;
+  background: LoginDesignBackground;
+}
+
 interface LoginDesignerProps {
   designs: LoginDesign[];
   currentDesign: LoginDesign | null;
@@ -51,23 +58,55 @@ interface LoginDesignerProps {
 }
 
 export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesignerProps) {
-  // Canvas state
-  const [canvas, setCanvas] = useState(currentDesign?.canvas || DEFAULT_CANVAS);
+  // Canvas dimensions (not tracked by history — these don't change during editing)
+  const [canvasDimensions, setCanvasDimensions] = useState({
+    width: currentDesign?.canvas?.width || DEFAULT_CANVAS.width,
+    height: currentDesign?.canvas?.height || DEFAULT_CANVAS.height,
+  });
 
-  // Elements with undo/redo history
+  // Combined design state with undo/redo history
   const {
-    state: elements,
-    set: setElements,
+    state: designState,
+    set: setDesignState,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useHistory<CanvasElement[]>(
-    currentDesign?.elements || [DEFAULT_LOGIN_FORM_ELEMENT]
-  );
-  const [formStyle, setFormStyle] = useState<LoginDesignFormStyle>(
-    currentDesign?.form_style || DEFAULT_FORM_STYLE
-  );
+  } = useHistory<DesignState>({
+    elements: currentDesign?.elements || [DEFAULT_LOGIN_FORM_ELEMENT],
+    formStyle: currentDesign?.form_style || DEFAULT_FORM_STYLE,
+    background: currentDesign?.canvas?.background || DEFAULT_CANVAS.background,
+  });
+
+  // Convenience accessors
+  const elements = designState.elements;
+  const formStyle = designState.formStyle;
+  const background = designState.background;
+
+  // Derived canvas object for save/preview compatibility
+  const canvas = { ...canvasDimensions, background };
+
+  // Tracked state updaters
+  const setElements = useCallback((updater: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[])) => {
+    setDesignState((prev) => ({
+      ...prev,
+      elements: typeof updater === 'function' ? updater(prev.elements) : updater,
+    }));
+  }, [setDesignState]);
+
+  const setFormStyle = useCallback((style: LoginDesignFormStyle) => {
+    setDesignState((prev) => ({
+      ...prev,
+      formStyle: style,
+    }));
+  }, [setDesignState]);
+
+  const setBackground = useCallback((bg: LoginDesignBackground) => {
+    setDesignState((prev) => ({
+      ...prev,
+      background: bg,
+    }));
+  }, [setDesignState]);
   const [designName, setDesignName] = useState(currentDesign?.name || 'My Login Design');
   const [designId, setDesignId] = useState(currentDesign?.id || null);
 
@@ -284,25 +323,17 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
     background: LoginDesignBackground;
     resetFormStyle?: boolean;
   }) => {
-    setCanvas({
-      ...canvas,
-      background: preset.background,
-    });
-
     // Position the form based on preset layout
     let formX = DEFAULT_LOGIN_FORM_ELEMENT.x; // Default centered (37.5%)
     let formY = 20; // Default slightly higher than center for better visual balance
 
     if (preset.layout === 'split-left') {
-      // Image on left, form on right — vertically centered below heading
       formX = 62;
       formY = 28;
     } else if (preset.layout === 'split-right') {
-      // Form on left, image on right — vertically centered below heading
       formX = 12;
       formY = 28;
     } else if (preset.layout === 'centered' || preset.layout === 'gradient-overlay') {
-      // Centered layouts - position form below any header text
       formY = 25;
     }
 
@@ -312,20 +343,22 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
       y: formY,
     };
 
-    setElements([
+    const newElements = [
       positionedForm,
       ...preset.elements.filter((el) => el.type !== 'login-form'),
-    ]);
+    ];
 
-    // Reset form style to GHL-native look when selecting blank canvas
-    if (preset.resetFormStyle) {
-      setFormStyle(GHL_NATIVE_FORM_STYLE);
-    }
+    // Set all tracked state in one history entry
+    setDesignState((prev) => ({
+      elements: newElements,
+      formStyle: preset.resetFormStyle ? GHL_NATIVE_FORM_STYLE : prev.formStyle,
+      background: preset.background,
+    }));
 
     setSelectedElementId(null);
     setActivePreset(preset.layout);
     toast.success('Preset applied');
-  }, [canvas]);
+  }, [setDesignState]);
 
   // handleAddElement removed — no user-addable elements remain
   // Background images are now controlled via CSS properties in the Elements tab
@@ -517,7 +550,7 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
                 <CardContent className="pt-4">
                   <ElementPanel
                     background={canvas.background}
-                    onBackgroundChange={(bg) => setCanvas({ ...canvas, background: bg })}
+                    onBackgroundChange={setBackground}
                     formStyle={formStyle}
                     onFormStyleChange={setFormStyle}
                     brandColors={brandColors}
@@ -627,7 +660,7 @@ export function LoginDesigner({ designs, currentDesign, brandColors }: LoginDesi
                 formStyle={formStyle}
                 onFormStyleChange={setFormStyle}
                 background={canvas.background}
-                onBackgroundChange={(bg) => setCanvas({ ...canvas, background: bg })}
+                onBackgroundChange={setBackground}
                 brandColors={brandColors}
                 activePreset={activePreset}
               />

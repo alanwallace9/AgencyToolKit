@@ -5,7 +5,7 @@ import { Plus, Minus, Type, ChevronDown, RotateCcw, Search, X, Link2, PanelLeftC
 import { toast } from 'sonner';
 import { BUILT_IN_PRESETS, GHL_MENU_ITEMS, GHL_HIDE_OPTIONS, DIVIDER_TYPES } from '@/lib/constants';
 import type { MenuItemType } from '@/lib/constants';
-import type { MenuConfig, ColorConfig, MenuPresetDivider, MenuPreset } from '@/types/database';
+import type { MenuConfig, ColorConfig, MenuPresetDivider, MenuPreset, CustomMenuLink } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,6 +23,7 @@ import { MenuSortableList } from '../[id]/_components/menu-sortable-list';
 import { BannerOptions } from '../[id]/_components/banner-options';
 import { MenuPreview } from '../[id]/_components/menu-preview';
 import { CustomLinksSection } from './custom-links-section';
+import { useSidebarScanner } from '../_hooks/use-sidebar-scanner';
 import { AddPresetDialog } from './add-preset-dialog';
 import { DeletePresetDialog } from './delete-preset-dialog';
 import { saveMenuSettings, getMenuPresets, createMenuPresetFromTemplate } from '../_actions/menu-actions';
@@ -30,6 +31,8 @@ import { saveMenuSettings, getMenuPresets, createMenuPresetFromTemplate } from '
 interface MenuClientProps {
   initialConfig: MenuConfig | null;
   colors?: ColorConfig | null;
+  ghlDomain?: string | null;
+  sampleLocationId?: string | null;
   onSaveComplete?: () => void;
   onRegisterSaveHandler?: (handler: (() => Promise<boolean>) | null) => void;
   onUnsavedChangesChange?: (hasChanges: boolean) => void;
@@ -44,7 +47,7 @@ interface MenuItemConfig {
   dividerText?: string;
 }
 
-export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSaveHandler, onUnsavedChangesChange }: MenuClientProps) {
+export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId, onSaveComplete, onRegisterSaveHandler, onUnsavedChangesChange }: MenuClientProps) {
   const [dividerCounter, setDividerCounter] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -147,6 +150,17 @@ export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSa
     initialConfig?.last_template ?? null
   );
 
+  // Custom menu links state
+  const [customLinks, setCustomLinks] = useState<CustomMenuLink[]>(
+    initialConfig?.custom_links || []
+  );
+  const [hiddenCustomLinks, setHiddenCustomLinks] = useState<string[]>(
+    initialConfig?.hidden_custom_links || []
+  );
+  const [renamedCustomLinks, setRenamedCustomLinks] = useState<Record<string, string>>(
+    initialConfig?.renamed_custom_links || {}
+  );
+
   // Build current config from state
   const buildConfig = useCallback((): MenuConfig => {
     const menuItems = items.filter((i) => i.type === 'menu_item' || !i.type);
@@ -171,8 +185,11 @@ export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSa
       })),
       preview_theme: previewTheme,
       last_template: lastTemplate,
+      custom_links: customLinks.length > 0 ? customLinks : undefined,
+      hidden_custom_links: hiddenCustomLinks.length > 0 ? hiddenCustomLinks : undefined,
+      renamed_custom_links: Object.keys(renamedCustomLinks).length > 0 ? renamedCustomLinks : undefined,
     };
-  }, [items, hiddenBanners, previewTheme, lastTemplate]);
+  }, [items, hiddenBanners, previewTheme, lastTemplate, customLinks, hiddenCustomLinks, renamedCustomLinks]);
 
   // Autosave with debounce
   const triggerAutosave = useCallback(() => {
@@ -443,6 +460,59 @@ export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSa
   const renamedCount = menuItemsOnly.filter((i) => i.rename).length;
   const dividerCount = items.filter((i) => i.type === 'divider_plain' || i.type === 'divider_labeled').length;
 
+  // Custom link handlers
+  const handleScanComplete = useCallback((links: CustomMenuLink[]) => {
+    // Merge: preserve existing hide/rename settings for matching links
+    setCustomLinks(links);
+
+    // Clean up hidden/renamed entries for links that no longer exist
+    const newLinkIds = new Set(links.map((l) => l.id));
+    setHiddenCustomLinks((prev) => prev.filter((id) => newLinkIds.has(id)));
+    setRenamedCustomLinks((prev) => {
+      const cleaned: Record<string, string> = {};
+      for (const [id, name] of Object.entries(prev)) {
+        if (newLinkIds.has(id)) cleaned[id] = name;
+      }
+      return cleaned;
+    });
+
+    triggerAutosave();
+  }, [triggerAutosave]);
+
+  const handleToggleCustomLink = useCallback((linkId: string) => {
+    setHiddenCustomLinks((prev) =>
+      prev.includes(linkId)
+        ? prev.filter((id) => id !== linkId)
+        : [...prev, linkId]
+    );
+    triggerAutosave();
+  }, [triggerAutosave]);
+
+  const handleRenameCustomLink = useCallback((linkId: string, newName: string) => {
+    setRenamedCustomLinks((prev) => {
+      if (!newName) {
+        const next = { ...prev };
+        delete next[linkId];
+        return next;
+      }
+      return { ...prev, [linkId]: newName };
+    });
+    triggerAutosave();
+  }, [triggerAutosave]);
+
+  // Sidebar scanner hook
+  const {
+    isScanning,
+    error: scanError,
+    startScan,
+    cancelScan,
+  } = useSidebarScanner({
+    ghlDomain: ghlDomain || null,
+    sampleLocationId: sampleLocationId || null,
+    existingLinks: customLinks,
+    onScanComplete: handleScanComplete,
+  });
+
   // Reset to GHL defaults
   const handleResetToDefaults = () => {
     const defaultItems: MenuItemConfig[] = GHL_MENU_ITEMS.map((item) => ({
@@ -462,13 +532,6 @@ export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSa
 
   return (
     <div className="space-y-4">
-      {/* Saving indicator */}
-      {isSaving && (
-        <div className="fixed top-4 right-4 z-50 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm shadow-lg">
-          Saving...
-        </div>
-      )}
-
       {/* 3-Column Layout with Resizable Panels */}
       <div className="flex gap-0">
         {/* Left Panel - Templates */}
@@ -628,6 +691,9 @@ export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSa
                   colors={colors}
                   selectedTheme={previewTheme}
                   onThemeChange={handlePreviewThemeChange}
+                  customLinks={customLinks}
+                  hiddenCustomLinks={hiddenCustomLinks}
+                  renamedCustomLinks={renamedCustomLinks}
                 />
               </ScrollArea>
             </CardContent>
@@ -788,7 +854,18 @@ export function MenuClient({ initialConfig, colors, onSaveComplete, onRegisterSa
               </p>
             </CardHeader>
             <CardContent>
-              <CustomLinksSection />
+              <CustomLinksSection
+                ghlDomain={ghlDomain || null}
+                customLinks={customLinks}
+                hiddenCustomLinks={hiddenCustomLinks}
+                renamedCustomLinks={renamedCustomLinks}
+                isScanning={isScanning}
+                scanError={scanError}
+                onStartScan={startScan}
+                onCancelScan={cancelScan}
+                onToggleLink={handleToggleCustomLink}
+                onRenameLink={handleRenameCustomLink}
+              />
             </CardContent>
           </Card>
         </div>

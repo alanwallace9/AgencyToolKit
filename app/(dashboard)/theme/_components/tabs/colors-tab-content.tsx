@@ -5,20 +5,21 @@ import { ColorsClient } from '@/app/(dashboard)/colors/_components/colors-client
 import { GlassStyles } from '@/app/(dashboard)/colors/_components/glass-styles';
 import { getColorPresets, getDefaultColors } from '@/app/(dashboard)/colors/_actions/color-actions';
 import { useThemeStatus } from '../../_context/theme-status-context';
+import { SectionHeader } from '../section-header';
+import { Button } from '@/components/ui/button';
 import type { ColorConfig } from '@/types/database';
 import type { ColorPreset } from '@/app/(dashboard)/colors/_actions/color-actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 
 export function ColorsTabContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [presets, setPresets] = useState<ColorPreset[]>([]);
   const [colors, setColors] = useState<ColorConfig | null>(null);
-  const { markSaved, registerSaveHandler, setTabHasUnsavedChanges } = useThemeStatus();
+  const { saveStatus, lastSaved, markSaved, setSaveStatus, registerSaveHandler, setTabHasUnsavedChanges, saveTab } = useThemeStatus();
 
   useEffect(() => {
     async function loadData() {
       try {
-        // Use server actions to fetch data (handles RLS properly)
         const [fetchedPresets, fetchedColors] = await Promise.all([
           getColorPresets(),
           getDefaultColors(),
@@ -36,12 +37,10 @@ export function ColorsTabContent() {
     loadData();
   }, []);
 
-  // Callback to update the theme status context when colors are saved
   const handleSaveComplete = useCallback(() => {
     markSaved();
   }, [markSaved]);
 
-  // Register the colors save handler with the theme context
   const handleRegisterSaveHandler = useCallback(
     (handler: (() => Promise<boolean>) | null) => {
       registerSaveHandler('colors', handler);
@@ -49,12 +48,14 @@ export function ColorsTabContent() {
     [registerSaveHandler]
   );
 
-  // Track unsaved changes in the theme context
   const handleUnsavedChangesChange = useCallback(
     (hasChanges: boolean) => {
       setTabHasUnsavedChanges('colors', hasChanges);
+      if (hasChanges) {
+        setSaveStatus('saving');
+      }
     },
-    [setTabHasUnsavedChanges]
+    [setTabHasUnsavedChanges, setSaveStatus]
   );
 
   if (isLoading) {
@@ -70,6 +71,17 @@ export function ColorsTabContent() {
 
   return (
     <div className="colors-tab-wrapper">
+      <SectionHeader
+        title="Brand Colors"
+        isSaving={saveStatus === 'saving'}
+        lastSaved={lastSaved}
+        actions={
+          <Button onClick={() => saveTab('colors')} disabled={saveStatus === 'saving'} size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            {saveStatus === 'saving' ? 'Saving...' : 'Save'}
+          </Button>
+        }
+      />
       <ColorsClient
         initialPresets={presets}
         initialColors={colors}

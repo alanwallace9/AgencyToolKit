@@ -28,6 +28,7 @@ import {
   Check,
   Sun,
   Moon,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,7 @@ import {
 } from '@/components/ui/popover';
 import { COLOR_PRESETS } from '@/lib/constants';
 import type { MenuItemType } from '@/lib/constants';
+import type { CustomMenuLink } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 interface MenuItemConfig {
@@ -62,6 +64,10 @@ interface MenuPreviewProps {
   selectedTheme?: string | null;
   /** Callback when theme changes - required for controlled mode */
   onThemeChange?: (theme: string | null) => void;
+  /** Custom menu links detected via sidebar scan */
+  customLinks?: CustomMenuLink[];
+  hiddenCustomLinks?: string[];
+  renamedCustomLinks?: Record<string, string>;
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -118,6 +124,9 @@ export function MenuPreview({
   colors,
   selectedTheme: controlledTheme,
   onThemeChange,
+  customLinks = [],
+  hiddenCustomLinks = [],
+  renamedCustomLinks = {},
 }: MenuPreviewProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItem, setActiveItem] = useState<string>('sb_dashboard');
@@ -346,7 +355,7 @@ export function MenuPreview({
         </Popover>
 
         <Link
-          href="/theme-builder?tab=colors"
+          href="/theme/colors"
           className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
         >
           Set brand colors
@@ -466,7 +475,46 @@ export function MenuPreview({
               </button>
             );
           })}
-          {items.length === 0 && (
+          {/* Custom Links */}
+          {customLinks.filter((l) => !hiddenCustomLinks.includes(l.id)).length > 0 && (
+            <>
+              {/* Divider before custom links */}
+              <div
+                className="my-2 mx-2 h-px"
+                style={{ backgroundColor: `${activeColors.sidebar_text}20` }}
+              />
+              {customLinks
+                .filter((link) => !hiddenCustomLinks.includes(link.id))
+                .map((link) => {
+                  const displayName = renamedCustomLinks[link.id] || link.original_label;
+                  const isHovered = link.id === hoveredItem;
+
+                  return (
+                    <button
+                      key={link.id}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-all duration-150 text-left"
+                      style={{
+                        backgroundColor: isHovered
+                          ? activeColors.sidebar_hover_bg
+                          : 'transparent',
+                        color: activeColors.sidebar_text,
+                      }}
+                      onMouseEnter={() => setHoveredItem(link.id)}
+                      onMouseLeave={() => setHoveredItem(null)}
+                    >
+                      <span className="shrink-0 opacity-70">
+                        <ExternalLink className="h-4 w-4" />
+                      </span>
+                      <span className="text-[13px] font-medium truncate">
+                        {displayName}
+                      </span>
+                    </button>
+                  );
+                })}
+            </>
+          )}
+
+          {items.length === 0 && customLinks.filter((l) => !hiddenCustomLinks.includes(l.id)).length === 0 && (
             <p
               className="text-sm text-center py-8"
               style={{ color: `${activeColors.sidebar_text}60` }}

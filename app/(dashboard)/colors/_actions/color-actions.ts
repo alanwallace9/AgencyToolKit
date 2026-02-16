@@ -135,7 +135,7 @@ export async function createColorPreset(data: CreatePresetData): Promise<ActionR
     }
 
     revalidatePath('/colors');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true, data: preset };
   } catch (error) {
     console.error('Error creating color preset:', error);
@@ -184,7 +184,7 @@ export async function updateColorPreset(
     }
 
     revalidatePath('/colors');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true, data: preset };
   } catch (error) {
     console.error('Error updating color preset:', error);
@@ -250,7 +250,7 @@ export async function deleteColorPreset(presetId: string): Promise<ActionResult>
 
     revalidatePath('/colors');
     revalidatePath('/settings');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
 
     // Return whether it was the active theme so UI can update toggle state
     return { success: true, data: { wasActiveTheme } };
@@ -312,7 +312,7 @@ export async function setDefaultColorPreset(presetId: string): Promise<ActionRes
 
     revalidatePath('/colors');
     revalidatePath('/settings');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch (error) {
     console.error('Error setting default color preset:', error);
@@ -459,7 +459,7 @@ export async function saveAgencyColors(colors: ColorConfig): Promise<ActionResul
 
     revalidatePath('/colors');
     revalidatePath('/settings');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch (error) {
     console.error('Error saving agency colors:', error);

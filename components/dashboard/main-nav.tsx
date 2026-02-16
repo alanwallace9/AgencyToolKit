@@ -31,7 +31,7 @@ interface MainNavProps {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/customers", label: "Customers", icon: Users },
-  { href: "/theme-builder", label: "Theme Builder", icon: Layers },
+  { href: "/theme", label: "Theme Builder", icon: Layers },
   { href: "/trustsignal", label: "TrustSignal", icon: BadgeCheck },
   { href: "/g", label: "Guidely", icon: Map, isPro: true },
   { href: "/images", label: "Images", icon: ImageIcon, isPro: true },
@@ -132,11 +132,11 @@ export function MainNav({ agencyPlan = "toolkit" }: MainNavProps) {
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
             <Link
-              href="/theme-builder"
+              href="/theme"
               className={cn(
                 navigationMenuTriggerStyle(),
                 "text-[14px] font-medium h-9 px-3 gap-1.5",
-                pathname.startsWith("/theme-builder")
+                pathname.startsWith("/theme")
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}

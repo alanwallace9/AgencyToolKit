@@ -19,7 +19,10 @@ const BADGE_EXPIRY_DAYS = 7;
 const helpMapping: Record<string, string> = {
   '/dashboard': '/help/getting-started',
   '/customers': '/help/getting-started/first-customer',
-  '/theme-builder': '/help/theme-builder',
+  '/theme': '/help/theme-builder',
+  '/theme/login': '/help/theme-builder/login',
+  '/theme/menu': '/help/theme-builder/menu',
+  '/theme/colors': '/help/theme-builder/colors',
   '/menu': '/help/theme-builder/menu',
   '/login': '/help/theme-builder/login',
   '/colors': '/help/theme-builder/colors',

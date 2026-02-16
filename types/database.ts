@@ -37,6 +37,14 @@ export interface AgencySettings {
   photo_uploads?: PhotoUploadSettings;
 }
 
+export interface CustomMenuLink {
+  id: string;              // "custom_" + hash of selector
+  selector: string;        // CSS selector in GHL DOM
+  original_label: string;  // Text found during scan
+  href?: string;           // Link URL if detectable
+  scanned_at: string;      // ISO timestamp
+}
+
 export interface MenuConfig {
   hidden_items: string[];
   renamed_items: Record<string, string>;
@@ -46,6 +54,10 @@ export interface MenuConfig {
   preview_theme?: string | null;
   // Track which template was last loaded (for display purposes)
   last_template?: string | null;
+  // Custom menu links (agency-specific, detected via sidebar scan)
+  custom_links?: CustomMenuLink[];
+  hidden_custom_links?: string[];
+  renamed_custom_links?: Record<string, string>;
 }
 
 export interface LoginConfig {

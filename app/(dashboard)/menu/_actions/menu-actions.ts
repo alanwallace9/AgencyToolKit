@@ -37,6 +37,8 @@ interface ActionResult {
 export interface MenuSettings {
   menu: MenuConfig | null;
   colors: ColorConfig | null;
+  ghlDomain: string | null;
+  sampleLocationId: string | null;
 }
 
 /**
@@ -47,12 +49,30 @@ export async function getMenuSettings(): Promise<MenuSettings> {
   noStore();
   const agency = await getCurrentAgency();
   if (!agency) {
-    return { menu: null, colors: null };
+    return { menu: null, colors: null, ghlDomain: null, sampleLocationId: null };
+  }
+
+  // Fetch a sample customer location ID for building sub-account URLs
+  let sampleLocationId: string | null = null;
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from('customers')
+      .select('ghl_location_id')
+      .eq('agency_id', agency.id)
+      .not('ghl_location_id', 'is', null)
+      .limit(1)
+      .single();
+    sampleLocationId = data?.ghl_location_id || null;
+  } catch {
+    // No customers with location IDs — that's fine
   }
 
   return {
     menu: agency.settings?.menu || null,
     colors: agency.settings?.colors || null,
+    ghlDomain: agency.ghl_domain || null,
+    sampleLocationId,
   };
 }
 
@@ -86,7 +106,7 @@ export async function saveMenuSettings(config: MenuConfig): Promise<ActionResult
     }
 
     revalidatePath('/menu');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch {
     return { success: false, error: 'Failed to save menu settings' };
@@ -166,7 +186,7 @@ export async function createMenuPreset(data: CreatePresetData): Promise<ActionRe
     }
 
     revalidatePath('/menu');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true, data: preset };
   } catch (error) {
     console.error('Error creating menu preset:', error);
@@ -213,7 +233,7 @@ export async function createMenuPresetFromTemplate(
     }
 
     revalidatePath('/menu');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true, data: preset };
   } catch (error) {
     console.error('Error creating menu preset:', error);
@@ -241,7 +261,7 @@ export async function deleteMenuPreset(presetId: string): Promise<ActionResult> 
     }
 
     revalidatePath('/menu');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch (error) {
     console.error('Error deleting menu preset:', error);
@@ -276,7 +296,7 @@ export async function setDefaultPreset(presetId: string): Promise<ActionResult> 
     }
 
     revalidatePath('/menu');
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch (error) {
     console.error('Error setting default preset:', error);
@@ -317,7 +337,7 @@ export async function updatePresetConfig(
 
     revalidatePath('/menu');
     revalidatePath(`/menu/${presetId}`);
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true, data: preset };
   } catch {
     return { success: false, error: 'Failed to update preset' };

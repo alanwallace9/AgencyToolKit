@@ -157,9 +157,33 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
   })();
 
-  // RELIABLE BACKUP: Listen for builder params via postMessage from opener
+  // ============================================
+  // SIDEBAR SCAN MODE PARAM CAPTURE
+  // ============================================
+  var SCAN_SESSION_KEY = 'at_scan_session';
+  (function captureScanParams() {
+    try {
+      var hashParams = new URLSearchParams(window.location.hash.substring(1));
+      var scanMode = hashParams.get('at_scan_mode');
+      var sessionId = hashParams.get('at_session');
+
+      if (scanMode && sessionId) {
+        sessionStorage.setItem(SCAN_SESSION_KEY, JSON.stringify({
+          scanMode: scanMode,
+          sessionId: sessionId,
+          timestamp: Date.now()
+        }));
+        console.log('[AgencyToolkit] Scan mode params saved:', { scanMode: scanMode });
+      }
+    } catch (e) {
+      console.error('[AgencyToolkit] Failed to capture scan params:', e);
+    }
+  })();
+
+  // RELIABLE BACKUP: Listen for builder/scan params via postMessage from opener
   // This is more reliable than hash params because it doesn't depend on URL timing
   var __builderParamsReceived = false;
+  var __scanParamsReceived = false;
   (function listenForBuilderParams() {
     window.addEventListener('message', function(event) {
       // Check if this is a builder params message
@@ -171,7 +195,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         __builderParamsReceived = true;
 
         var payload = event.data.payload;
-        console.log('[AgencyToolkit] 📩 Builder params received via postMessage');
+        console.log('[AgencyToolkit] Builder params received via postMessage');
 
         // Store in sessionStorage (same as the hash param capture does)
         if (payload.builderMode === 'true' && payload.sessionId) {
@@ -185,7 +209,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
                 autoClose: payload.autoClose,
                 timestamp: payload.timestamp || Date.now()
               }));
-              console.log('[AgencyToolkit] ✅ Builder params saved via postMessage');
+              console.log('[AgencyToolkit] Builder params saved via postMessage');
 
               // Always try to initialize builder mode after storing params
               // Use a small delay to ensure initBuilderMode function is defined
@@ -203,6 +227,39 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
             }
           } catch (e) {
             console.error('[AgencyToolkit] Failed to store builder params:', e);
+          }
+        }
+      }
+
+      // Check if this is a scan params message
+      if (event.data?.type === 'at_scan_params' && event.data?.payload) {
+        if (__scanParamsReceived) return;
+        __scanParamsReceived = true;
+
+        var scanPayload = event.data.payload;
+        if (scanPayload.scanMode && scanPayload.sessionId) {
+          try {
+            var existingScan = sessionStorage.getItem(SCAN_SESSION_KEY);
+            if (!existingScan) {
+              sessionStorage.setItem(SCAN_SESSION_KEY, JSON.stringify({
+                scanMode: scanPayload.scanMode,
+                sessionId: scanPayload.sessionId,
+                timestamp: scanPayload.timestamp || Date.now()
+              }));
+              console.log('[AgencyToolkit] Scan params saved via postMessage');
+
+              function tryInitScan(attempts) {
+                if (attempts > 20) return;
+                if (typeof window.__AT_INIT_SIDEBAR_SCAN__ === 'function') {
+                  window.__AT_INIT_SIDEBAR_SCAN__();
+                } else {
+                  setTimeout(function() { tryInitScan(attempts + 1); }, 100);
+                }
+              }
+              tryInitScan(0);
+            }
+          } catch (e) {
+            console.error('[AgencyToolkit] Failed to store scan params:', e);
           }
         }
       }
@@ -280,6 +337,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         css += '  left: 0 !important;\\n';
         css += '  white-space: nowrap !important;\\n';
         css += '  overflow: visible !important;\\n';
+        css += '  color: var(--at-sidebar-text, #374151) !important;\\n';
+        css += '  -webkit-text-fill-color: var(--at-sidebar-text, #374151) !important;\\n';
         css += '}\\n';
       });
     }
@@ -305,6 +364,49 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       css += '/* Hidden Connect Prompts */\\n';
       css += '[class*="connect-prompt"], [class*="facebook-connect"], [class*="whatsapp-connect"], ';
       css += '[class*="invite-user"], .launchpad-connect-card { display: none !important; }\\n';
+    }
+
+    // Hide custom menu links (detected via sidebar scan)
+    if (menuConfig.hidden_custom_links && menuConfig.hidden_custom_links.length > 0) {
+      var customLinks = menuConfig.custom_links || [];
+      css += '/* Hidden Custom Menu Links */\\n';
+      menuConfig.hidden_custom_links.forEach(function(linkId) {
+        var link = customLinks.find(function(l) { return l.id === linkId; });
+        if (link && link.selector) {
+          css += link.selector + ' { display: none !important; }\\n';
+        }
+      });
+    }
+
+    // Rename custom menu links
+    if (menuConfig.renamed_custom_links && Object.keys(menuConfig.renamed_custom_links).length > 0) {
+      var customLinksForRename = menuConfig.custom_links || [];
+      css += '/* Renamed Custom Menu Links */\\n';
+      Object.keys(menuConfig.renamed_custom_links).forEach(function(linkId) {
+        var newName = menuConfig.renamed_custom_links[linkId];
+        var link = customLinksForRename.find(function(l) { return l.id === linkId; });
+        if (link && link.selector) {
+          css += link.selector + ' span {\\n';
+          css += '  visibility: hidden !important;\\n';
+          css += '  position: relative !important;\\n';
+          css += '  overflow: visible !important;\\n';
+          css += '}\\n';
+          css += link.selector + ' {\\n';
+          css += '  overflow: visible !important;\\n';
+          css += '}\\n';
+          css += link.selector + ' span::after {\\n';
+          css += '  content: "' + newName + '";\\n';
+          css += '  visibility: visible !important;\\n';
+          css += '  position: absolute !important;\\n';
+          css += '  top: 0 !important;\\n';
+          css += '  left: 0 !important;\\n';
+          css += '  white-space: nowrap !important;\\n';
+          css += '  overflow: visible !important;\\n';
+          css += '  color: var(--at-sidebar-text, #374151) !important;\\n';
+          css += '  -webkit-text-fill-color: var(--at-sidebar-text, #374151) !important;\\n';
+          css += '}\\n';
+        }
+      });
     }
 
     // Inject styles
@@ -4198,6 +4300,214 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   window.__AT_INIT_BUILDER_MODE__ = initBuilderMode;
 
   // ============================================
+  // SIDEBAR SCAN MODE
+  // ============================================
+
+  function initSidebarScan() {
+    // Check hash fragment for scan mode
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var scanMode = hashParams.get('at_scan_mode');
+    var sessionId = hashParams.get('at_session');
+
+    // Fallback: sessionStorage
+    if (!scanMode || !sessionId) {
+      try {
+        var stored = sessionStorage.getItem(SCAN_SESSION_KEY);
+        if (stored) {
+          var data = JSON.parse(stored);
+          if (data.timestamp && Date.now() - data.timestamp < 5 * 60 * 1000) {
+            scanMode = data.scanMode;
+            sessionId = data.sessionId;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (scanMode !== 'sidebar' || !sessionId) {
+      return false;
+    }
+
+    // Clear stored session
+    try { sessionStorage.removeItem(SCAN_SESSION_KEY); } catch (e) {}
+
+    console.log('[AgencyToolkit] SIDEBAR SCAN MODE ACTIVATED', { sessionId: sessionId });
+
+    // Show scanning indicator
+    var indicator = document.createElement('div');
+    indicator.id = 'at-scan-indicator';
+    indicator.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:#1e40af;color:white;border-radius:8px;font-family:system-ui,sans-serif;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);"><div style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:at-spin 0.8s linear infinite;"></div>Scanning sidebar...</div>';
+    indicator.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:999999;';
+    var scanStyle = document.createElement('style');
+    scanStyle.textContent = '@keyframes at-spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(scanStyle);
+    document.body.appendChild(indicator);
+
+    // Wait for sidebar to be available
+    var scanAttempts = 0;
+    var maxScanAttempts = 30; // 15 seconds
+    var scanInterval = setInterval(function() {
+      scanAttempts++;
+      var sidebar = document.getElementById('sidebar-v2');
+
+      if (sidebar) {
+        clearInterval(scanInterval);
+        performSidebarScan(sidebar, sessionId);
+      } else if (scanAttempts >= maxScanAttempts) {
+        clearInterval(scanInterval);
+        sendScanResults(sessionId, [], 'Sidebar not found. Make sure you are on a GHL page.');
+        setTimeout(function() { window.close(); }, 3000);
+      }
+    }, 500);
+
+    return true;
+  }
+
+  function performSidebarScan(sidebar, sessionId) {
+    var items = [];
+
+    // Query all clickable items in the sidebar
+    var sidebarElements = sidebar.querySelectorAll('[id^="sb_"], a[href], [role="menuitem"]');
+
+    sidebarElements.forEach(function(el) {
+      var id = el.id || '';
+      var label = (el.textContent || '').trim();
+      var href = el.getAttribute('href') || el.querySelector('a')?.getAttribute('href') || '';
+
+      if (!label) return; // Skip empty items
+
+      // Determine if this is a built-in item (starts with sb_)
+      var isBuiltIn = id.startsWith('sb_');
+
+      // Generate a unique ID for custom items
+      var itemId = id || ('custom_' + hashString(label + '_' + href));
+
+      // Build a reliable CSS selector
+      var selector = '';
+      if (id) {
+        selector = '#' + CSS.escape(id);
+      } else {
+        // Build selector from parent context
+        selector = buildSelectorForElement(el, sidebar);
+      }
+
+      items.push({
+        id: itemId,
+        selector: selector,
+        label: label,
+        href: href || undefined,
+        isBuiltIn: isBuiltIn
+      });
+    });
+
+    // Also scan for custom links that might not have sb_ IDs
+    // GHL custom menu links are often in specific containers
+    var customLinkContainers = sidebar.querySelectorAll('[class*="custom-menu"], [class*="custom-link"], [data-custom-link]');
+    customLinkContainers.forEach(function(el) {
+      var label = (el.textContent || '').trim();
+      var href = el.getAttribute('href') || el.querySelector('a')?.getAttribute('href') || '';
+      if (!label) return;
+
+      var itemId = 'custom_' + hashString(label + '_' + href);
+      // Skip if already collected
+      if (items.some(function(i) { return i.id === itemId; })) return;
+
+      items.push({
+        id: itemId,
+        selector: buildSelectorForElement(el, sidebar),
+        label: label,
+        href: href || undefined,
+        isBuiltIn: false
+      });
+    });
+
+    console.log('[AgencyToolkit] Sidebar scan complete:', items.length, 'items found');
+
+    // Update indicator
+    var indicator = document.getElementById('at-scan-indicator');
+    if (indicator) {
+      var customCount = items.filter(function(i) { return !i.isBuiltIn; }).length;
+      indicator.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:#059669;color:white;border-radius:8px;font-family:system-ui,sans-serif;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">Found ' + items.length + ' items (' + customCount + ' custom). Sending results...</div>';
+    }
+
+    sendScanResults(sessionId, items);
+
+    // Auto-close after sending
+    setTimeout(function() { window.close(); }, 2000);
+  }
+
+  function buildSelectorForElement(el, container) {
+    // Try to build a stable selector
+    if (el.id) return '#' + CSS.escape(el.id);
+
+    // Try data attributes
+    var dataAttrs = Array.from(el.attributes).filter(function(a) { return a.name.startsWith('data-'); });
+    if (dataAttrs.length > 0) {
+      return '[' + dataAttrs[0].name + '="' + CSS.escape(dataAttrs[0].value) + '"]';
+    }
+
+    // Use nth-child as fallback
+    var parent = el.parentElement;
+    if (parent) {
+      var siblings = Array.from(parent.children);
+      var index = siblings.indexOf(el) + 1;
+      var parentSelector = parent.id ? '#' + CSS.escape(parent.id) : '';
+      if (parentSelector) {
+        return parentSelector + ' > :nth-child(' + index + ')';
+      }
+    }
+
+    // Last resort: use text content as identifier
+    var text = (el.textContent || '').trim().substring(0, 30);
+    return '#sidebar-v2 [title="' + CSS.escape(text) + '"]';
+  }
+
+  function hashString(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      var char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  function sendScanResults(sessionId, items, error) {
+    var data = {
+      sessionId: sessionId,
+      items: items,
+      error: error || undefined
+    };
+
+    // Primary: postMessage to opener
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.opener.postMessage({
+          type: 'at_sidebar_scan_result',
+          payload: data
+        }, '*');
+        console.log('[AgencyToolkit] Scan results sent via postMessage');
+      } catch (e) {
+        console.error('[AgencyToolkit] postMessage failed:', e);
+      }
+    }
+
+    // Fallback: BroadcastChannel
+    try {
+      var channel = new BroadcastChannel('at_sidebar_scan');
+      channel.postMessage(data);
+      channel.close();
+    } catch (e) {}
+
+    // Fallback: localStorage
+    try {
+      localStorage.setItem('at_sidebar_scan_result', JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  // Expose for late postMessage arrivals
+  window.__AT_INIT_SIDEBAR_SCAN__ = initSidebarScan;
+
+  // ============================================
   // PHOTO UPLOAD MODAL
   // ============================================
 
@@ -5021,6 +5331,13 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       logInfo('Validation mode active - testing selectors');
       window.__AT_INIT_COMPLETE__ = true;
       return; // Don't apply customizations in validation mode
+    }
+
+    // Check for sidebar scan mode
+    if (initSidebarScan()) {
+      logInfo('Sidebar scan mode active - scanning and closing');
+      window.__AT_INIT_COMPLETE__ = true;
+      return; // Don't apply customizations in scan mode
     }
 
     // Check for builder mode (bar shows, but customizations still apply)

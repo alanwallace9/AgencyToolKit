@@ -117,7 +117,7 @@ export function ThemeTab({ brandColors, onSelect, onOpenBrandColors }: ThemeTabP
                 Set brand colors →
               </button>
             ) : (
-              <a href="/theme-builder?tab=colors" className="text-blue-600 hover:underline">
+              <a href="/theme/colors" className="text-blue-600 hover:underline">
                 Set brand colors →
               </a>
             )}

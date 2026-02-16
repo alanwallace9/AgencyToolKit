@@ -77,7 +77,7 @@ export async function saveTabActivation(
       return { success: false, error: error.message };
     }
 
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch (error) {
     console.error('Error saving tab activation:', error);
@@ -119,7 +119,7 @@ export async function saveAllTabActivations(
       return { success: false, error: error.message };
     }
 
-    revalidatePath('/theme-builder');
+    revalidatePath('/theme');
     return { success: true };
   } catch (error) {
     console.error('Error saving tab activations:', error);

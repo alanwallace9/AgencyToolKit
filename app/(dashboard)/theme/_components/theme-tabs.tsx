@@ -22,7 +22,7 @@ export function ThemeTabs({ activeTab }: ThemeTabsProps) {
   const handleTabClick = (tabId: TabId) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set("tab", tabId)
-    router.push(`/theme-builder?${params.toString()}`)
+    router.push(`/theme?${params.toString()}`)
   }
 
   return (
