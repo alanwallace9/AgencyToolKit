@@ -1,10 +1,12 @@
 'use client';
 
-import { Link2, RefreshCw, Loader2, Eye, EyeOff, AlertCircle, ExternalLink, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Link2, RefreshCw, Loader2, Eye, EyeOff, AlertCircle, ExternalLink, Settings, HelpCircle, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { CustomMenuLink } from '@/types/database';
 
 interface CustomLinksSectionProps {
@@ -141,6 +143,7 @@ export function CustomLinksSection({
           <RefreshCw className="h-4 w-4 mr-2" />
           Scan GHL Sidebar
         </Button>
+        <GhlCustomLinksHelp />
       </div>
     );
   }
@@ -212,6 +215,51 @@ export function CustomLinksSection({
           Re-scan
         </Button>
       </div>
+
+      {/* GHL Help */}
+      <GhlCustomLinksHelp />
     </div>
+  );
+}
+
+function GhlCustomLinksHelp() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full pt-1">
+          <HelpCircle className="h-3 w-3" />
+          <span>Managing custom links in GHL</span>
+          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-2 p-3 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-2">
+          <p className="font-medium text-foreground/80">Custom links are managed in GHL, not here.</p>
+          <div>
+            <p className="font-medium mb-1">To add a custom link:</p>
+            <ol className="list-decimal pl-4 space-y-0.5">
+              <li>Open your GHL sub-account</li>
+              <li>Go to <strong>Settings &rarr; Custom Menu Links</strong></li>
+              <li>Click <strong>Add New Link</strong> and configure it</li>
+              <li>Come back here and click <strong>Re-scan</strong> to detect it</li>
+            </ol>
+          </div>
+          <div>
+            <p className="font-medium mb-1">To remove a custom link:</p>
+            <ol className="list-decimal pl-4 space-y-0.5">
+              <li>Open your GHL sub-account</li>
+              <li>Go to <strong>Settings &rarr; Custom Menu Links</strong></li>
+              <li>Delete the link you want to remove</li>
+              <li>Come back here and click <strong>Re-scan</strong> to update</li>
+            </ol>
+          </div>
+          <p className="opacity-75">
+            You can hide or rename detected links here, but adding and deleting is done in GHL.
+          </p>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

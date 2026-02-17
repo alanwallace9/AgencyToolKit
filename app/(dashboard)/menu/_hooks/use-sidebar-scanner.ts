@@ -70,9 +70,18 @@ export function useSidebarScanner({
       // Filter out built-in items — only keep custom links
       const customItems = items.filter((item) => !item.isBuiltIn);
 
+      // Deduplicate by label+href (safety net — embed script also deduplicates)
+      const seen = new Set<string>();
+      const uniqueItems = customItems.filter((item) => {
+        const key = `${item.label}||${item.href || ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       // Convert to CustomMenuLink format, merging with existing data
       const now = new Date().toISOString();
-      const links: CustomMenuLink[] = customItems.map((item) => {
+      const links: CustomMenuLink[] = uniqueItems.map((item) => {
         // Try to match existing link by label+href to preserve settings
         const existing = existingLinks?.find(
           (el) =>

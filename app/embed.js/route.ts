@@ -458,10 +458,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       css += '#sidebar-v2 { background-color: ' + colorConfig.sidebar_bg + ' !important; }\\n';
     }
     if (colorConfig.sidebar_text) {
-      css += '/* Sidebar Text - menu items only */\\n';
+      css += '/* Sidebar Text - menu items and custom links */\\n';
       css += '[id^="sb_"],\\n';
       css += '[id^="sb_"] span,\\n';
-      css += '#sidebar-v2 .hl_nav-settings a { color: ' + colorConfig.sidebar_text + ' !important; }\\n';
+      css += '#sidebar-v2 .hl_nav-settings a,\\n';
+      css += '#sidebar-v2 nav a,\\n';
+      css += '#sidebar-v2 nav a span { color: ' + colorConfig.sidebar_text + ' !important; -webkit-text-fill-color: ' + colorConfig.sidebar_text + ' !important; }\\n';
     }
 
     // NOTE: Removed defensive CSS that was interfering with GHL rendering
@@ -4418,6 +4420,15 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         href: href || undefined,
         isBuiltIn: false
       });
+    });
+
+    // Deduplicate items by label+href (GHL renders expanded + collapsed sidebar variants)
+    var seen = {};
+    items = items.filter(function(item) {
+      var key = item.label + '||' + (item.href || '');
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
     });
 
     console.log('[AgencyToolkit] Sidebar scan complete:', items.length, 'items found');
