@@ -365,7 +365,7 @@ export function MenuPreview({
 
       {/* GHL-Accurate Preview Panel */}
       <div
-        className="relative rounded-lg overflow-hidden transition-colors border border-gray-800 max-w-[240px] mx-auto"
+        className="relative rounded-lg overflow-hidden transition-colors border border-gray-800 w-[220px] shrink-0"
         style={{ backgroundColor: activeColors.sidebar_bg }}
       >
         {/* Logo/Company Header Area */}

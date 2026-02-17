@@ -69,8 +69,8 @@ export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId,
     toggleRightCollapse,
   } = useResizablePanels({
     storageKey: 'menu-designer-panels',
-    leftPanel: { minWidth: 200, maxWidth: 350, defaultWidth: 240 },
-    rightPanel: { minWidth: 350, maxWidth: 600, defaultWidth: 450 },
+    leftPanel: { minWidth: 220, maxWidth: 380, defaultWidth: 280 },
+    rightPanel: { minWidth: 380, maxWidth: 650, defaultWidth: 500 },
   });
 
   // Initialize menu items from config or defaults
@@ -689,13 +689,13 @@ export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId,
         </TooltipProvider>
 
         {/* Center Panel - Preview */}
-        <div className="flex-1 min-w-[200px] mx-2">
-          <Card className="h-[600px] sticky top-4">
+        <div className="w-[280px] shrink-0 mx-2">
+          <Card className="sticky top-4">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Preview</CardTitle>
             </CardHeader>
-            <CardContent className="p-2 h-[calc(100%-48px)]">
-              <ScrollArea className="h-full">
+            <CardContent className="p-2">
+              <ScrollArea>
                 <MenuPreview
                   items={items.filter((i) => i.visible)}
                   colors={colors}
