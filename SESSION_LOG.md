@@ -8,6 +8,102 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-02-17 — Custom Menu Links via Sidebar Scan + Rename Bug Fix
+
+### What I did
+- **Custom Menu Links feature (full implementation)**:
+  - Added `CustomMenuLink` type and extended `MenuConfig` in `types/database.ts`
+  - Created `use-sidebar-scanner.ts` hook — opens GHL sub-account tab, detects custom links via embed script, communicates results via postMessage/BroadcastChannel/localStorage
+  - Extended embed script (`app/embed.js/route.ts`) with `initSidebarScan()` — scans `#sidebar-v2` DOM, sends results back, auto-closes tab
+  - Replaced placeholder `custom-links-section.tsx` with full UI: scan button, toggle visibility, rename, error states
+  - Wired custom link state into `menu-client.tsx` (state, handlers, buildConfig, autosave)
+  - Added custom links to `MenuPreview` with divider and ExternalLink icons
+  - Threaded `ghlDomain` and `sampleLocationId` through `getMenuSettings()` → `MenuTabContent` → `MenuClient`
+  - Added embed script CSS injection for hiding/renaming custom links
+
+- **Fixed critical rename bug**: GHL added `-webkit-text-fill-color: transparent` to sidebar spans, making `::after` rename text invisible. Added explicit `color` and `-webkit-text-fill-color` overrides on all `::after` pseudo-elements. Debugged via Playwright on live GHL page.
+
+- **Fixed custom link text color**: Added `#sidebar-v2 nav a` selectors to color CSS so custom links match the theme sidebar text color.
+
+- **Fixed scan URL**: Changed from opening agency dashboard (where embed script doesn't run) to opening a sub-account URL (`/v2/location/{locationId}/dashboard`).
+
+- **Fixed duplicate scan results**: GHL renders expanded + collapsed sidebar variants. Added deduplication by label+href in both `performSidebarScan()` and `processScanResults()`.
+
+- **Fixed custom links not persisting on refresh**: `handleScanComplete` had a stale closure bug — `triggerAutosave()` captured an old `buildConfig` that missed the new custom_links. Now saves directly with new links.
+
+- **Added GHL help collapsible**: "Managing custom links in GHL" section with step-by-step instructions for adding/deleting links in GHL Settings. Shows in both empty and populated states.
+
+- **Added GHL-native divider in preview**: Auto-renders divider between core group (Launchpad–Payments) and tools group (Marketing, Reputation, etc.), matching real GHL sidebar.
+
+- **Preview layout improvements**: Fixed 280px center column (was flex-1), 220px sidebar preview width, left-aligned. Wider template panel (280px default) and menu items panel (500px default). Auto-height instead of fixed 600px.
+
+### What's next
+1. **First-scan-empty timing issue** — occasionally the first scan returns nothing (GHL sidebar hasn't loaded yet). Could add a longer wait or retry logic in `initSidebarScan()`.
+2. **Custom links are per-sub-account** — scan uses one sample location ID. If different sub-accounts have different custom links, only one set is captured. Could add location picker or multi-scan support later.
+3. **Menu/Colors pages save indicator** — persistent "Saved X ago" near the title
+4. **Fix undo/redo on login page** — broken since panel refactor
+
+### Blockers
+- None
+
+### Cross-project notes
+- The `-webkit-text-fill-color: transparent` issue is a GHL platform CSS change. Any CSS rename trick using `visibility: hidden` + `::after` on GHL sidebar elements must include `-webkit-text-fill-color` override or the text will be invisible. Documented in memory.
+
+## 2026-02-16 — Theme Builder: Sidebar Navigation Redesign
+
+### What I did
+- **Renamed `/theme-builder` → `/theme`** — moved folder, updated all source code references (main nav, server actions, revalidatePath calls, help mappings, cross-module links)
+- **Created sidebar layout** matching Guidely's architecture: `ThemeSidebar` (collapsible with icons, localStorage persistence), `ThemeMobileNav` (sheet drawer), `ThemeLayoutClient` (responsive desktop/mobile)
+- **Created landing page** at `/theme` with Quick Actions card, compact status summary row (shows configured/not configured per section), and Deploy cards (reused `EmbedCodeDisplay` + `CssExportCard` from settings)
+- **Split tabs into sub-routes**: `/theme/login`, `/theme/menu`, `/theme/colors` — each renders existing tab content components
+- **Removed old components**: `ThemeBuilderContent`, `ThemeHeader`, `ActivationToggle`, `ThemeTabs` (component), `use-auto-save` hook
+- **Added basic `SectionHeader` component** — NEEDS WORK: currently just title + save status text, needs to match login page's toolbar style with action buttons (Preview, Save, etc.) on the right side
+- **Kept `TabId` type** in `theme-tabs.tsx` (still needed by context), kept `ThemeStatusProvider` wrapping menu/colors pages
+- Build passes clean
+
+### INCOMPLETE — Menu/Colors Header Toolbar
+The login page has a full toolbar: "My Login Design" + undo/redo + Grid/Preview/Save buttons. The `SectionHeader` component added to menu and colors pages only renders a title + "Saved X ago" text — it does NOT have the action buttons. This needs to be reworked to match the login page's toolbar pattern. The `SectionHeader` is at `theme/_components/section-header.tsx`. The menu page already has its own `isSaving` state and autosave logic — the header just needs to surface that properly with visible controls.
+
+### What's next (priority order)
+1. **Menu/Colors pages need persistent "Saved X ago"** — NOT undo/redo (that's login-only). Just a persistent save indicator near the title so users know their autosaved changes are committed. Toast alone isn't enough.
+2. **Fix undo/redo on login page only** — was working before 2026-02-15 panel refactor. Hook at `login/_hooks/use-history.ts`, wired in `login-designer.tsx`
+3. **Custom Menu Links MVP** — manual text entry. User types in their custom link names. NO embed script detection needed yet. Just let them add/remove custom link entries that show in preview. Embed script detection can come later.
+4. **Guidely builder mode rename display** — do when working on Guidely, not now
+5. Add "last copied" timestamp to deploy cards (stored in DB)
+6. Add status chips (green dots) to sidebar items showing configured state
+7. Add keyboard shortcuts (Cmd+1/2/3) for section navigation
+
+### Architecture Notes
+- Theme Builder now mirrors Guidely's pattern: layout.tsx → sidebar + content area
+- All three sections (Login, Menu, Colors) are CSS-based — no Active toggles needed anywhere
+- `ThemeStatusContext` still exists for menu/colors save coordination but could be simplified later
+- Help articles still live under `/help/theme-builder/` (unchanged routes)
+- GHL Custom Menu Links API exists (OAuth + `/custom-menus/` endpoints) but requires Marketplace App setup — using embed script approach instead
+
+### Key Files (New/Modified)
+| File | Purpose |
+|------|---------|
+| `theme/layout.tsx` | Sidebar layout wrapper (new) |
+| `theme/_components/theme-sidebar.tsx` | Collapsible sidebar nav (new) |
+| `theme/_components/theme-mobile-nav.tsx` | Mobile sheet nav (new) |
+| `theme/_components/theme-layout-client.tsx` | Responsive layout (new) |
+| `theme/_components/section-header.tsx` | Section header — NEEDS REWORK (new) |
+| `theme/page.tsx` | Landing page with Quick Actions + Deploy cards (rewritten) |
+| `theme/login/page.tsx` | Login sub-route (new) |
+| `theme/menu/page.tsx` | Menu sub-route (new) |
+| `theme/colors/page.tsx` | Colors sub-route (new) |
+| `components/dashboard/main-nav.tsx` | Updated href to `/theme` |
+| `menu/_actions/menu-actions.ts` | revalidatePath → `/theme` |
+| `colors/_actions/color-actions.ts` | revalidatePath → `/theme` |
+
+### Blockers
+- None
+
+### Cross-project notes
+- None
+
+---
+
 ## 2026-02-15 — Login Designer: Panel Architecture Overhaul
 
 Full details: `docs/features/login-designer-refactor.md`
