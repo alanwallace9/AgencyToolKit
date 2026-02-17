@@ -365,7 +365,7 @@ export function MenuPreview({
 
       {/* GHL-Accurate Preview Panel */}
       <div
-        className="relative rounded-lg overflow-hidden min-h-[480px] transition-colors border border-gray-800"
+        className="relative rounded-lg overflow-hidden transition-colors border border-gray-800 max-w-[240px] mx-auto"
         style={{ backgroundColor: activeColors.sidebar_bg }}
       >
         {/* Logo/Company Header Area */}
@@ -544,9 +544,8 @@ export function MenuPreview({
 
         {/* Bottom Section (mimics GHL's help/settings area) */}
         <div
-          className="absolute bottom-0 left-0 right-0 px-3 py-2 border-t"
+          className="px-3 py-2 mt-4 border-t"
           style={{
-            backgroundColor: activeColors.sidebar_bg,
             borderColor: `${activeColors.sidebar_text}20`,
           }}
         >

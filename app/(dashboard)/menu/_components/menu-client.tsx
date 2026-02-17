@@ -461,8 +461,8 @@ export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId,
   const dividerCount = items.filter((i) => i.type === 'divider_plain' || i.type === 'divider_labeled').length;
 
   // Custom link handlers
-  const handleScanComplete = useCallback((links: CustomMenuLink[]) => {
-    // Merge: preserve existing hide/rename settings for matching links
+  const handleScanComplete = useCallback(async (links: CustomMenuLink[]) => {
+    // Update state
     setCustomLinks(links);
 
     // Clean up hidden/renamed entries for links that no longer exist
@@ -476,8 +476,18 @@ export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId,
       return cleaned;
     });
 
-    triggerAutosave();
-  }, [triggerAutosave]);
+    // Save directly with new links (bypasses stale closure in triggerAutosave)
+    const config = buildConfig();
+    config.custom_links = links.length > 0 ? links : undefined;
+    onUnsavedChangesChange?.(true);
+    const result = await saveMenuSettings(config);
+    if (result.success) {
+      onUnsavedChangesChange?.(false);
+      onSaveComplete?.();
+    } else {
+      toast.error('Failed to save custom links');
+    }
+  }, [buildConfig, onUnsavedChangesChange, onSaveComplete]);
 
   const handleToggleCustomLink = useCallback((linkId: string) => {
     setHiddenCustomLinks((prev) =>
