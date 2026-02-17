@@ -409,7 +409,18 @@ export function MenuPreview({
 
         {/* Menu Items */}
         <div className="py-2 px-1.5">
-          {items.map((item) => {
+          {items.map((item, index) => {
+            // GHL native divider: always appears between "core" group and "tools" group
+            const GHL_TOP_GROUP = new Set(['sb_launchpad', 'sb_dashboard', 'sb_conversations', 'sb_contacts', 'sb_calendars', 'sb_opportunities', 'sb_payments']);
+            let showGhlDivider = false;
+            if (!isDivider(item) && GHL_TOP_GROUP.has(item.id)) {
+              // Check if the next visible non-divider item is outside the top group
+              const nextVisible = items.slice(index + 1).find((i) => !isDivider(i));
+              if (nextVisible && !GHL_TOP_GROUP.has(nextVisible.id)) {
+                showGhlDivider = true;
+              }
+            }
+
             // Render dividers
             if (isDivider(item)) {
               if (item.type === 'divider_plain') {
@@ -439,40 +450,47 @@ export function MenuPreview({
 
             // Render menu item with GHL-accurate styling
             return (
-              <button
-                key={item.id}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-all duration-150 text-left"
-                style={{
-                  backgroundColor: isActive
-                    ? activeColors.sidebar_active_bg
-                    : isHovered
-                    ? activeColors.sidebar_hover_bg
-                    : 'transparent',
-                  color: isActive
-                    ? activeColors.sidebar_text_active
-                    : activeColors.sidebar_text,
-                }}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-                onClick={() => setActiveItem(item.id)}
-              >
-                <span
-                  className="shrink-0 transition-colors"
+              <div key={item.id}>
+                <button
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-all duration-150 text-left"
                   style={{
-                    opacity: isActive ? 1 : 0.7,
+                    backgroundColor: isActive
+                      ? activeColors.sidebar_active_bg
+                      : isHovered
+                      ? activeColors.sidebar_hover_bg
+                      : 'transparent',
+                    color: isActive
+                      ? activeColors.sidebar_text_active
+                      : activeColors.sidebar_text,
                   }}
+                  onMouseEnter={() => setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  onClick={() => setActiveItem(item.id)}
                 >
-                  {iconMap[item.id] || <LayoutDashboard className="h-4 w-4" />}
-                </span>
-                <span
-                  className="text-[13px] font-medium truncate"
-                  style={{
-                    fontWeight: isActive ? 600 : 500,
-                  }}
-                >
-                  {item.rename || item.label}
-                </span>
-              </button>
+                  <span
+                    className="shrink-0 transition-colors"
+                    style={{
+                      opacity: isActive ? 1 : 0.7,
+                    }}
+                  >
+                    {iconMap[item.id] || <LayoutDashboard className="h-4 w-4" />}
+                  </span>
+                  <span
+                    className="text-[13px] font-medium truncate"
+                    style={{
+                      fontWeight: isActive ? 600 : 500,
+                    }}
+                  >
+                    {item.rename || item.label}
+                  </span>
+                </button>
+                {showGhlDivider && (
+                  <div
+                    className="my-2 mx-2 h-px"
+                    style={{ backgroundColor: `${activeColors.sidebar_text}20` }}
+                  />
+                )}
+              </div>
             );
           })}
           {/* Custom Links */}
