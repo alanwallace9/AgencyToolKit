@@ -63,7 +63,7 @@ export function ToursListClient({ tours, templates, themes, tags, customers }: T
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   const handleViewChange = useCallback((view: ViewMode) => {
     setViewMode(view);

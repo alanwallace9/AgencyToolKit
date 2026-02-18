@@ -67,7 +67,7 @@ export function BannersListClient({ banners, themes, tags }: BannersListClientPr
   const [newBannerName, setNewBannerName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   const handleViewChange = useCallback((view: ViewMode) => {
     setViewMode(view);

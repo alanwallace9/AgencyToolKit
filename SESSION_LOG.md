@@ -8,6 +8,39 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-02-18 — Guidely List View Default + Clickable Rows
+
+### What I did
+- **Resolved all previous "What's Next" items** — undo/redo (already fixed in `b333834`), Menu/Colors save indicator, first-scan-empty timing, and Guidely builder rename display all confirmed working.
+- **Defaulted Guidely list pages to table view** — changed `ViewToggle` default from `'grid'` to `'table'`, and updated initial state in all 4 list clients (Tours, Checklists, Tips, Banners). Users with existing localStorage preference keep their choice.
+- **Made entire table row clickable** — `GuidelyDataTable` rows now navigate to the item editor on click (`cursor-pointer` + `hover:bg-muted/50`). Actions menu (`...`) has `stopPropagation` to prevent accidental navigation. Removed the `<Link>` wrapper from the name column (whole row handles it now).
+
+### What's next
+1. Review `docs/SPRINT.md` for upcoming features or polish items
+2. Address pre-existing lint errors across codebase (many files have React hooks warnings, unescaped entities, etc.)
+
+### Blockers
+- None
+
+---
+
+## 2026-02-18 — Verified Undo/Redo Already Fixed
+
+### What I did
+- **Investigated undo/redo on login designer page** — reported broken since Feb 15 panel architecture refactor (`54c11b0`). Traced the full state flow: `useHistory<DesignState>` → wrapper setters (`setElements`, `setFormStyle`, `setBackground`) → child component callbacks.
+- **Found it was already fixed** in commit `b333834` — that commit consolidated `elements`, `formStyle`, and `background` into a single `useHistory<DesignState>`, replacing the old setup where only `elements` was history-tracked while `formStyle` and `canvas` were separate `useState` calls.
+- **Tested in browser** — confirmed all scenarios work: background layout changes, form style quick styles (Dark Mode etc.), position input changes, Cmd+Z / Cmd+Shift+Z keyboard shortcuts, toolbar undo/redo buttons, multi-step undo/redo chains, visual canvas updates on undo/redo.
+
+### What's next
+1. **Menu/Colors pages save indicator** — persistent "Saved X ago" near the title
+2. **First-scan-empty timing issue** — occasionally the first custom link scan returns nothing
+3. **Guidely builder mode rename display**
+
+### Blockers
+- None
+
+---
+
 ## 2026-02-17 — Custom Menu Links via Sidebar Scan + Rename Bug Fix
 
 ### What I did
@@ -41,7 +74,7 @@
 1. **First-scan-empty timing issue** — occasionally the first scan returns nothing (GHL sidebar hasn't loaded yet). Could add a longer wait or retry logic in `initSidebarScan()`.
 2. **Custom links are per-sub-account** — scan uses one sample location ID. If different sub-accounts have different custom links, only one set is captured. Could add location picker or multi-scan support later.
 3. **Menu/Colors pages save indicator** — persistent "Saved X ago" near the title
-4. **Fix undo/redo on login page** — broken since panel refactor
+4. ~~**Fix undo/redo on login page**~~ — verified working (fixed in `b333834`)
 
 ### Blockers
 - None

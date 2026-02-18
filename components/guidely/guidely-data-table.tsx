@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -71,6 +71,7 @@ export function GuidelyDataTable<T>({
   defaultSortKey,
   defaultSortDirection = 'desc',
 }: GuidelyDataTableProps<T>) {
+  const router = useRouter();
   const [sortKey, setSortKey] = useState<string | null>(defaultSortKey || null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(defaultSortDirection);
 
@@ -147,7 +148,11 @@ export function GuidelyDataTable<T>({
               const tag = tags.find((t) => t.id === tagId) || null;
 
               return (
-                <TableRow key={id} className="group">
+                <TableRow
+                  key={id}
+                  className="group cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`${basePath}/${id}`)}
+                >
                   {/* Tag cell */}
                   {showTagColumn && (
                     <TableCell className="py-2">
@@ -157,12 +162,9 @@ export function GuidelyDataTable<T>({
                   {columns.map((column) => (
                     <TableCell key={column.key}>
                       {column.key === 'name' ? (
-                        <Link
-                          href={`${basePath}/${id}`}
-                          className="font-medium hover:underline"
-                        >
+                        <span className="font-medium">
                           {column.render(item)}
-                        </Link>
+                        </span>
                       ) : column.key === 'status' ? (
                         <Badge variant="secondary" className={statusStyle.className}>
                           {statusStyle.label}
@@ -172,7 +174,7 @@ export function GuidelyDataTable<T>({
                       )}
                     </TableCell>
                   ))}
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <ItemActionsMenu
                       item={{ id, name, status, tag_id: tagId }}
                       type={itemType}

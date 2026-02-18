@@ -13,7 +13,7 @@ interface ViewToggleProps {
   onViewChange: (view: ViewMode) => void;
 }
 
-export function ViewToggle({ storageKey, defaultView = 'grid', onViewChange }: ViewToggleProps) {
+export function ViewToggle({ storageKey, defaultView = 'table', onViewChange }: ViewToggleProps) {
   const [view, setView] = useState<ViewMode>(defaultView);
   const [mounted, setMounted] = useState(false);
 

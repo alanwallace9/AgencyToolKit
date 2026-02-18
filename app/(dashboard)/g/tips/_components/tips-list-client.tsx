@@ -70,7 +70,7 @@ export function TipsListClient({ tips, themes, tags }: TipsListClientProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTipName, setNewTipName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   const handleViewChange = useCallback((view: ViewMode) => {
     setViewMode(view);
