@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { ImageTemplate, ImageTemplateTextConfig } from '@/types/database';
+import type { ImageTemplate, ImageTemplateTextConfig, ImageTemplateImageConfig } from '@/types/database';
 import { FabricCanvas, FabricCanvasRef, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from './fabric-canvas';
 import { TextToolbar } from './text-toolbar';
 import { ImageToolbar } from './image-toolbar';
@@ -76,6 +76,7 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [undoStack, setUndoStack] = useState<ImageTemplateTextConfig[]>([]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const imageSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'editor' | 'urls'>('editor');
@@ -142,6 +143,25 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
       saveChanges(config);
     }, 2000);
   }, [saveChanges]);
+
+  // Save image config (crop, flip) with debounce
+  const handleImageConfigChange = useCallback((config: ImageTemplateImageConfig) => {
+    if (imageSaveTimeoutRef.current) {
+      clearTimeout(imageSaveTimeoutRef.current);
+    }
+    imageSaveTimeoutRef.current = setTimeout(async () => {
+      await gatedAction(async () => {
+        setIsSaving(true);
+        const result = await updateImageTemplate(template.id, { image_config: config });
+        setIsSaving(false);
+        if (result.success) {
+          setLastSaved(new Date());
+        } else {
+          toast.error('Failed to save image changes');
+        }
+      });
+    }, 2000);
+  }, [template.id, gatedAction]);
 
   // Update text config with undo support
   const updateTextConfig = useCallback((updates: Partial<ImageTemplateTextConfig>) => {
@@ -219,6 +239,9 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (imageSaveTimeoutRef.current) {
+        clearTimeout(imageSaveTimeoutRef.current);
       }
     };
   }, []);
@@ -346,6 +369,8 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
                   textConfig={textConfig}
                   previewName={previewName}
                   onTextConfigChange={updateTextConfig}
+                  onImageConfigChange={handleImageConfigChange}
+                  initialImageConfig={template.image_config}
                 />
               </div>
 

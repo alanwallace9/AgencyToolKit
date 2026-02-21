@@ -8,6 +8,33 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-02-21 — Personalized Images: Save Image Transforms + Testing
+
+### What I did
+- **Documented post-ship improvements** (`docs/features/images-post-ship-improvements.md`) — P1-P6 covering: add customer to existing template, rename template, phone mockup previews, undo stack depth, redo button, table view with stats. Also deferred Phase 5 GHL integration testing.
+- **Built detailed testing plan** for the Personalized Images module (Phases 1-6)
+- **Fixed B1: Image transforms now save** — zoom, pan, flip, fit/fill were never persisted (canvas-only state). Added:
+  - `ImageTemplateImageConfig` type (crop region as percentages + flip flags) in `types/database.ts`
+  - Crop calculation in `fabric-canvas.tsx` — fires `onImageConfigChange` after every image transform, restores saved config on page load
+  - Debounced save in `image-editor.tsx` via `updateImageTemplate(id, { image_config })`
+  - API route applies Sharp `extract()` + `flop()`/`flip()` before resize — backward compatible
+- **Fixed B2: Card thumbnail stale cache** — added `&v=${template.updated_at}` cache-buster to preview URL in `template-card.tsx`
+- **Defaulted Guidely list pages to table view** + made entire table rows clickable (from earlier in session)
+
+### What's next
+1. **Run DB migration** — `ALTER TABLE image_templates ADD COLUMN IF NOT EXISTS image_config JSONB DEFAULT NULL;` (Supabase MCP wasn't connected)
+2. **Test image save end-to-end** — zoom/pan/flip should persist on refresh and match API output
+3. **Phase 5 GHL integration testing** — deferred until GHL is set up
+4. Post-ship improvements (P1-P6) from `docs/features/images-post-ship-improvements.md`
+
+### Blockers
+- DB migration not yet applied (Supabase MCP not connected this session)
+
+### Cross-project notes
+- None
+
+---
+
 ## 2026-02-18 — Guidely List View Default + Clickable Rows
 
 ### What I did

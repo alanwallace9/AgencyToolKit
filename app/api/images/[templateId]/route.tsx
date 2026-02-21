@@ -304,7 +304,42 @@ export async function GET(
     if (!imageResponse.ok) {
       return new Response('Failed to fetch base image', { status: 500 });
     }
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    let imageBuffer: Buffer = Buffer.from(await imageResponse.arrayBuffer());
+
+    // Apply image transforms (crop + flip) if saved
+    const imgConfig = template.image_config;
+    if (imgConfig && (
+      imgConfig.crop_x > 0 || imgConfig.crop_y > 0 ||
+      imgConfig.crop_width < 1 || imgConfig.crop_height < 1 ||
+      imgConfig.flip_x || imgConfig.flip_y
+    )) {
+      const meta = await sharp(imageBuffer).metadata();
+      const origW = meta.width || 1;
+      const origH = meta.height || 1;
+
+      let pipeline = sharp(imageBuffer);
+
+      // Extract crop region (percentages → pixels)
+      const extractLeft = Math.max(0, Math.round(imgConfig.crop_x * origW));
+      const extractTop = Math.max(0, Math.round(imgConfig.crop_y * origH));
+      const extractWidth = Math.min(origW - extractLeft, Math.max(1, Math.round(imgConfig.crop_width * origW)));
+      const extractHeight = Math.min(origH - extractTop, Math.max(1, Math.round(imgConfig.crop_height * origH)));
+
+      if (extractWidth > 0 && extractHeight > 0 && extractLeft + extractWidth <= origW && extractTop + extractHeight <= origH) {
+        pipeline = pipeline.extract({
+          left: extractLeft,
+          top: extractTop,
+          width: extractWidth,
+          height: extractHeight,
+        });
+      }
+
+      // Apply flips
+      if (imgConfig.flip_x) pipeline = pipeline.flop();
+      if (imgConfig.flip_y) pipeline = pipeline.flip();
+
+      imageBuffer = await pipeline.toBuffer();
+    }
 
     // Resize image first, then get final dimensions
     const maxWidth = 800; // Target width for email/mobile

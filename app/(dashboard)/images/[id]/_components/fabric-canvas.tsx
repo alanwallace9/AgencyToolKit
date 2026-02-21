@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import * as fabric from 'fabric';
-import type { ImageTemplate, ImageTemplateTextConfig } from '@/types/database';
+import type { ImageTemplate, ImageTemplateTextConfig, ImageTemplateImageConfig } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 // Default canvas dimensions (16:9 aspect ratio, optimized for email/MMS)
@@ -31,11 +31,13 @@ interface FabricCanvasProps {
   textConfig: ImageTemplateTextConfig;
   previewName: string;
   onTextConfigChange: (updates: Partial<ImageTemplateTextConfig>) => void;
+  onImageConfigChange?: (config: ImageTemplateImageConfig) => void;
+  initialImageConfig?: ImageTemplateImageConfig | null;
   className?: string;
 }
 
 export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
-  function FabricCanvas({ template, textConfig, previewName, onTextConfigChange, className }, ref) {
+  function FabricCanvas({ template, textConfig, previewName, onTextConfigChange, onImageConfigChange, initialImageConfig, className }, ref) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
     const imageRef = useRef<fabric.FabricImage | null>(null);
@@ -48,6 +50,61 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
 
     // Calculate display text
     const displayText = `${textConfig.prefix || ''}${previewName || textConfig.fallback}${textConfig.suffix || ''}`;
+
+    // Calculate crop region from current Fabric.js image state
+    const calculateImageConfig = useCallback((): ImageTemplateImageConfig | null => {
+      const img = imageRef.current;
+      const canvas = fabricCanvasRef.current;
+      if (!img || !canvas) return null;
+
+      const cW = canvas.width || DEFAULT_CANVAS_WIDTH;
+      const cH = canvas.height || DEFAULT_CANVAS_HEIGHT;
+      const iW = img.width || 1;
+      const iH = img.height || 1;
+      const scale = img.scaleX || 1;
+      const left = img.left || 0;
+      const top = img.top || 0;
+      const flipX = !!img.flipX;
+      const flipY = !!img.flipY;
+
+      // Visible region in original image pixels (unflipped coordinates)
+      let cropLeft = Math.max(0, -left / scale);
+      let cropTop = Math.max(0, -top / scale);
+      let cropRight = Math.min(iW, (cW - left) / scale);
+      let cropBottom = Math.min(iH, (cH - top) / scale);
+
+      // Mirror crop for flipped axes
+      if (flipX) {
+        const newLeft = iW - cropRight;
+        const newRight = iW - cropLeft;
+        cropLeft = newLeft;
+        cropRight = newRight;
+      }
+      if (flipY) {
+        const newTop = iH - cropBottom;
+        const newBottom = iH - cropTop;
+        cropTop = newTop;
+        cropBottom = newBottom;
+      }
+
+      return {
+        crop_x: cropLeft / iW,
+        crop_y: cropTop / iH,
+        crop_width: (cropRight - cropLeft) / iW,
+        crop_height: (cropBottom - cropTop) / iH,
+        flip_x: flipX,
+        flip_y: flipY,
+      };
+    }, []);
+
+    // Notify parent of image config changes
+    const notifyImageConfigChange = useCallback(() => {
+      if (!onImageConfigChange) return;
+      const config = calculateImageConfig();
+      if (config) {
+        onImageConfigChange(config);
+      }
+    }, [calculateImageConfig, onImageConfigChange]);
 
     // Calculate font size by measuring actual text width and shrinking to fit
     const calculateFontSizeToFit = useCallback((
@@ -386,10 +443,62 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
             originY: 'top',
           });
 
-          // Add image to canvas first, then fit
+          // Add image to canvas first, then restore saved config or fit
           canvas.add(img);
           canvas.sendObjectToBack(img);
-          fitImageToCanvas(img, canvas);
+
+          if (initialImageConfig && (
+            initialImageConfig.crop_x > 0 || initialImageConfig.crop_y > 0 ||
+            initialImageConfig.crop_width < 1 || initialImageConfig.crop_height < 1 ||
+            initialImageConfig.flip_x || initialImageConfig.flip_y
+          )) {
+            // Restore saved image config
+            const iW = img.width || 1;
+            const iH = img.height || 1;
+            const cW = DEFAULT_CANVAS_WIDTH;
+            const cH = DEFAULT_CANVAS_HEIGHT;
+
+            // The crop region in original pixels
+            let cropL = initialImageConfig.crop_x * iW;
+            let cropT = initialImageConfig.crop_y * iH;
+            let cropW = initialImageConfig.crop_width * iW;
+            let cropH = initialImageConfig.crop_height * iH;
+
+            // Un-mirror if flipped (reverse the save-time mirror)
+            if (initialImageConfig.flip_x) {
+              const origL = iW - (cropL + cropW);
+              cropL = origL;
+            }
+            if (initialImageConfig.flip_y) {
+              const origT = iH - (cropT + cropH);
+              cropT = origT;
+            }
+
+            // Calculate scale: the crop region should fill the canvas
+            const scaleX = cW / cropW;
+            const scaleY = cH / cropH;
+            const scale = Math.min(scaleX, scaleY);
+
+            // Position: the crop region's top-left should map to canvas (0,0)
+            const left = -cropL * scale;
+            const top = -cropT * scale;
+
+            img.set({
+              scaleX: scale,
+              scaleY: scale,
+              left,
+              top,
+              flipX: initialImageConfig.flip_x,
+              flipY: initialImageConfig.flip_y,
+              originX: 'left',
+              originY: 'top',
+            });
+            img.setCoords();
+            setZoomLevel(scale);
+            canvas.renderAll();
+          } else {
+            fitImageToCanvas(img, canvas);
+          }
 
           // Create text box if config exists (waits for fonts internally)
           if (textConfig.x !== undefined && textConfig.y !== undefined) {
@@ -437,9 +546,17 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
 
         setZoomLevel(newScale);
         canvas.renderAll();
+        notifyImageConfigChange();
       };
 
       canvas.on('mouse:wheel', handleWheel);
+
+      // Notify on image drag/scale
+      canvas.on('object:modified', (e) => {
+        if (e.target === imageRef.current) {
+          notifyImageConfigChange();
+        }
+      });
 
       // Keyboard shortcuts
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -508,6 +625,7 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
         const img = imageRef.current;
         if (canvas && img) {
           fitImageToCanvas(img, canvas);
+          notifyImageConfigChange();
         }
       },
       fillImage: () => {
@@ -515,6 +633,7 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
         const img = imageRef.current;
         if (canvas && img) {
           fillImageToCanvas(img, canvas);
+          notifyImageConfigChange();
         }
       },
       flipHorizontal: () => {
@@ -522,6 +641,7 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
         if (img) {
           img.set('flipX', !img.flipX);
           fabricCanvasRef.current?.renderAll();
+          notifyImageConfigChange();
         }
       },
       flipVertical: () => {
@@ -529,6 +649,7 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
         if (img) {
           img.set('flipY', !img.flipY);
           fabricCanvasRef.current?.renderAll();
+          notifyImageConfigChange();
         }
       },
       toggleGrid: () => {
@@ -551,6 +672,7 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
         if (canvas && img) {
           img.set({ flipX: false, flipY: false });
           fitImageToCanvas(img, canvas);
+          notifyImageConfigChange();
         }
       },
       setZoom: (zoom: number) => {
@@ -577,11 +699,12 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
           img.setCoords();
           setZoomLevel(zoom);
           canvas.renderAll();
+          notifyImageConfigChange();
         }
       },
       zoomLevel,
       showGrid,
-    }), [zoomLevel, showGrid, fitImageToCanvas, fillImageToCanvas, updateGrid, onTextConfigChange]);
+    }), [zoomLevel, showGrid, fitImageToCanvas, fillImageToCanvas, updateGrid, onTextConfigChange, notifyImageConfigChange]);
 
     return (
       <div className={cn('flex items-center justify-center h-full', className)}>

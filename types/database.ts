@@ -1053,6 +1053,17 @@ export interface ImageTemplateTextConfig {
   suffix?: string; // e.g., "!" for "Hi Sarah!"
 }
 
+export interface ImageTemplateImageConfig {
+  // Crop region as percentages of original image dimensions (0-1)
+  crop_x: number;       // left edge
+  crop_y: number;       // top edge
+  crop_width: number;   // width of visible region
+  crop_height: number;  // height of visible region
+  // Flip flags
+  flip_x: boolean;
+  flip_y: boolean;
+}
+
 export interface ImageTemplate {
   id: string;
   agency_id: string;
@@ -1065,6 +1076,9 @@ export interface ImageTemplate {
 
   // Text overlay configuration
   text_config: ImageTemplateTextConfig;
+
+  // Image transform configuration (crop, flip)
+  image_config?: ImageTemplateImageConfig | null;
 
   // Optional customer association (for per-subaccount images)
   customer_id?: string | null;

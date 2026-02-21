@@ -40,8 +40,8 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
   };
 
 
-  // Use the actual API-generated image for accurate preview
-  const apiPreviewUrl = `/api/images/${template.id}?name=Sarah`;
+  // Use the actual API-generated image for accurate preview (cache-bust on update)
+  const apiPreviewUrl = `/api/images/${template.id}?name=Sarah&v=${template.updated_at}`;
 
   return (
     <Card className="group overflow-hidden hover:shadow-md transition-shadow">

@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCurrentAgency } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import type { ImageTemplate, ImageTemplateTextConfig } from '@/types/database';
+import type { ImageTemplate, ImageTemplateTextConfig, ImageTemplateImageConfig } from '@/types/database';
 import { storage } from '@/lib/storage';
 import { DEFAULT_TEXT_CONFIG } from '../_lib/defaults';
 
@@ -92,6 +92,7 @@ export async function updateImageTemplate(
     base_image_width: number;
     base_image_height: number;
     text_config: ImageTemplateTextConfig;
+    image_config: ImageTemplateImageConfig | null;
     customer_id: string | null;
   }>
 ): Promise<{ success: true; template: ImageTemplate } | { success: false; error: string }> {
@@ -195,6 +196,7 @@ export async function duplicateImageTemplate(
       base_image_width: original.base_image_width,
       base_image_height: original.base_image_height,
       text_config: original.text_config,
+      image_config: original.image_config || null,
       customer_id: original.customer_id,
       // Don't copy A/B pairing
       ab_pair_id: null,
