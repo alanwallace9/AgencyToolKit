@@ -2840,8 +2840,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
         // Inject Upload Photo button when step has show_upload_button enabled
         if (stepConfig.settings?.show_upload_button) {
-          setTimeout(function() {
+          log('Upload button enabled for step ' + (stepIndex + 1) + ', injecting...');
+          var injectUploadBtn = function(attempt) {
             var popoverDesc = document.querySelector('.driver-popover-description');
+            log('Upload btn inject attempt ' + attempt + ': popoverDesc=' + !!popoverDesc);
             if (popoverDesc && !popoverDesc.parentElement.querySelector('.at-upload-photo-btn')) {
               var uploadBtn = document.createElement('button');
               uploadBtn.className = 'at-upload-photo-btn at-upload-photo-btn--block';
@@ -2852,10 +2854,15 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
                   window.__AT_OPEN_UPLOAD_MODAL__(uploadBtn);
                 }
               };
-              // Insert after the description content, centered
               popoverDesc.insertAdjacentElement('afterend', uploadBtn);
+              log('Upload button injected successfully');
+            } else if (attempt < 5) {
+              setTimeout(function() { injectUploadBtn(attempt + 1); }, 100);
+            } else {
+              logWarn('Upload button injection failed after 5 attempts');
             }
-          }, 50);
+          };
+          setTimeout(function() { injectUploadBtn(1); }, 50);
         }
 
         // Auto-advance: when element is clicked, advance to next step
