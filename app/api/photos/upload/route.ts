@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import sharp from 'sharp';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isRateLimited, setRateLimit, getRateLimitRemaining } from '@/lib/rate-limit';
 import { DEFAULT_PHOTO_UPLOAD_SETTINGS } from '@/types/database';
@@ -180,12 +181,26 @@ export async function POST(request: NextRequest) {
       // Generate photo name (use existing photo count so names don't repeat)
       const photoName = photoNames[i] || `${businessName.trim()} - Photo ${(customer.photo_count || 0) + i + 1}`;
 
+      // Read file buffer for Sharp dimensions extraction
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      // Extract image dimensions
+      let width: number | null = null;
+      let height: number | null = null;
+      try {
+        const metadata = await sharp(buffer).metadata();
+        width = metadata.width ?? null;
+        height = metadata.height ?? null;
+      } catch (e) {
+        console.error('Failed to extract image dimensions:', e);
+      }
+
       // Upload to Vercel Blob
       const timestamp = Date.now();
       const safeFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const blobPath = `photos/${customer.id}/${timestamp}-${safeFilename}`;
 
-      const blob = await put(blobPath, file, {
+      const blob = await put(blobPath, buffer, {
         access: 'public',
         contentType: file.type,
       });
@@ -200,6 +215,8 @@ export async function POST(request: NextRequest) {
           name: photoName,
           original_filename: file.name,
           file_size: file.size,
+          width,
+          height,
         })
         .select()
         .single();

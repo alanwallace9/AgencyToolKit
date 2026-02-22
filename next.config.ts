@@ -49,6 +49,13 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: '/upload/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'ALLOWALL' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors *" },
+        ],
+      },
+      {
         source: '/dashboard/:path*',
         headers: [
           { key: 'X-Frame-Options', value: 'ALLOWALL' },

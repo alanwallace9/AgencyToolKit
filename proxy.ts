@@ -18,6 +18,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/images(.*)',
   '/preview(.*)',
   '/test-widget(.*)',  // Test page for TrustSignal
+  '/upload(.*)',  // Standalone photo upload page (public)
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

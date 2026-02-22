@@ -475,6 +475,7 @@ export interface TourStep {
     show_overlay?: boolean;
     highlight_element?: boolean;
     allow_interaction?: boolean;
+    show_upload_button?: boolean;
   };
 }
 
@@ -1233,6 +1234,8 @@ export interface CustomerPhoto {
   name: string;
   original_filename: string | null;
   file_size: number | null;
+  width: number | null;
+  height: number | null;
   uploaded_at: string;
   created_at: string;
 }

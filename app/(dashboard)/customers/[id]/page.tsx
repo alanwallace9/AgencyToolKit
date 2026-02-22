@@ -123,7 +123,7 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column - Customer details (2/3 width on large screens) */}
         <div className="lg:col-span-2 space-y-6">
-          <CustomerEditForm customer={customer} baseUrl={baseUrl} />
+          <CustomerEditForm customer={customer} baseUrl={baseUrl} agencyToken={agency.token} />
           {photos.length > 0 && (
             <CustomerPhotoGallery photos={photos} customerName={customer.name} />
           )}
