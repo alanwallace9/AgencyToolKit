@@ -214,6 +214,17 @@ export async function duplicateImageTemplate(
   return { success: true, template: data };
 }
 
+export async function renameImageTemplate(
+  id: string,
+  name: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const result = await updateImageTemplate(id, { name });
+  if (result.success) {
+    return { success: true };
+  }
+  return { success: false, error: result.error };
+}
+
 // Get templates for a specific customer (for filtering)
 export async function getTemplatesByCustomer(
   customerId: string

@@ -393,15 +393,23 @@ export async function GET(
       })
       .toBuffer();
 
-    // Fire and forget - increment render count
-    incrementRenderCount(template.id).catch(() => {});
+    // Only increment render count for production requests (no cache-bust params)
+    // Preview/thumbnail requests from the dashboard use _t or v params
+    const isPreviewRequest = searchParams.has('_t') || searchParams.has('v');
+    if (!isPreviewRequest) {
+      incrementRenderCount(template.id).catch(() => {});
+    }
 
     return new Response(new Uint8Array(outputBuffer), {
       headers: {
         'Content-Type': 'image/jpeg',
         'Content-Length': outputBuffer.length.toString(),
-        'Cache-Control': 'public, max-age=86400, s-maxage=86400',
-        'CDN-Cache-Control': 'public, max-age=86400',
+        'Cache-Control': searchParams.has('_t') || searchParams.has('v')
+          ? 'no-store'
+          : 'public, max-age=86400, s-maxage=86400',
+        ...(!(searchParams.has('_t') || searchParams.has('v')) && {
+          'CDN-Cache-Control': 'public, max-age=86400',
+        }),
       },
     });
   } catch (error) {

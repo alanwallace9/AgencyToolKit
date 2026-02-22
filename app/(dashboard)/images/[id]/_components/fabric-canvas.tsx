@@ -43,6 +43,8 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
     const imageRef = useRef<fabric.FabricImage | null>(null);
     const textBoxRef = useRef<fabric.Group | null>(null);
     const gridRef = useRef<fabric.Group | null>(null);
+    const creationIdRef = useRef(0);
+    const isDraggingRef = useRef(false);
 
     const [isReady, setIsReady] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -225,6 +227,9 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
       const widthPercent = (scaledWidth / canvasWidth) * 100;
       const heightPercent = (scaledHeight / canvasHeight) * 100;
 
+      // Flag that this position change came from a canvas drag,
+      // so the useEffect doesn't needlessly recreate the text box
+      isDraggingRef.current = true;
       onTextConfigChange({
         x: xPercent,
         y: yPercent,
@@ -303,6 +308,9 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
 
     // Create text box
     const createTextBox = useCallback(async (canvas: fabric.Canvas) => {
+      // Guard against concurrent calls (async race condition)
+      const thisCreationId = ++creationIdRef.current;
+
       // Remove existing text box if any
       if (textBoxRef.current) {
         canvas.remove(textBoxRef.current);
@@ -311,6 +319,9 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
 
       // Wait for fonts to be loaded before measuring text
       await document.fonts.ready;
+
+      // Bail if a newer call started while we were waiting
+      if (thisCreationId !== creationIdRef.current) return;
 
       const canvasWidth = canvas.width || DEFAULT_CANVAS_WIDTH;
       const canvasHeight = canvas.height || DEFAULT_CANVAS_HEIGHT;
@@ -610,13 +621,21 @@ export const FabricCanvas = forwardRef<FabricCanvasRef, FabricCanvasProps>(
       const canvas = fabricCanvasRef.current;
       if (!canvas || !isReady) return;
 
+      // Skip recreation when position change came from a canvas drag
+      // (the box is already visually in the right place)
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        return;
+      }
+
       // Recreate text box with new config
       if (textConfig.x !== undefined && textConfig.y !== undefined) {
         createTextBox(canvas);
       }
-    }, [textConfig.font, textConfig.size, textConfig.color, textConfig.background_color,
-        textConfig.font_weight, textConfig.font_style, textConfig.text_decoration,
-        textConfig.padding, displayText, isReady, createTextBox]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [textConfig.x, textConfig.y, textConfig.font, textConfig.size, textConfig.color,
+        textConfig.background_color, textConfig.font_weight, textConfig.font_style,
+        textConfig.text_decoration, textConfig.padding, displayText, isReady]);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({

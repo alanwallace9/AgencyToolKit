@@ -204,10 +204,9 @@ function SetupInstructions() {
         <div className="bg-muted/50 p-3 rounded font-mono text-xs space-y-1">
           <div><span className="text-primary">{'{{contact.first_name}}'}</span> - First name (most common)</div>
           <div><span className="text-muted-foreground">{'{{contact.last_name}}'}</span> - Last name</div>
-          <div><span className="text-muted-foreground">{'{{contact.full_name}}'}</span> - Full name</div>
+          <div><span className="text-muted-foreground">{'{{contact.name}}'}</span> - Full name</div>
           <div><span className="text-muted-foreground">{'{{contact.company_name}}'}</span> - Company</div>
           <div><span className="text-muted-foreground">{'{{contact.city}}'}</span> - City</div>
-          <div><span className="text-muted-foreground">{'{{custom_values.xxx}}'}</span> - Custom fields</div>
         </div>
       </section>
 

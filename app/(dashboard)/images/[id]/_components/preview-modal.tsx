@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ImageTemplate, ImageTemplateTextConfig } from '@/types/database';
 import {
   Dialog,
@@ -57,11 +57,32 @@ export function PreviewModal({
   onDeviceChange,
 }: PreviewModalProps) {
   const [isMobileView, setIsMobileView] = useState(false);
-  const [imageKey, setImageKey] = useState(0); // For forcing image refresh
+  const [imageKey, setImageKey] = useState(() => Date.now());
   const [isLoading, setIsLoading] = useState(false);
 
+  // Debounce name changes to avoid hammering the API
+  const [debouncedName, setDebouncedName] = useState(previewName);
+  const nameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (nameTimeoutRef.current) clearTimeout(nameTimeoutRef.current);
+    nameTimeoutRef.current = setTimeout(() => {
+      setDebouncedName(previewName);
+      setImageKey(Date.now());
+      setIsLoading(true);
+    }, 600);
+    return () => { if (nameTimeoutRef.current) clearTimeout(nameTimeoutRef.current); };
+  }, [previewName]);
+
+  // Refresh image when modal opens
+  useEffect(() => {
+    if (open) {
+      setImageKey(Date.now());
+      setIsLoading(true);
+    }
+  }, [open]);
+
   // Use the actual API URL - this is the ONLY source of truth
-  const previewUrl = `/api/images/${template.id}?name=${encodeURIComponent(previewName || 'Friend')}&_t=${imageKey}`;
+  const previewUrl = `/api/images/${template.id}?name=${encodeURIComponent(debouncedName || 'Friend')}&_t=${imageKey}`;
 
   // Calculate display text for email mockup text
   const displayText = `${textConfig.prefix || ''}${previewName || textConfig.fallback || 'Friend'}${textConfig.suffix || ''}`;
@@ -168,12 +189,14 @@ export function PreviewModal({
                 device={selectedDevice}
                 displayText={displayText}
                 previewUrl={previewUrl}
+                templateName={template.name}
                 onImageLoad={() => setIsLoading(false)}
               />
             ) : (
               <DesktopEmailMockup
                 displayText={displayText}
                 previewUrl={previewUrl}
+                templateName={template.name}
                 onImageLoad={() => setIsLoading(false)}
               />
             )}
@@ -188,17 +211,18 @@ export function PreviewModal({
 interface EmailMockupProps {
   displayText: string;
   previewUrl: string;
+  templateName: string;
   onImageLoad?: () => void;
 }
 
-function DesktopEmailMockup({ displayText, previewUrl, onImageLoad }: EmailMockupProps) {
+function DesktopEmailMockup({ displayText, previewUrl, onImageLoad, templateName }: EmailMockupProps) {
   const firstName = displayText.replace(/^(Hi |Hello |Hey )/i, '').replace(/[!,.].*$/, '');
 
   return (
     <div className="w-[600px] bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Email Header */}
       <div className="border-b px-4 py-3 bg-muted/30">
-        <div className="text-sm font-medium">From: Bill's Plumbing</div>
+        <div className="text-sm font-medium">From: {templateName}</div>
         <div className="text-sm text-muted-foreground">
           Subject: Thanks for choosing us, {firstName}!
         </div>
@@ -232,7 +256,7 @@ interface MobileEmailMockupProps extends EmailMockupProps {
   device: PreviewDevice;
 }
 
-function MobileEmailMockup({ device, displayText, previewUrl, onImageLoad }: MobileEmailMockupProps) {
+function MobileEmailMockup({ device, displayText, previewUrl, templateName, onImageLoad }: MobileEmailMockupProps) {
   const isNokia = device.name === 'Nokia 855';
   const firstName = displayText.replace(/^(Hi |Hello |Hey )/i, '').replace(/[!,.].*$/, '');
 
@@ -269,7 +293,7 @@ function MobileEmailMockup({ device, displayText, previewUrl, onImageLoad }: Mob
 
         {/* Email Content (simplified for mobile) */}
         <div className="p-3 space-y-2 overflow-auto" style={{ maxHeight: isNokia ? 160 : 360 }}>
-          <div className="text-[10px] font-medium">Bill's Plumbing</div>
+          <div className="text-[10px] font-medium">{templateName}</div>
 
           {/* The ACTUAL API-generated image */}
           <div className="rounded overflow-hidden">

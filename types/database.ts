@@ -1051,6 +1051,9 @@ export interface ImageTemplateTextConfig {
   fallback: string;
   prefix?: string; // e.g., "Hi " for "Hi Sarah!"
   suffix?: string; // e.g., "!" for "Hi Sarah!"
+
+  // Last preview name used in editor (persisted for card thumbnails)
+  last_preview_name?: string;
 }
 
 export interface ImageTemplateImageConfig {

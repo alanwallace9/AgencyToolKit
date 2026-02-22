@@ -9,12 +9,13 @@ import { LeftPanel } from './left-panel';
 import { PropertiesPanel } from './properties-panel';
 import { PreviewModal } from './preview-modal';
 import { URLGenerator } from './url-generator';
+import { CustomerTab } from './customer-tab';
 import { updateImageTemplate } from '../../_actions/image-actions';
 import { useSoftGate } from '@/hooks/use-soft-gate';
 import { UpgradeModal } from '@/components/shared/upgrade-modal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Eye, Undo2, Check, Pencil, Link2 } from 'lucide-react';
+import { ArrowLeft, Eye, Undo2, Redo2, Check, Pencil, Link2, Save, Users } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { DEFAULT_TEXT_CONFIG } from '../../_lib/defaults';
@@ -33,7 +34,7 @@ const LONG_NAMES = [
   'Christopher', 'Elizabeth', 'Jacqueline', 'Alexandria', 'Johnathan',
 ];
 // Easter egg: 1-in-50 chance on dice roll
-const EASTER_EGG_NAME = 'Shaun Coming Atcha!';
+const EASTER_EGG_NAME = 'Shaun Coming Atcha';
 const EASTER_EGG_CHANCE = 0.02; // 1 in 50
 
 // Mobile preview devices - Nokia 855 is the Easter egg
@@ -44,13 +45,21 @@ const PREVIEW_DEVICES = [
   { name: 'Nokia 855', width: 240, height: 320 }, // Easter egg: "even grandma can leave a review"
 ];
 
+type CustomerOption = { id: string; name: string };
+
 interface ImageEditorProps {
   template: ImageTemplate;
+  customers: CustomerOption[];
   userName?: string; // From Clerk for "Try it with your name"
   plan: string;
 }
 
-export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
+export function ImageEditor({ template, customers, userName, plan }: ImageEditorProps) {
+  // Inline rename state
+  const [templateName, setTemplateName] = useState(template.name);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   // Fabric canvas ref
   const fabricCanvasRef = useRef<FabricCanvasRef>(null);
   const { showUpgradeModal, setShowUpgradeModal, gatedAction } = useSoftGate({
@@ -67,7 +76,9 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
   );
 
   // Preview state
-  const [previewName, setPreviewName] = useState('Sarah');
+  const [previewName, setPreviewName] = useState(
+    template.text_config?.last_preview_name || 'Sarah'
+  );
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState(PREVIEW_DEVICES[0]);
 
@@ -75,11 +86,13 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [undoStack, setUndoStack] = useState<ImageTemplateTextConfig[]>([]);
+  const [redoStack, setRedoStack] = useState<ImageTemplateTextConfig[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const imageSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'editor' | 'urls'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'urls' | 'customer'>('editor');
 
   // For toolbar state (read from canvas ref)
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -128,6 +141,7 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
 
       if (result.success) {
         setLastSaved(new Date());
+        setHasUnsavedChanges(false);
       } else {
         toast.error('Failed to save changes');
       }
@@ -165,7 +179,9 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
 
   // Update text config with undo support
   const updateTextConfig = useCallback((updates: Partial<ImageTemplateTextConfig>) => {
-    setUndoStack(prev => [...prev.slice(-9), textConfig]); // Keep last 10 states
+    setUndoStack(prev => [...prev.slice(-49), textConfig]); // Keep last 50 states
+    setRedoStack([]); // Clear redo on new edit
+    setHasUnsavedChanges(true);
     const newConfig = { ...textConfig, ...updates };
     setTextConfig(newConfig);
     debouncedSave(newConfig);
@@ -176,11 +192,24 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
     if (undoStack.length > 0) {
       const previousConfig = undoStack[undoStack.length - 1];
       setUndoStack(prev => prev.slice(0, -1));
+      setRedoStack(prev => [...prev.slice(-49), textConfig]); // Push current to redo
+      setHasUnsavedChanges(true);
       setTextConfig(previousConfig);
       debouncedSave(previousConfig);
-      toast.success('Change undone');
     }
-  }, [undoStack, debouncedSave]);
+  }, [undoStack, textConfig, debouncedSave]);
+
+  // Redo last undone change
+  const handleRedo = useCallback(() => {
+    if (redoStack.length > 0) {
+      const nextConfig = redoStack[redoStack.length - 1];
+      setRedoStack(prev => prev.slice(0, -1));
+      setUndoStack(prev => [...prev.slice(-49), textConfig]); // Push current to undo
+      setHasUnsavedChanges(true);
+      setTextConfig(nextConfig);
+      debouncedSave(nextConfig);
+    }
+  }, [redoStack, textConfig, debouncedSave]);
 
   // Add or reposition text box from toolbar
   const handleInsertTextBox = useCallback((position: { x: number; y: number }) => {
@@ -207,7 +236,7 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
   const handleDiceRoll = useCallback(() => {
     if (Math.random() < EASTER_EGG_CHANCE) {
       setPreviewName(EASTER_EGG_NAME);
-      toast.success('Shaun Coming Atcha!');
+      toast.success('Shaun Coming Atcha');
     } else {
       const randomName = LONG_NAMES[Math.floor(Math.random() * LONG_NAMES.length)];
       setPreviewName(randomName);
@@ -234,6 +263,59 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
     toast.success('Reset to defaults');
   }, [textConfig.prefix, textConfig.suffix, textConfig.fallback, debouncedSave]);
 
+  // Handle inline rename
+  const handleNameSave = useCallback(async () => {
+    setIsEditingName(false);
+    const trimmed = templateName.trim();
+    if (!trimmed || trimmed === template.name) {
+      setTemplateName(template.name);
+      return;
+    }
+    const result = await updateImageTemplate(template.id, { name: trimmed });
+    if (result.success) {
+      toast.success('Template renamed');
+    } else {
+      setTemplateName(template.name);
+      toast.error('Failed to rename');
+    }
+  }, [templateName, template.id, template.name]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        handleRedo();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        saveChanges(textConfig);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo, saveChanges, textConfig]);
+
+  // Save last_preview_name when it changes (debounced)
+  const previewNameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (previewNameTimeoutRef.current) {
+      clearTimeout(previewNameTimeoutRef.current);
+    }
+    previewNameTimeoutRef.current = setTimeout(() => {
+      if (previewName && previewName !== template.text_config?.last_preview_name) {
+        updateImageTemplate(template.id, {
+          text_config: { ...textConfig, last_preview_name: previewName },
+        });
+      }
+    }, 2000);
+    return () => {
+      if (previewNameTimeoutRef.current) clearTimeout(previewNameTimeoutRef.current);
+    };
+  }, [previewName]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -257,7 +339,35 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
               Back
             </Link>
           </Button>
-          <h1 className="font-medium">{template.name}</h1>
+          {isEditingName ? (
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              onBlur={handleNameSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleNameSave();
+                if (e.key === 'Escape') {
+                  setTemplateName(template.name);
+                  setIsEditingName(false);
+                }
+              }}
+              className="font-medium bg-transparent border-b border-primary outline-none px-1 py-0.5 text-sm min-w-[120px]"
+              autoFocus
+            />
+          ) : (
+            <button
+              onClick={() => {
+                setIsEditingName(true);
+                setTimeout(() => nameInputRef.current?.select(), 0);
+              }}
+              className="font-medium hover:text-primary transition-colors group/name flex items-center gap-1.5"
+            >
+              {templateName}
+              <Pencil className="h-3 w-3 opacity-0 group-hover/name:opacity-50 transition-opacity" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -275,21 +385,57 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
             ) : null}
           </div>
 
+          {/* Save */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => saveChanges(textConfig)}
+            disabled={isSaving || !hasUnsavedChanges}
+            title="Save now (⌘S)"
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+
           {/* Undo */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleUndo}
             disabled={undoStack.length === 0}
+            title="Undo (⌘Z)"
           >
-            <Undo2 className="h-4 w-4 mr-1" />
-            Undo
+            <Undo2 className="h-4 w-4" />
+          </Button>
+
+          {/* Redo */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRedo}
+            disabled={redoStack.length === 0}
+            title="Redo (⌘⇧Z)"
+          >
+            <Redo2 className="h-4 w-4" />
           </Button>
 
           {/* Preview */}
           <Button
             size="sm"
-            onClick={() => setIsPreviewModalOpen(true)}
+            onClick={async () => {
+              // Flush any pending debounced save before opening preview
+              if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = null;
+                await saveChanges(textConfig);
+              }
+              // Also flush image config save
+              if (imageSaveTimeoutRef.current) {
+                clearTimeout(imageSaveTimeoutRef.current);
+                imageSaveTimeoutRef.current = null;
+              }
+              setIsPreviewModalOpen(true);
+            }}
           >
             <Eye className="h-4 w-4 mr-2" />
             Preview
@@ -299,7 +445,7 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
 
       {/* Tab Navigation */}
       <div className="border-b bg-background px-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'editor' | 'urls')}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'editor' | 'urls' | 'customer')}>
           <TabsList className="h-10 bg-transparent p-0 gap-4">
             <TabsTrigger
               value="editor"
@@ -314,6 +460,13 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
             >
               <Link2 className="h-4 w-4 mr-2" />
               URLs
+            </TabsTrigger>
+            <TabsTrigger
+              value="customer"
+              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-1 pb-2"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Customer
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -383,7 +536,7 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
             </div>
           </div>
         </>
-      ) : (
+      ) : activeTab === 'urls' ? (
         /* URLs Tab - Full Page Layout */
         <div className="flex-1 flex overflow-hidden">
           {/* Left Side - URLs and Instructions */}
@@ -430,6 +583,13 @@ export function ImageEditor({ template, userName, plan }: ImageEditorProps) {
             </div>
           </div>
         </div>
+      ) : (
+        /* Customer Tab */
+        <CustomerTab
+          templateId={template.id}
+          currentCustomerId={template.customer_id || null}
+          customers={customers}
+        />
       )}
 
       {/* Preview Modal */}
