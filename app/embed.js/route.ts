@@ -2078,12 +2078,15 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
 
     // Map steps to Driver.js format
+    var previewShowClose = settings.show_close !== false;
     var driverSteps = steps.map(function(step, index) {
+      var buttons = ['next', 'previous'];
+      if (previewShowClose) buttons.push('close');
       var driverStep = {
         popover: {
           title: step.title || 'Step ' + (index + 1),
           description: step.content || '',
-          showButtons: ['next', 'previous', 'close'],
+          showButtons: buttons,
           nextBtnText: index === steps.length - 1 ? 'Finish' : (step.buttons?.primary?.text || 'Next'),
           prevBtnText: step.buttons?.secondary?.text || 'Previous',
           doneBtnText: 'Finish',
@@ -2119,11 +2122,14 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
 
     var driverFn = window.driver.js.driver;
+    var showClose = settings.show_close !== false;
+    var closeOnOutsideClick = settings.close_on_outside_click === true;
+
     var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
       showButtons: true,
       animate: true,
-      allowClose: settings.allow_skip !== false,
+      allowClose: showClose || closeOnOutsideClick,
       overlayOpacity: 0.5,
       stagePadding: 10,
       stageRadius: 8,
@@ -2247,6 +2253,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       .at-tour-popover .driver-popover {
         background-color: \${bg} !important;
         color: \${text} !important;
+        -webkit-text-fill-color: \${text} !important;
+        text-shadow: none !important;
         border: 1px solid \${border} !important;
         border-radius: \${radiusNum}px !important;
         font-family: \${fontFamily} !important;
@@ -2255,8 +2263,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         padding: 16px !important;
       }
 
+      .at-tour-popover .driver-popover *,
+      .at-tour-popover .driver-popover *::before,
+      .at-tour-popover .driver-popover *::after {
+        -webkit-text-fill-color: inherit !important;
+        text-shadow: none !important;
+      }
+
       .at-tour-popover .driver-popover-title {
         color: \${text} !important;
+        -webkit-text-fill-color: \${text} !important;
+        text-shadow: none !important;
         font-size: \${titleSize} !important;
         font-weight: 600 !important;
         margin-bottom: 8px !important;
@@ -2264,6 +2281,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
       .at-tour-popover .driver-popover-description {
         color: \${textSec} !important;
+        -webkit-text-fill-color: \${textSec} !important;
+        text-shadow: none !important;
         font-size: \${bodySize} !important;
         line-height: 1.5 !important;
         margin-bottom: 16px !important;
@@ -2277,6 +2296,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       .at-tour-popover .driver-popover-done-btn {
         background-color: \${primary} !important;
         color: white !important;
+        -webkit-text-fill-color: white !important;
+        text-shadow: none !important;
         border: none !important;
         border-radius: 8px !important;
         padding: 10px 20px !important;
@@ -2294,6 +2315,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       .at-tour-popover .driver-popover-prev-btn {
         background-color: transparent !important;
         color: \${secondary} !important;
+        -webkit-text-fill-color: \${secondary} !important;
+        text-shadow: none !important;
         border: 1px solid \${border} !important;
         border-radius: 8px !important;
         padding: 10px 20px !important;
@@ -2318,6 +2341,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
       .at-tour-popover .driver-popover-progress-text {
         color: \${textSec} !important;
+        -webkit-text-fill-color: \${textSec} !important;
+        text-shadow: none !important;
         font-size: 13px !important;
         font-weight: 500 !important;
       }
@@ -2379,6 +2404,23 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }
     // Fallback: use hostname to differentiate at minimum
     return window.location.hostname;
+  }
+
+  // Resolve a URL relative to the current GHL sub-account
+  // e.g. "/media-storage" becomes "/v2/location/{id}/media-storage"
+  // Full URLs (http/https) are returned as-is
+  function resolveGHLUrl(url) {
+    if (!url) return url;
+    // Already a full URL - return as-is
+    if (url.match(/^https?:\\/\\//)) return url;
+    // Strip leading slash for consistency
+    var page = url.replace(/^\\//, '');
+    var locationId = getGHLLocationId();
+    if (locationId && locationId !== window.location.hostname) {
+      return '/v2/location/' + locationId + '/' + page;
+    }
+    // Fallback if we can't detect location ID
+    return url;
   }
 
   // Build storage key that's unique per tour AND per subaccount
@@ -2616,12 +2658,16 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var driverRef = null;
 
     // Convert steps to Driver.js format
+    var canClose = settings.show_close !== false;
     var driverSteps = steps.map(function(step, index) {
+      var stepButtons = ['next', 'previous'];
+      if (canClose) stepButtons.push('close');
+
       var driverStep = {
         popover: {
           title: step.title || '',
           description: step.content || '',
-          showButtons: ['next', 'previous', 'close'],
+          showButtons: stepButtons,
           showProgress: settings.show_progress !== false,
         }
       };
@@ -2666,12 +2712,16 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
       // First step hides previous button
       if (index === 0) {
-        driverStep.popover.showButtons = ['next', 'close'];
+        var firstButtons = ['next'];
+        if (canClose) firstButtons.push('close');
+        driverStep.popover.showButtons = firstButtons;
       }
 
       // Last step - keep all buttons, Driver.js shows doneBtnText automatically
       if (index === steps.length - 1) {
-        driverStep.popover.showButtons = ['previous', 'next', 'close'];
+        var lastButtons = ['previous', 'next'];
+        if (canClose) lastButtons.push('close');
+        driverStep.popover.showButtons = lastButtons;
       }
 
       // Allow interaction with highlighted element when enabled
@@ -2699,11 +2749,16 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var doneBtnText = lastStep?.buttons?.primary?.text || 'Done';
 
     var driverFn = window.driver.js.driver;
+    var prodShowClose = settings.show_close !== false;
+    var prodCloseOnOutside = settings.close_on_outside_click === true;
+    var prodButtons = ['next', 'previous'];
+    if (prodShowClose) prodButtons.push('close');
+
     var driverInstance = driverFn({
       showProgress: settings.show_progress !== false,
-      showButtons: ['next', 'previous', 'close'],
+      showButtons: prodButtons,
       animate: true,
-      allowClose: settings.allow_skip !== false,
+      allowClose: prodShowClose || prodCloseOnOutside,
       overlayOpacity: 0.5,
       stagePadding: 10,
       stageRadius: 8,
@@ -3126,28 +3181,36 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       // TODO: Launch specific tour
       log('Launching tour:', action.tour_id);
     } else if (action.type === 'url' && action.url) {
+      var resolvedUrl = resolveGHLUrl(action.url);
       if (action.new_tab) {
-        window.open(action.url, '_blank');
+        window.open(resolvedUrl, '_blank');
       } else {
-        window.location.href = action.url;
+        window.location.href = resolvedUrl;
       }
     }
 
-    // Handle manual completion trigger
+    // Handle manual completion trigger (toggle on/off)
     if (trigger.type === 'manual') {
-      if (!completedItems.includes(item.id)) {
+      var itemIndex = completedItems.indexOf(item.id);
+      if (itemIndex === -1) {
+        // Check it
         completedItems.push(item.id);
-        var newStatus = completedItems.length === checklist.items.length ? 'completed' : 'in_progress';
-        saveChecklistState(checklist.id, { completedItems: completedItems, status: newStatus });
-        trackChecklistProgress(checklist.id, completedItems, newStatus);
+      } else {
+        // Uncheck it
+        completedItems.splice(itemIndex, 1);
+      }
+      var newStatus = completedItems.length === 0 ? 'not_started'
+        : completedItems.length === checklist.items.length ? 'completed'
+        : 'in_progress';
+      saveChecklistState(checklist.id, { completedItems: completedItems, status: newStatus });
+      trackChecklistProgress(checklist.id, completedItems, newStatus);
 
-        // Re-render widget
-        renderChecklistWidget(checklist, theme);
+      // Re-render widget
+      renderChecklistWidget(checklist, theme);
 
-        // Check if all items complete
-        if (newStatus === 'completed') {
-          handleChecklistComplete(checklist);
-        }
+      // Check if all items complete
+      if (newStatus === 'completed') {
+        handleChecklistComplete(checklist);
       }
     }
   }
@@ -3534,10 +3597,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     switch (action.type) {
       case 'url':
         if (action.url) {
+          var bannerUrl = resolveGHLUrl(action.url);
           if (action.new_tab) {
-            window.open(action.url, '_blank');
+            window.open(bannerUrl, '_blank');
           } else {
-            window.location.href = action.url;
+            window.location.href = bannerUrl;
           }
         }
         break;
