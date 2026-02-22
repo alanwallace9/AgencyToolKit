@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
   MoreHorizontal,
@@ -30,6 +31,7 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardProps) {
+  const router = useRouter();
   const [imageError, setImageError] = useState(false);
 
   // Format render count
@@ -39,12 +41,15 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
     return count.toString();
   };
 
-
   // Use the actual API-generated image for accurate preview (cache-bust on update)
-  const apiPreviewUrl = `/api/images/${template.id}?name=Sarah&v=${template.updated_at}`;
+  const previewName = template.text_config?.last_preview_name || 'Sarah';
+  const apiPreviewUrl = `/api/images/${template.id}?name=${encodeURIComponent(previewName)}&v=${template.updated_at}&_t=${Date.now()}`;
 
   return (
-    <Card className="group overflow-hidden hover:shadow-md transition-shadow">
+    <Card
+      className="group overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => router.push(`/images/${template.id}`)}
+    >
       {/* Image Preview - Uses ACTUAL API-generated image */}
       <div className="relative aspect-video bg-muted overflow-hidden">
         {!imageError ? (
@@ -62,16 +67,13 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
 
         {/* Hover overlay with actions */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          <Button asChild size="sm" variant="secondary">
-            <Link href={`/images/${template.id}`}>
-              <Pencil className="h-4 w-4 mr-1" />
-              Edit
-            </Link>
-          </Button>
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => window.open(`/api/images/${template.id}?name=Sarah`, '_blank')}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/api/images/${template.id}?name=${encodeURIComponent(previewName)}`, '_blank');
+            }}
           >
             <Eye className="h-4 w-4 mr-1" />
             Preview
@@ -108,39 +110,41 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
           </div>
 
           {/* Actions Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/images/${template.id}`}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => window.open(`/api/images/${template.id}?name=Sarah`, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Preview
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDuplicate(template.id)}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(template.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={`/images/${template.id}`}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => window.open(`/api/images/${template.id}?name=${encodeURIComponent(previewName)}`, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Preview
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDuplicate(template.id)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(template.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardContent>
     </Card>

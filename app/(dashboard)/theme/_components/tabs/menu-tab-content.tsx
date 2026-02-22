@@ -47,11 +47,17 @@ export function MenuTabContent() {
   const handleUnsavedChangesChange = useCallback(
     (hasChanges: boolean) => {
       setTabHasUnsavedChanges('menu', hasChanges);
-      if (hasChanges) {
+    },
+    [setTabHasUnsavedChanges]
+  );
+
+  const handleSavingChange = useCallback(
+    (isSaving: boolean) => {
+      if (isSaving) {
         setSaveStatus('saving');
       }
     },
-    [setTabHasUnsavedChanges, setSaveStatus]
+    [setSaveStatus]
   );
 
   if (isLoading) {
@@ -86,6 +92,7 @@ export function MenuTabContent() {
         onSaveComplete={handleSaveComplete}
         onRegisterSaveHandler={handleRegisterSaveHandler}
         onUnsavedChangesChange={handleUnsavedChangesChange}
+        onSavingChange={handleSavingChange}
       />
     </div>
   );

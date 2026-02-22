@@ -51,11 +51,18 @@ export function ColorsTabContent() {
   const handleUnsavedChangesChange = useCallback(
     (hasChanges: boolean) => {
       setTabHasUnsavedChanges('colors', hasChanges);
-      if (hasChanges) {
+    },
+    [setTabHasUnsavedChanges]
+  );
+
+  const handleSavingChange = useCallback(
+    (isSaving: boolean) => {
+      if (isSaving) {
         setSaveStatus('saving');
       }
+      // Don't reset on false — markSaved() handles the success transition to 'saved'
     },
-    [setTabHasUnsavedChanges, setSaveStatus]
+    [setSaveStatus]
   );
 
   if (isLoading) {
@@ -88,6 +95,7 @@ export function ColorsTabContent() {
         onSaveComplete={handleSaveComplete}
         onRegisterSaveHandler={handleRegisterSaveHandler}
         onUnsavedChangesChange={handleUnsavedChangesChange}
+        onSavingChange={handleSavingChange}
       />
       <GlassStyles />
     </div>

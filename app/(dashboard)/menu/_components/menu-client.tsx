@@ -36,6 +36,7 @@ interface MenuClientProps {
   onSaveComplete?: () => void;
   onRegisterSaveHandler?: (handler: (() => Promise<boolean>) | null) => void;
   onUnsavedChangesChange?: (hasChanges: boolean) => void;
+  onSavingChange?: (isSaving: boolean) => void;
 }
 
 interface MenuItemConfig {
@@ -47,11 +48,16 @@ interface MenuItemConfig {
   dividerText?: string;
 }
 
-export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId, onSaveComplete, onRegisterSaveHandler, onUnsavedChangesChange }: MenuClientProps) {
+export function MenuClient({ initialConfig, colors, ghlDomain, sampleLocationId, onSaveComplete, onRegisterSaveHandler, onUnsavedChangesChange, onSavingChange }: MenuClientProps) {
   const [dividerCounter, setDividerCounter] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Notify parent of actual saving state
+  useEffect(() => {
+    onSavingChange?.(isSaving);
+  }, [isSaving, onSavingChange]);
 
   // User templates (presets)
   const [userTemplates, setUserTemplates] = useState<MenuPreset[]>([]);

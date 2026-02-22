@@ -30,6 +30,8 @@ interface ColorsClientProps {
   onRegisterSaveHandler?: (handler: (() => Promise<boolean>) | null) => void;
   /** Optional: Report unsaved changes state to parent */
   onUnsavedChangesChange?: (hasChanges: boolean) => void;
+  /** Optional: Report actual saving state (network request in flight) to parent */
+  onSavingChange?: (isSaving: boolean) => void;
 }
 
 // Default colors if none saved
@@ -46,6 +48,7 @@ export function ColorsClient({
   onSaveComplete,
   onRegisterSaveHandler,
   onUnsavedChangesChange,
+  onSavingChange,
 }: ColorsClientProps) {
   // Resizable panels
   const {
@@ -95,6 +98,11 @@ export function ColorsClient({
   useEffect(() => {
     onUnsavedChangesChange?.(hasUnsavedChanges);
   }, [hasUnsavedChanges, onUnsavedChangesChange]);
+
+  // Notify parent of actual saving state (network request in flight)
+  useEffect(() => {
+    onSavingChange?.(isSaving);
+  }, [isSaving, onSavingChange]);
 
   // ============================================
   // Auto-save with debounce
@@ -241,11 +249,10 @@ export function ColorsClient({
     const preset = COLOR_PRESETS.find((p) => p.id === presetId);
     if (preset) {
       setColors(preset.colors);
-      setSelectedPresetId(null); // Built-in presets aren't "selected" for saving
-      setHasUnsavedChanges(true);
-      // Don't auto-save - let user decide to create a custom preset or just use
+      setSelectedPresetId(null); // Built-in presets save directly to agency settings
+      debouncedSave(preset.colors);
     }
-  }, []);
+  }, [debouncedSave]);
 
   const handleSelectCustomPreset = useCallback((preset: ColorPreset) => {
     setColors(preset.colors);
