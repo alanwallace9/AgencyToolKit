@@ -2380,6 +2380,36 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         0% { box-shadow: 0 0 0 0 \${primary}80; }
         100% { box-shadow: 0 0 0 20px \${primary}00; }
       }
+
+      /* Upload Photo button in tour popover */
+      .at-upload-photo-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 8px 20px !important;
+        border: 1px solid \${border} !important;
+        border-radius: \${radius} !important;
+        background: transparent !important;
+        color: \${text} !important;
+        -webkit-text-fill-color: \${text} !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+      }
+      .at-upload-photo-btn--block {
+        display: flex !important;
+        margin: 12px auto 8px auto !important;
+      }
+      .at-upload-photo-btn:hover {
+        background: \${primary}15 !important;
+        border-color: \${primary} !important;
+        color: \${primary} !important;
+        -webkit-text-fill-color: \${primary} !important;
+      }
+      .at-upload-photo-btn svg {
+        flex-shrink: 0 !important;
+      }
     \`;
 
     var style = document.createElement('style');
@@ -2807,6 +2837,26 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           currentStep: stepIndex,
           startedAt: getTourState(tour.id)?.startedAt || Date.now()
         });
+
+        // Inject Upload Photo button when step has show_upload_button enabled
+        if (stepConfig.settings?.show_upload_button) {
+          setTimeout(function() {
+            var popoverDesc = document.querySelector('.driver-popover-description');
+            if (popoverDesc && !popoverDesc.parentElement.querySelector('.at-upload-photo-btn')) {
+              var uploadBtn = document.createElement('button');
+              uploadBtn.className = 'at-upload-photo-btn at-upload-photo-btn--block';
+              uploadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Upload Photo';
+              uploadBtn.onclick = function() {
+                log('Upload photo button clicked on step ' + (stepIndex + 1));
+                if (window.__AT_OPEN_UPLOAD_MODAL__) {
+                  window.__AT_OPEN_UPLOAD_MODAL__(uploadBtn);
+                }
+              };
+              // Insert after the description content, centered
+              popoverDesc.insertAdjacentElement('afterend', uploadBtn);
+            }
+          }, 50);
+        }
 
         // Auto-advance: when element is clicked, advance to next step
         if (stepConfig.auto_advance && element) {

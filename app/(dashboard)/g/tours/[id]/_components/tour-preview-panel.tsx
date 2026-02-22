@@ -24,6 +24,7 @@ import {
   Rocket,
   Mail,
   FileQuestion,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TourStep, TourTheme } from '@/types/database';
@@ -254,10 +255,27 @@ function ModalPreview({ step, stepIndex, totalSteps, colors }: StepPreviewProps)
 
         {/* Content */}
         <div
-          className="text-sm mb-5 prose prose-sm max-w-none"
+          className={cn('text-sm prose prose-sm max-w-none', step.settings?.show_upload_button ? 'mb-3' : 'mb-5')}
           style={{ color: colors.text_secondary }}
           dangerouslySetInnerHTML={{ __html: step.content || 'Add content for this step...' }}
         />
+
+        {/* Upload Photo button */}
+        {step.settings?.show_upload_button && (
+          <div className="flex justify-center mb-4">
+            <button
+              className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg border transition-colors"
+              style={{
+                borderColor: colors.border,
+                color: colors.text,
+                backgroundColor: 'transparent',
+              }}
+            >
+              <Camera className="h-4 w-4" />
+              Upload Photo
+            </button>
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex justify-between items-center">
@@ -303,10 +321,25 @@ function TooltipPreview({ step, stepIndex, totalSteps, colors }: StepPreviewProp
         {step.title || `Step ${stepIndex + 1}`}
       </h4>
       <div
-        className="text-sm mb-3 prose prose-sm max-w-none"
+        className={cn('text-sm prose prose-sm max-w-none', step.settings?.show_upload_button ? 'mb-2' : 'mb-3')}
         style={{ color: colors.text_secondary }}
         dangerouslySetInnerHTML={{ __html: step.content || 'Content goes here...' }}
       />
+      {step.settings?.show_upload_button && (
+        <div className="flex justify-center mb-2">
+          <button
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border"
+            style={{
+              borderColor: colors.border,
+              color: colors.text,
+              backgroundColor: 'transparent',
+            }}
+          >
+            <Camera className="h-3 w-3" />
+            Upload Photo
+          </button>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         {stepIndex > 0 ? (
           <span className="text-sm" style={{ color: colors.secondary }}>

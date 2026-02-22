@@ -31,6 +31,7 @@ import {
   CircleDot,
   Megaphone,
   ChevronDown,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/app/(dashboard)/tours/[id]/_components/rich-text-editor';
@@ -280,6 +281,29 @@ export function TourStepEditor({
               />
             </div>
           )}
+
+          {/* Upload Photo button */}
+          {['modal', 'tooltip'].includes(step.type) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-sm">Upload Photo</div>
+                  <div className="text-xs text-muted-foreground">
+                    Adds an upload button to this step
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={step.settings?.show_upload_button ?? false}
+                onCheckedChange={(checked) =>
+                  onUpdateStep({
+                    settings: { ...step.settings, show_upload_button: checked },
+                  })
+                }
+              />
+            </div>
+          )}
         </CollapsibleContent>
       </Collapsible>
 
@@ -342,7 +366,6 @@ export function TourStepEditor({
                     <SelectItem value="complete">Complete tour</SelectItem>
                     <SelectItem value="dismiss">Dismiss</SelectItem>
                     <SelectItem value="url">Open URL</SelectItem>
-                    <SelectItem value="upload">Upload Photo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
