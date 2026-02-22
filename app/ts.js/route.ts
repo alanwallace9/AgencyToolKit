@@ -429,9 +429,9 @@ export async function GET(request: Request) {
     html += '<div class="sp-action">' + action + '</div>';
     html += '<div class="sp-footer">';
     if (time) {
-      // Only add time_ago_text if time doesn't already end with "ago"
+      // Only add time_ago_text to numeric durations that don't already end with "ago"
       var timeDisplay = time;
-      if (config.time_ago_text && !time.endsWith('ago')) {
+      if (config.time_ago_text && /^\\d/.test(time) && !time.endsWith('ago')) {
         timeDisplay = time + ' ' + config.time_ago_text;
       }
       html += '<span class="sp-time">' + timeDisplay + '</span>';
