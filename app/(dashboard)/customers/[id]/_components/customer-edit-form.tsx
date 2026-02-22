@@ -27,6 +27,7 @@ export function CustomerEditForm({ customer, baseUrl, agencyToken }: CustomerEdi
 
   const [formData, setFormData] = useState({
     name: customer.name,
+    owner_name: customer.owner_name || '',
     ghl_location_id: customer.ghl_location_id || '',
     gbp_place_id: customer.gbp_place_id || '',
     is_active: customer.is_active,
@@ -54,6 +55,7 @@ export function CustomerEditForm({ customer, baseUrl, agencyToken }: CustomerEdi
     try {
       const result = await updateCustomer(customer.id, {
         name: formData.name,
+        owner_name: formData.owner_name || undefined,
         ghl_location_id: formData.ghl_location_id || undefined,
         gbp_place_id: formData.gbp_place_id || undefined,
         is_active: formData.is_active,
@@ -104,6 +106,17 @@ export function CustomerEditForm({ customer, baseUrl, agencyToken }: CustomerEdi
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="owner_name">Owner Name</Label>
+                <Input
+                  id="owner_name"
+                  value={formData.owner_name}
+                  onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+                  placeholder="e.g., Mike Johnson"
                   disabled={isLoading}
                 />
               </div>

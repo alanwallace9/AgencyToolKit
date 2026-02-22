@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     const key = formData.get('key') as string;
     const locationId = formData.get('location_id') as string;
     const businessName = formData.get('business_name') as string;
+    const ownerName = formData.get('owner_name') as string | null;
     const photoNamesJson = formData.get('photo_names') as string;
     const photos = formData.getAll('photos') as File[];
 
@@ -40,13 +41,6 @@ export async function POST(request: NextRequest) {
     if (!locationId) {
       return NextResponse.json(
         { error: 'Location ID is required', code: 'MISSING_LOCATION' },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    if (!businessName || businessName.trim() === '') {
-      return NextResponse.json(
-        { error: 'Business name is required', code: 'MISSING_BUSINESS_NAME' },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -125,13 +119,30 @@ export async function POST(request: NextRequest) {
 
     if (existingCustomer) {
       customer = existingCustomer as Customer;
+      // Update owner_name if provided and currently empty
+      if (ownerName?.trim() && !customer.owner_name) {
+        await supabase
+          .from('customers')
+          .update({ owner_name: ownerName.trim() })
+          .eq('id', customer.id);
+        customer = { ...customer, owner_name: ownerName.trim() };
+      }
+      // Update name if provided and customer was created with default name
+      if (businessName?.trim() && customer.name === 'Unknown Business') {
+        await supabase
+          .from('customers')
+          .update({ name: businessName.trim() })
+          .eq('id', customer.id);
+        customer = { ...customer, name: businessName.trim() };
+      }
     } else {
       // Create new customer
       const { data: newCustomer, error: createError } = await supabase
         .from('customers')
         .insert({
           agency_id: typedAgency.id,
-          name: businessName.trim(),
+          name: businessName?.trim() || 'Unknown Business',
+          owner_name: ownerName?.trim() || null,
           ghl_location_id: locationId,
           token: `bp_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
           is_active: true,

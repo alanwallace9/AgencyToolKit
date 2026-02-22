@@ -4642,6 +4642,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     photos: [],  // { file: File, preview: string, name: string }
     maxPhotos: 5,
     businessName: '',
+    ownerName: '',
     isUploading: false,
     triggerElement: null,
     preventDragHandler: null  // Store reference for cleanup
@@ -4657,6 +4658,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     uploadState.triggerElement = triggerEl || null;
     uploadState.photos = [];
     uploadState.businessName = '';
+    uploadState.ownerName = '';
     uploadState.isUploading = false;
 
     var locationId = getLocationId();
@@ -4685,8 +4687,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         </div>
         <div class="at-upload-body">
           <div class="at-upload-field">
-            <label for="at-business-name">Business Name *</label>
+            <label for="at-business-name">Business Name</label>
             <input type="text" id="at-business-name" placeholder="e.g., Big Mike's Plumbing" autofocus />
+          </div>
+          <div class="at-upload-field">
+            <label for="at-owner-name">Owner Name</label>
+            <input type="text" id="at-owner-name" placeholder="e.g., Mike Johnson" />
           </div>
           <div id="at-dropzone" class="at-dropzone">
             <div class="at-dropzone-content">
@@ -5052,6 +5058,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var dropzone = document.getElementById('at-dropzone');
     var fileInput = document.getElementById('at-file-input');
     var businessNameInput = document.getElementById('at-business-name');
+    var ownerNameInput = document.getElementById('at-owner-name');
     var addMoreBtn = document.getElementById('at-add-more');
     var submitBtn = document.getElementById('at-upload-submit');
     var suggestions = document.querySelectorAll('.at-suggestion');
@@ -5143,6 +5150,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
       updateSubmitButton();
     });
 
+    // Owner name input
+    ownerNameInput.addEventListener('input', function() {
+      uploadState.ownerName = this.value;
+    });
+
     // Debug: Log clicks on modal to verify events are received
     modal.addEventListener('click', function(e) {
       log('Modal click received on:', e.target.tagName, e.target.className);
@@ -5151,6 +5163,12 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     // Explicitly handle focus for business name input
     businessNameInput.addEventListener('click', function(e) {
       log('Business name input clicked');
+      e.stopPropagation();
+      this.focus();
+    });
+
+    // Explicitly handle focus for owner name input
+    ownerNameInput.addEventListener('click', function(e) {
       e.stopPropagation();
       this.focus();
     });
@@ -5314,9 +5332,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
   function updateSubmitButton() {
     var submitBtn = document.getElementById('at-upload-submit');
-    var businessName = uploadState.businessName.trim();
     var hasPhotos = uploadState.photos.length > 0;
-    submitBtn.disabled = !businessName || !hasPhotos || uploadState.isUploading;
+    submitBtn.disabled = !hasPhotos || uploadState.isUploading;
 
     if (uploadState.isUploading) {
       submitBtn.textContent = 'Uploading...';
@@ -5345,6 +5362,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     formData.append('key', CONFIG_KEY);
     formData.append('location_id', locationId);
     formData.append('business_name', uploadState.businessName.trim());
+    if (uploadState.ownerName.trim()) {
+      formData.append('owner_name', uploadState.ownerName.trim());
+    }
     formData.append('photo_names', JSON.stringify(uploadState.photos.map(function(p) { return p.name; })));
 
     uploadState.photos.forEach(function(photo) {

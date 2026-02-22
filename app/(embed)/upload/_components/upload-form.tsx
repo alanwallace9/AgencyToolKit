@@ -26,6 +26,7 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function UploadForm({ agencyToken, locationId, agencyName, existingCustomerName }: UploadFormProps) {
   const [businessName, setBusinessName] = useState(existingCustomerName || '');
+  const [ownerName, setOwnerName] = useState('');
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -90,7 +91,7 @@ export function UploadForm({ agencyToken, locationId, agencyName, existingCustom
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim() || photos.length === 0) return;
+    if (photos.length === 0) return;
 
     setIsUploading(true);
     setError(null);
@@ -100,6 +101,9 @@ export function UploadForm({ agencyToken, locationId, agencyName, existingCustom
       formData.append('key', agencyToken);
       formData.append('location_id', locationId);
       formData.append('business_name', businessName.trim());
+      if (ownerName.trim()) {
+        formData.append('owner_name', ownerName.trim());
+      }
       formData.append('photo_names', JSON.stringify(photos.map((p) => p.name)));
       for (const photo of photos) {
         formData.append('photos', photo.file);
@@ -157,15 +161,24 @@ export function UploadForm({ agencyToken, locationId, agencyName, existingCustom
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Business Name */}
           <div className="space-y-2">
-            <Label htmlFor="business_name">
-              Business Name <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="business_name">Business Name</Label>
             <Input
               id="business_name"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="Enter your business name"
-              required
+              disabled={isUploading}
+            />
+          </div>
+
+          {/* Owner Name */}
+          <div className="space-y-2">
+            <Label htmlFor="owner_name">Owner Name</Label>
+            <Input
+              id="owner_name"
+              value={ownerName}
+              onChange={(e) => setOwnerName(e.target.value)}
+              placeholder="Enter the owner's name"
               disabled={isUploading}
             />
           </div>
@@ -264,7 +277,7 @@ export function UploadForm({ agencyToken, locationId, agencyName, existingCustom
           <Button
             type="submit"
             className="w-full"
-            disabled={isUploading || !businessName.trim() || photos.length === 0}
+            disabled={isUploading || photos.length === 0}
           >
             {isUploading ? (
               <>

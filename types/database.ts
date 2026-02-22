@@ -265,6 +265,7 @@ export interface Customer {
   id: string;
   agency_id: string;
   name: string;
+  owner_name: string | null;
   token: string;
   ghl_location_id: string | null;
   ghl_url: string | null; // Optional override for custom GHL domains

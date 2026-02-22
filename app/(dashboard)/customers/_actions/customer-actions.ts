@@ -71,6 +71,7 @@ export async function createCustomer(data: CreateCustomerData): Promise<ActionRe
 
 interface UpdateCustomerData {
   name: string;
+  owner_name?: string;
   ghl_location_id?: string;
   gbp_place_id?: string;
   is_active: boolean;
@@ -96,6 +97,7 @@ export async function updateCustomer(
       .from('customers')
       .update({
         name: data.name.trim(),
+        owner_name: data.owner_name?.trim() || null,
         ghl_location_id: data.ghl_location_id || null,
         gbp_place_id: data.gbp_place_id || null,
         is_active: data.is_active,
