@@ -225,6 +225,48 @@ export async function renameImageTemplate(
   return { success: false, error: result.error };
 }
 
+// Create a template from a customer photo
+export async function createTemplateFromPhoto(
+  photoId: string
+): Promise<{ success: true; templateId: string } | { success: false; error: string }> {
+  const agency = await getCurrentAgency();
+  if (!agency) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const supabase = createAdminClient();
+
+  // Fetch the customer photo (with auth check via agency_id)
+  const { data: photo, error: photoError } = await supabase
+    .from('customer_photos')
+    .select('*')
+    .eq('id', photoId)
+    .eq('agency_id', agency.id)
+    .single();
+
+  if (photoError || !photo) {
+    return { success: false, error: 'Photo not found' };
+  }
+
+  // Use photo dimensions or sensible defaults
+  const width = photo.width || 640;
+  const height = photo.height || 360;
+
+  const result = await createImageTemplate({
+    name: photo.name,
+    base_image_url: photo.blob_url,
+    base_image_width: width,
+    base_image_height: height,
+    customer_id: photo.customer_id,
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  return { success: true, templateId: result.template.id };
+}
+
 // Get templates for a specific customer (for filtering)
 export async function getTemplatesByCustomer(
   customerId: string
