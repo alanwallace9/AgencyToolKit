@@ -8,6 +8,29 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-02-22 — Add Owner Name to Upload Flow + Customer Details
+
+### What I did
+- **DB migration**: Added `owner_name text` column to `customers` table via Supabase MCP
+- **Types**: Added `owner_name: string | null` to `Customer` interface in `types/database.ts`
+- **Upload API** (`app/api/photos/upload/route.ts`): Accepts optional `owner_name` from form data, stores on new customers, backfills on existing customers if currently null. Made `business_name` optional (defaults to "Unknown Business")
+- **Embed modal** (`app/embed.js/route.ts`): Added Owner Name input field below Business Name, removed `*` required indicator from Business Name, wired up event listeners, sends `owner_name` in form data. Submit only requires photos
+- **Standalone upload page** (`app/(embed)/upload/_components/upload-form.tsx`): Added Owner Name input, made Business Name optional, sends `owner_name` in form data
+- **Customer edit form** (`app/(dashboard)/customers/[id]/_components/customer-edit-form.tsx`): Added Owner Name field below Customer Name, included in save
+- **Customer actions** (`app/(dashboard)/customers/_actions/customer-actions.ts`): Added `owner_name` to `UpdateCustomerData` interface and update query
+
+### What's next
+- Test end-to-end: embed modal upload with owner name, standalone page upload, customer detail edit
+- Continue with post-ship improvements from `docs/features/images-post-ship-improvements.md`
+
+### Blockers
+- None
+
+### Cross-project notes
+- None
+
+---
+
 ## 2026-02-21 — Personalized Images: Save Image Transforms + Testing
 
 ### What I did
