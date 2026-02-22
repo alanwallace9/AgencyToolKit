@@ -2760,6 +2760,28 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         log('Step ' + (index + 1) + ': allow_interaction enabled');
       }
 
+      // Inject Upload Photo button via onPopoverRender (works for all step types including modal)
+      if (step.settings?.show_upload_button) {
+        log('Step ' + (index + 1) + ': configuring upload button via onPopoverRender');
+        driverStep.popover.onPopoverRender = function(popover) {
+          log('Upload button: onPopoverRender fired for step ' + (index + 1));
+          var desc = popover.description;
+          if (desc && !desc.parentElement.querySelector('.at-upload-photo-btn')) {
+            var uploadBtn = document.createElement('button');
+            uploadBtn.className = 'at-upload-photo-btn at-upload-photo-btn--block';
+            uploadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Upload Photo';
+            uploadBtn.onclick = function() {
+              log('Upload photo button clicked on step ' + (index + 1));
+              if (window.__AT_OPEN_UPLOAD_MODAL__) {
+                window.__AT_OPEN_UPLOAD_MODAL__(uploadBtn);
+              }
+            };
+            desc.insertAdjacentElement('afterend', uploadBtn);
+            log('Upload button injected via onPopoverRender');
+          }
+        };
+      }
+
       return driverStep;
     });
 
@@ -2837,33 +2859,6 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           currentStep: stepIndex,
           startedAt: getTourState(tour.id)?.startedAt || Date.now()
         });
-
-        // Inject Upload Photo button when step has show_upload_button enabled
-        if (stepConfig.settings?.show_upload_button) {
-          log('Upload button enabled for step ' + (stepIndex + 1) + ', injecting...');
-          var injectUploadBtn = function(attempt) {
-            var popoverDesc = document.querySelector('.driver-popover-description');
-            log('Upload btn inject attempt ' + attempt + ': popoverDesc=' + !!popoverDesc);
-            if (popoverDesc && !popoverDesc.parentElement.querySelector('.at-upload-photo-btn')) {
-              var uploadBtn = document.createElement('button');
-              uploadBtn.className = 'at-upload-photo-btn at-upload-photo-btn--block';
-              uploadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Upload Photo';
-              uploadBtn.onclick = function() {
-                log('Upload photo button clicked on step ' + (stepIndex + 1));
-                if (window.__AT_OPEN_UPLOAD_MODAL__) {
-                  window.__AT_OPEN_UPLOAD_MODAL__(uploadBtn);
-                }
-              };
-              popoverDesc.insertAdjacentElement('afterend', uploadBtn);
-              log('Upload button injected successfully');
-            } else if (attempt < 5) {
-              setTimeout(function() { injectUploadBtn(attempt + 1); }, 100);
-            } else {
-              logWarn('Upload button injection failed after 5 attempts');
-            }
-          };
-          setTimeout(function() { injectUploadBtn(1); }, 50);
-        }
 
         // Auto-advance: when element is clicked, advance to next step
         if (stepConfig.auto_advance && element) {
