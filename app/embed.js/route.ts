@@ -2909,6 +2909,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           window.__atAutoAdvanceListener = null;
         }
         log('Tour ended:', tour.name);
+        // Driver.js 1.x requires calling destroy() inside onDestroyStarted to complete the close.
+        // Without this, clicking X intercepts the hook but never actually closes the tour.
+        driverRef.destroy();
       },
       onDestroyed: function(element, step, options) {
         // Check if tour was completed (reached last step)
