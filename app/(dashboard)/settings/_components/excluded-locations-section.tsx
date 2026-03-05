@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, X, Copy, Info, Loader2, Check } from 'lucide-react';
+import { Plus, X, Copy, Info, Loader2, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { addExcludedLocation, removeExcludedLocation } from '../_actions/settings-actions';
 import { HelpTip, helpTips } from '@/components/shared/help-tip';
@@ -49,7 +49,11 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
       toast.success(
         wasUrl
           ? `Location ID extracted and added: ${locationId}`
-          : 'Location added to exclusion list'
+          : 'Location added to exclusion list',
+        {
+          description: 'Remember to re-copy and paste your CSS into GHL\'s White Label Custom CSS field.',
+          duration: 6000,
+        }
       );
     } catch (error) {
       toast.error('Failed to add location', {
@@ -100,6 +104,17 @@ export function ExcludedLocationsSection({ locations: initialLocations }: Exclud
           Add GHL location IDs to exclude them from your customizations. You can paste a full GHL
           URL and we&apos;ll extract the Location ID automatically. Useful for demo accounts,
           test locations, or client accounts that shouldn&apos;t receive your branding.
+        </AlertDescription>
+      </Alert>
+
+      <Alert>
+        <RefreshCw className="h-4 w-4" />
+        <AlertDescription>
+          <strong>After adding or removing a location,</strong> go to{' '}
+          <a href="/settings/embed" className="underline font-medium">Settings → Embed Code</a>{' '}
+          and re-copy your CSS, then paste it into your GHL Agency{' '}
+          <strong>White Label → Custom CSS</strong> field. This ensures excluded locations are
+          properly skipped.
         </AlertDescription>
       </Alert>
 

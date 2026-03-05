@@ -387,28 +387,28 @@ function generateCss(settings: AgencySettings | null, loginDesign?: LoginDesign 
     lines.push('');
 
     if (colors.sidebar_bg) {
-      lines.push('.lead-connector,');
-      lines.push('#sidebar-v2,');
-      lines.push('.sidebar-v2-location,');
-      lines.push(`.hl_nav-location { background-color: ${colors.sidebar_bg} !important; }`);
+      lines.push('.at-active .lead-connector,');
+      lines.push('.at-active #sidebar-v2,');
+      lines.push('.at-active .sidebar-v2-location,');
+      lines.push(`.at-active .hl_nav-location { background-color: ${colors.sidebar_bg} !important; }`);
       lines.push('');
     }
 
     if (colors.sidebar_text) {
-      lines.push('.lead-connector a,');
-      lines.push('#sidebar-v2 a,');
-      lines.push('[id^="sb_"],');
-      lines.push('[id^="sb_"] span.nav-title,');
-      lines.push('[id^="sb_"] span.hl_text-overflow,');
-      lines.push(`.hl_nav-settings a { color: ${colors.sidebar_text} !important; }`);
+      lines.push('.at-active .lead-connector a,');
+      lines.push('.at-active #sidebar-v2 a,');
+      lines.push('.at-active [id^="sb_"],');
+      lines.push('.at-active [id^="sb_"] span.nav-title,');
+      lines.push('.at-active [id^="sb_"] span.hl_text-overflow,');
+      lines.push(`.at-active .hl_nav-settings a { color: ${colors.sidebar_text} !important; }`);
       lines.push('');
     }
 
     if (colors.primary) {
       lines.push('/* Primary Buttons */');
-      lines.push('.btn-primary,');
-      lines.push('.hr-button--primary-type,');
-      lines.push('.n-button--primary-type {');
+      lines.push('.at-active .btn-primary,');
+      lines.push('.at-active .hr-button--primary-type,');
+      lines.push('.at-active .n-button--primary-type {');
       lines.push(`  background-color: ${colors.primary} !important;`);
       lines.push(`  border-color: ${colors.primary} !important;`);
       lines.push('}');
@@ -417,9 +417,9 @@ function generateCss(settings: AgencySettings | null, loginDesign?: LoginDesign 
 
     if (colors.accent) {
       lines.push('/* Accent/Links */');
-      lines.push('a:not(.btn):not([class*="button"]),');
-      lines.push('.text-link,');
-      lines.push(`.hl-text-link { color: ${colors.accent} !important; }`);
+      lines.push('.at-active a:not(.btn):not([class*="button"]),');
+      lines.push('.at-active .text-link,');
+      lines.push(`.at-active .hl-text-link { color: ${colors.accent} !important; }`);
       lines.push('');
     }
   }
@@ -431,7 +431,7 @@ function generateCss(settings: AgencySettings | null, loginDesign?: LoginDesign 
     lines.push('   ----------------------------------------- */');
     lines.push('');
 
-    const hiddenSelectors = settings.menu.hidden_items.map(id => `#${id}`).join(',\n');
+    const hiddenSelectors = settings.menu.hidden_items.map(id => `.at-active #${id}`).join(',\n');
     lines.push(hiddenSelectors + ' { display: none !important; }');
     lines.push('');
   }
@@ -445,16 +445,16 @@ function generateCss(settings: AgencySettings | null, loginDesign?: LoginDesign 
 
     Object.entries(settings.menu.renamed_items).forEach(([itemId, newName]) => {
       lines.push(`/* ${itemId} -> "${newName}" */`);
-      lines.push(`#${itemId} span.nav-title,`);
-      lines.push(`#${itemId} span.hl_text-overflow,`);
-      lines.push(`#${itemId} > span:not(.sr-only) {`);
+      lines.push(`.at-active #${itemId} span.nav-title,`);
+      lines.push(`.at-active #${itemId} span.hl_text-overflow,`);
+      lines.push(`.at-active #${itemId} > span:not(.sr-only) {`);
       lines.push('  font-size: 0 !important;');
       lines.push('  color: transparent !important;');
       lines.push('  letter-spacing: -9999px !important;');
       lines.push('}');
-      lines.push(`#${itemId} span.nav-title::after,`);
-      lines.push(`#${itemId} span.hl_text-overflow::after,`);
-      lines.push(`#${itemId} > span:not(.sr-only)::after {`);
+      lines.push(`.at-active #${itemId} span.nav-title::after,`);
+      lines.push(`.at-active #${itemId} span.hl_text-overflow::after,`);
+      lines.push(`.at-active #${itemId} > span:not(.sr-only)::after {`);
       lines.push(`  content: "${newName}";`);
       lines.push('  font-size: 14px !important;');
       lines.push('  color: inherit !important;');

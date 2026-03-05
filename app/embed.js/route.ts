@@ -5515,8 +5515,14 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         // Check if we should skip
         if (shouldSkipCustomizations(config)) {
           logInfo('Skipping customizations (whitelisted location)');
+          // Remove scoping class in case user navigated from a non-excluded location (SPA)
+          document.body.classList.remove('at-active');
           return;
         }
+
+        // Activate CSS scoping class — global white-label CSS is prefixed with .at-active
+        // so it only applies to non-excluded locations
+        document.body.classList.add('at-active');
 
         // Store config globally for debugging
         window.__AGENCY_TOOLKIT_CONFIG__ = config;
