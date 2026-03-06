@@ -2932,11 +2932,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           });
           console.log('[AgencyToolkit] ✅ Tour completed:', tour.name);
         } else {
-          // User dismissed the tour
+          // User closed the tour mid-way — save progress so it resumes on next visit
           saveTourState(tour.id, {
-            dismissed: true,
-            dismissedAt: Date.now(),
-            dismissedAtStep: options.state.activeIndex
+            in_progress: true,
+            currentStep: options.state.activeIndex,
+            lastClosedAt: Date.now()
           });
           trackTourEvent('tour_dismissed', tour.id, {
             step_index: options.state.activeIndex,
@@ -2946,7 +2946,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           trackCustomerProgress('tour_dismiss', tour.id, {
             step_order: options.state.activeIndex
           });
-          log('Tour dismissed at step', options.state.activeIndex + 1);
+          log('Tour closed at step', options.state.activeIndex + 1, '— will resume next visit');
         }
       }
     });
@@ -2956,9 +2956,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     // Also store on window for upload modal to call moveNext after photo upload
     window.__atDriverInstance = driverInstance;
 
-    // Start the tour after page settles
+    // Start the tour after page settles — resume from saved step if user previously closed mid-tour
     setTimeout(function() {
-      driverInstance.drive();
+      var savedState = getTourState(tour.id);
+      var startStep = (savedState && savedState.in_progress && savedState.currentStep) ? savedState.currentStep : 0;
+      driverInstance.drive(startStep);
     }, settings.delay_ms || 1000);
   }
 
@@ -3684,6 +3686,111 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     }).catch(function(err) {
       log('Failed to track banner event:', err);
     });
+  }
+
+  // ============================================
+  // SELECTOR HEALTH REPORTER
+  // Runs once per page load, 5s after init.
+  // Fire-and-forget — never blocks or throws.
+  // ============================================
+
+  var KNOWN_SELECTORS = [
+    '#sidebar-v2',
+    '.hl_nav-header',
+    '.hl_header',
+    '.hl-header-container',
+    '.hl_main-content',
+    '.hl-right-pane',
+    '.location-layout__content',
+    '.hl-card',
+    '.btn-primary',
+    '.hr-button--primary-type',
+    '.n-button--primary-type',
+    '.hr-input__input-el',
+    '.n-input__input-el'
+  ];
+
+  var KNOWN_MENU_IDS = [
+    'sb_launchpad', 'sb_dashboard', 'sb_conversations', 'sb_calendars',
+    'sb_contacts', 'sb_opportunities', 'sb_payments', 'sb_AI Agents',
+    'sb_email-marketing', 'sb_automation', 'sb_sites', 'sb_memberships',
+    'sb_app-media', 'sb_reputation', 'sb_reporting', 'sb_app-marketplace',
+    'sb_settings'
+  ];
+
+  var KNOWN_BANNER_CLASSES = [
+    'hl-banner-promo', 'branded-banner', 'notification-banner-wrapper',
+    'hl-banner-warning', 'launchpad-connect-card'
+  ];
+
+  var BANNER_CLASS_PATTERN = /promo|banner|warning|announcement|upgrade.?prompt|feature.?announcement|trial.?banner|wordpress/i;
+
+  function reportSelectorHealth() {
+    try {
+      if (!CONFIG_KEY) return;
+      var locationId = getLocationId();
+      if (!locationId) return;
+
+      // Test each known selector
+      var selectorResults = KNOWN_SELECTORS.map(function(sel) {
+        var count = 0;
+        try { count = document.querySelectorAll(sel).length; } catch (e) {}
+        return { selector: sel, matched: count > 0, match_count: count };
+      });
+
+      // Detect unknown sb_* sidebar items
+      var unknownMenuItems = [];
+      var seenMenuIds = {};
+      try {
+        document.querySelectorAll('[id^="sb_"]').forEach(function(el) {
+          var id = el.id;
+          if (id && KNOWN_MENU_IDS.indexOf(id) === -1 && !seenMenuIds[id]) {
+            seenMenuIds[id] = true;
+            unknownMenuItems.push('#' + id);
+          }
+        });
+      } catch (e) {}
+
+      // Detect unknown banner-like class names
+      var unknownBanners = [];
+      var seenBanners = {};
+      try {
+        document.querySelectorAll('[class]').forEach(function(el) {
+          el.classList.forEach(function(cls) {
+            if (seenBanners[cls] || KNOWN_BANNER_CLASSES.indexOf(cls) !== -1) return;
+            if (BANNER_CLASS_PATTERN.test(cls)) {
+              seenBanners[cls] = true;
+              unknownBanners.push('.' + cls);
+            }
+          });
+        });
+      } catch (e) {}
+
+      // Skip report if everything is healthy
+      var hasBroken = selectorResults.some(function(r) { return !r.matched; });
+      if (!hasBroken && unknownMenuItems.length === 0 && unknownBanners.length === 0) {
+        log('Selector health: all OK');
+        return;
+      }
+
+      fetch(API_BASE + '/api/selector-health', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agency_token: CONFIG_KEY,
+          page_url: window.location.href,
+          location_id: locationId,
+          selectors: selectorResults,
+          unknown_menu_items: unknownMenuItems.slice(0, 20),
+          unknown_banners: unknownBanners.slice(0, 20)
+        }),
+        keepalive: true
+      }).catch(function() {});
+
+      log('Selector health report sent', { broken: hasBroken, unknownMenu: unknownMenuItems.length, unknownBanners: unknownBanners.length });
+    } catch (e) {
+      // Never interrupt GHL
+    }
   }
 
   function escapeHtml(text) {
@@ -5602,6 +5709,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
         // Initialize smart tips (contextual tooltips)
         initSmartTips(config);
+
+        // Passive selector health report — 5s delay lets GHL render fully
+        setTimeout(reportSelectorHealth, 5000);
 
         // Mark init as complete
         window.__AT_INIT_COMPLETE__ = true;
