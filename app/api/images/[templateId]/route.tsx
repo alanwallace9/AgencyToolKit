@@ -22,19 +22,18 @@ async function loadGoogleFont(
     return fontCache.get(cacheKey)!;
   }
 
-  // Use Google Fonts v1 API with an old user agent to get TTF format.
-  // Satori (used for text rendering) requires TTF/OTF — woff2 is not supported.
-  const API = `https://fonts.googleapis.com/css?family=${fontName.replace(/ /g, '+')}:${weight}`;
+  // Use old Android user agent to get TTF format from Google Fonts.
+  // Satori requires TTF/OTF — woff2/woff are not supported.
+  const API = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@${weight}`;
 
   const css = await fetch(API, {
     headers: {
-      'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 2.2; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1',
     },
   }).then((res) => res.text());
 
-  // Extract TTF URL — v1 API returns bare URLs (no quotes) with truetype format
-  const match = css.match(/src:\s*url\(['"]?([^'")\s]+)['"]?\)\s*format\(['"]truetype['"]\)/i)
-    ?? css.match(/src:\s*url\(['"]?([^'")\s]+\.ttf[^'")\s]*)['"]?\)/i);
+  // Extract TTF URL — old Android UA returns format('truetype') with .ttf URL
+  const match = css.match(/src: url\((.+?)\) format\('truetype'\)/);
 
   if (!match?.[1]) {
     throw new Error(`Font ${fontName} TTF not found`);
