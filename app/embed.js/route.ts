@@ -2563,7 +2563,8 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     var state = getTourState(tour.id);
 
     // If agency reset tours for this customer, ignore stored state older than the reset
-    if (__tourResetAt && state) {
+    // Only apply to completed/dismissed tours — in-progress tours should resume normally
+    if (__tourResetAt && state && (state.completed || state.dismissed)) {
       var resetTs = new Date(__tourResetAt).getTime();
       var stateTs = state.completedAt || state.dismissedAt || 0;
       if (stateTs < resetTs) {
