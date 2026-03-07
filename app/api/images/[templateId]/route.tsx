@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { Resvg } from '@resvg/resvg-js';
 import type { ImageTemplate } from '@/types/database';
 
 // Use Node.js runtime for Sharp (not Edge)
@@ -377,12 +378,18 @@ export async function GET(
       textDecoration: cfg.text_decoration || 'none',
     });
 
-    // Composite text onto resized image and output as optimized JPEG
+    // Rasterize SVG text overlay to PNG using resvg-js (handles embedded fonts
+    // correctly on Vercel — Sharp's built-in SVG renderer relies on fontconfig
+    // which is not available in the serverless environment)
+    const resvg = new Resvg(textSvg, { fitTo: { mode: 'width', value: width } });
+    const textPng = resvg.render().asPng();
+
+    // Composite text PNG onto resized image and output as optimized JPEG
     // Target: ~75-80KB for email/mobile use
     const outputBuffer = await sharp(resizedBuffer)
       .composite([
         {
-          input: textSvg,
+          input: textPng,
           top: 0,
           left: 0,
         },
