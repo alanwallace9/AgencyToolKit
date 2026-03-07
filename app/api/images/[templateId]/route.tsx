@@ -21,29 +21,27 @@ async function loadGoogleFont(
     return fontCache.get(cacheKey)!;
   }
 
-  // Fetch CSS from Google Fonts API using old user agent to get TTF format.
-  // resvg-js (used for server-side SVG rendering) supports TTF/OTF in @font-face
-  // data URIs but not woff2.
+  // Fetch CSS from Google Fonts API
   const API = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@${weight}`;
 
   const css = await fetch(API, {
     headers: {
-      'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
+      // Use modern Chrome user agent to get woff2 (smaller file size)
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     },
   }).then((res) => res.text());
 
-  // Extract TTF font URL
-  let fontUrl = css.match(/src: url\((.+?)\) format\('truetype'\)/)?.[1];
-  let format = 'truetype';
+  // Extract font URL - prefer woff2 for smaller size
+  let fontUrl = css.match(/src: url\((.+?)\) format\('woff2'\)/)?.[1];
+  let format = 'woff2';
 
-  // Fallback: try bare url() with no format hint (some older CSS responses)
   if (!fontUrl) {
-    fontUrl = css.match(/src: url\(([^)]+\.ttf[^)]*)\)/)?.[1];
-    format = 'truetype';
+    fontUrl = css.match(/src: url\((.+?)\) format\('woff'\)/)?.[1];
+    format = 'woff';
   }
 
   if (!fontUrl) {
-    throw new Error(`Font ${fontName} TTF not found`);
+    throw new Error(`Font ${fontName} not found`);
   }
 
   // Fetch font file
@@ -175,7 +173,7 @@ function createTextSvg(
 
   // Build font-face with embedded font
   const fontBase64 = config.fontData.toString('base64');
-  const fontMime = config.fontFormat === 'truetype' ? 'font/ttf' : config.fontFormat === 'woff2' ? 'font/woff2' : 'font/woff';
+  const fontMime = config.fontFormat === 'woff2' ? 'font/woff2' : 'font/woff';
 
   // Build background rect if needed
   const hasBg = config.backgroundColor && config.backgroundColor !== 'transparent';
