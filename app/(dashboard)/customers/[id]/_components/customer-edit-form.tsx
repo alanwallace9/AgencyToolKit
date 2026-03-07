@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Copy, Check, ArrowLeft } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 import { Customer } from '@/types/database';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,16 +75,6 @@ export function CustomerEditForm({ customer, baseUrl, agencyToken }: CustomerEdi
 
   return (
     <div className="space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.push('/customers')}
-        className="mb-2"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Customers
-      </Button>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Two-column layout for cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

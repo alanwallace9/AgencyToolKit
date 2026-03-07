@@ -1,7 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { getCurrentAgency } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PageHeader } from '@/components/shared/page-header';
+import { Button } from '@/components/ui/button';
 import { CustomerEditForm } from './_components/customer-edit-form';
 import { CustomerPhotoGallery } from './_components/customer-photo-gallery';
 import { TourProgressCard } from './_components/tour-progress-card';
@@ -108,6 +111,12 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
         title={customer.name}
         description="Customer details and onboarding progress"
       />
+      <Button variant="ghost" size="sm" asChild className="-mt-2 mb-2">
+        <Link href="/customers">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Customers
+        </Link>
+      </Button>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column - Customer details (2/3 width on large screens) */}
         <div className="lg:col-span-2 space-y-6">

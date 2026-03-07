@@ -8,6 +8,41 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-03-07 — GHL Selector Health Monitor + Customer Tour Reset
+
+### What I did
+- **Built GHL Selector Health Monitor** (all 10 steps):
+  - `types/database.ts` — added `ghl_webhook_url` to `AgencySettings`, new `SelectorHealthEvent` + `SelectorUnknownItem` types
+  - `lib/constants.ts` — added `GHL_KNOWN_CSS_SELECTORS` (13 selectors) + `GHL_KNOWN_BANNER_CLASSES`
+  - `proxy.ts` — added `/api/selector-health(.*)` to public routes
+  - DB migration applied via Supabase MCP — `selector_health_events` + `selector_unknown_items` tables live
+  - `/api/selector-health/route.ts` — stores all events (not just broken), upserts unknown items, fires GHL webhook on first new detection
+  - `health-actions.ts` — server actions for health summary, acknowledge, save webhook URL
+  - `ghl-health-client.tsx` — selector status table, unknown items with Acknowledge button, Copy Fix Prompt box, GHL webhook URL field
+  - `admin/page.tsx` — updated to render health section below feedback section
+  - `embed.js` — `reportSelectorHealth()` fires 5s after init, once per session (sessionStorage gate), always reports so "last checked" stays current
+  - `vercel.json` + `/api/cron/selector-health/route.ts` — 5am daily digest cron
+- **Fixed embed health reporter** — initial version skipped report when everything healthy (caused admin panel to always show dashes). Fixed to always send, rate-limited to once per session per location.
+- **Built Customer Tour Reset**:
+  - DB migration — `tour_reset_at timestamptz` column added to `customers` table
+  - `customer-actions.ts` — `resetCustomerTours()` server action sets `tour_reset_at = now()`
+  - `TourProgressCard` — added "Reset Tours" button with loading state and toast feedback
+  - `/api/config` — includes `customer_resets` map (keyed by `ghl_location_id`) at zero extra query cost
+  - `embed.js` — `shouldShowTour()` checks `__tourResetAt` against stored completion/dismissal timestamps; tours replay if reset is newer
+- **Commit**: `9836f1b` pushed to main
+
+### What's next
+- **Investigate why Reset Tours button isn't visible on customer detail page** — user confirmed they're on Pro plan, button should be showing. The `hasTours` gate requires `agency.plan === 'pro' && allTours.length > 0`. Need to check if any tours are marked `is_active = true` in the DB for this agency — the query uses `is_active` which may be a legacy field vs `status = 'live'`.
+- Verify GHL selector health reports are arriving after embed fix (check Supabase `selector_health_events` table)
+- Test Copy Fix Prompt box appears when issues are detected
+- Add `CRON_SECRET` to Vercel env vars for 5am cron to work
+
+### Blockers
+- Reset Tours button not rendering on customer detail page despite Pro plan — likely a DB query issue (`is_active` vs `status` field mismatch on tours query in `customers/[id]/page.tsx` line 76-78)
+
+### Cross-project notes
+- None
+
 ## 2026-03-05 — GHL CSS Exclusion Fix + Selector Health Monitor Spec
 
 ### What I did
