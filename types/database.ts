@@ -35,6 +35,8 @@ export interface AgencySettings {
   saved_widget_themes?: SavedWidgetTheme[];
   // Photo upload settings
   photo_uploads?: PhotoUploadSettings;
+  // GHL inbound webhook URL for selector health alerts
+  ghl_webhook_url?: string;
 }
 
 export interface CustomMenuLink {
@@ -274,6 +276,7 @@ export interface Customer {
   settings: Record<string, unknown>;
   is_active: boolean;
   photo_count: number;
+  tour_reset_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1268,3 +1271,31 @@ export const DEFAULT_PHOTO_UPLOAD_SETTINGS: PhotoUploadSettings = {
   notify_on_upload: true,
   notification_method: 'in_app',
 };
+
+// ============================================
+// SELECTOR HEALTH MONITOR TYPES
+// ============================================
+
+export interface SelectorHealthEvent {
+  id: string;
+  agency_id: string;
+  selector: string;
+  matched: boolean;
+  match_count: number;
+  page_url: string | null;
+  location_id: string | null;
+  created_at: string;
+}
+
+export type UnknownItemType = 'menu_item' | 'banner';
+
+export interface SelectorUnknownItem {
+  id: string;
+  agency_id: string;
+  item_type: UnknownItemType;
+  identifier: string;
+  first_seen: string;
+  last_seen: string;
+  seen_count: number;
+  acknowledged: boolean;
+}

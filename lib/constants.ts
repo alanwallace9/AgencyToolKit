@@ -242,3 +242,34 @@ export const PLANS = {
 } as const;
 
 export type PlanId = keyof typeof PLANS;
+
+// ============================================
+// GHL SELECTOR HEALTH MONITOR
+// ============================================
+
+// CSS selectors our embed script uses — tracked for breakage detection
+export const GHL_KNOWN_CSS_SELECTORS = [
+  { selector: '#sidebar-v2', description: 'Sidebar container', files: ['app/embed.js/route.ts'] },
+  { selector: '.hl_nav-header', description: 'Sidebar nav header', files: ['app/embed.js/route.ts', 'app/(dashboard)/settings/_components/css-export-card.tsx'] },
+  { selector: '.hl_header', description: 'Top navigation bar', files: ['app/embed.js/route.ts'] },
+  { selector: '.hl-header-container', description: 'Header container', files: ['app/embed.js/route.ts'] },
+  { selector: '.hl_main-content', description: 'Main content area', files: ['app/embed.js/route.ts'] },
+  { selector: '.hl-right-pane', description: 'Right content pane', files: ['app/embed.js/route.ts'] },
+  { selector: '.location-layout__content', description: 'Location layout content', files: ['app/embed.js/route.ts'] },
+  { selector: '.hl-card', description: 'Card component', files: ['app/embed.js/route.ts'] },
+  { selector: '.btn-primary', description: 'Primary button', files: ['app/embed.js/route.ts'] },
+  { selector: '.hr-button--primary-type', description: 'GHL primary button (hr prefix)', files: ['app/embed.js/route.ts'] },
+  { selector: '.n-button--primary-type', description: 'GHL primary button (n prefix)', files: ['app/embed.js/route.ts'] },
+  { selector: '.hr-input__input-el', description: 'Input field (hr prefix)', files: ['app/embed.js/route.ts'] },
+  { selector: '.n-input__input-el', description: 'Input field (n prefix)', files: ['app/embed.js/route.ts'] },
+] as const;
+
+// GHL banner/notification class names we handle via hide rules
+// Unknown classes matching a banner pattern will trigger an alert
+export const GHL_KNOWN_BANNER_CLASSES = [
+  'hl-banner-promo',
+  'branded-banner',
+  'notification-banner-wrapper',
+  'hl-banner-warning',
+  'launchpad-connect-card',
+] as const;

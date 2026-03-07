@@ -1,7 +1,8 @@
 'use client';
 
+import * as React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, Circle, ChevronRight, BadgeCheck } from 'lucide-react';
+import { Check, Circle, ChevronRight, BadgeCheck, RotateCcw } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -10,12 +11,15 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { resetCustomerTours } from '../../_actions/customer-actions';
 
 interface StepProgress {
   step_id?: string;
@@ -43,35 +47,63 @@ interface TourProgress {
 
 interface TourProgressCardProps {
   tourProgress: TourProgress[];
+  customerId: string;
+  tourResetAt: string | null;
 }
 
-export function TourProgressCard({ tourProgress }: TourProgressCardProps) {
-  if (tourProgress.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Onboarding Progress</CardTitle>
-          <CardDescription>Track tour completion</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No tour activity yet. Progress will appear here once the customer starts a tour.
-          </p>
-        </CardContent>
-      </Card>
-    );
+export function TourProgressCard({ tourProgress, customerId, tourResetAt }: TourProgressCardProps) {
+  const [resetting, setResetting] = React.useState(false);
+
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const result = await resetCustomerTours(customerId);
+      if (result.success) {
+        toast.success('Tours reset — they will replay next time this customer loads GHL');
+      } else {
+        toast.error(result.error || 'Failed to reset tours');
+      }
+    } finally {
+      setResetting(false);
+    }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Onboarding Progress</CardTitle>
-        <CardDescription>Track tour completion</CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle>Onboarding Progress</CardTitle>
+            <CardDescription>Track tour completion</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            disabled={resetting}
+            className="flex-shrink-0"
+            title="Reset all tours so they replay on next GHL login"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+            Reset Tours
+          </Button>
+        </div>
+        {tourResetAt && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Last reset {formatDistanceToNow(new Date(tourResetAt), { addSuffix: true })}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {tourProgress.map((progress) => (
-          <TourProgressItem key={progress.id} progress={progress} />
-        ))}
+        {tourProgress.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No tour activity yet. Progress will appear here once the customer starts a tour.
+          </p>
+        ) : (
+          tourProgress.map((progress) => (
+            <TourProgressItem key={progress.id} progress={progress} />
+          ))
+        )}
       </CardContent>
     </Card>
   );

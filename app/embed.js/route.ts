@@ -2561,6 +2561,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
 
     // Check if tour was completed
     var state = getTourState(tour.id);
+
+    // If agency reset tours for this customer, ignore stored state older than the reset
+    if (__tourResetAt && state) {
+      var resetTs = new Date(__tourResetAt).getTime();
+      var stateTs = state.completedAt || state.dismissedAt || 0;
+      if (stateTs < resetTs) {
+        log('Tour reset by agency — replaying:', tour.name);
+        state = null;
+      }
+    }
+
     if (state && state.completed) {
       var repeatAfter = settings.repeat_after_days;
       if (!repeatAfter) {
@@ -2965,9 +2976,21 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
   }
 
   // Initialize production tours from config
+  // Set when initProductionTours runs — ISO timestamp or null
+  // If set and newer than stored tour completion/dismissal, tours replay
+  var __tourResetAt = null;
+
   function initProductionTours(config) {
     var tours = config.tours || [];
     var themes = config.guidely_themes || [];
+
+    // Capture reset timestamp for this specific location (if agency set one)
+    var locationId = getLocationId();
+    var resets = config.customer_resets || {};
+    __tourResetAt = (locationId && resets[locationId]) ? resets[locationId] : null;
+    if (__tourResetAt) {
+      log('Tour reset timestamp found for this location:', __tourResetAt);
+    }
 
     if (tours.length === 0) {
       log('No live tours configured');
@@ -3766,12 +3789,17 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         });
       } catch (e) {}
 
-      // Skip report if everything is healthy
+      // Rate-limit: only send one report per browser session to avoid noise on SPA navigation
+      var HEALTH_SESSION_KEY = 'at_health_reported_' + locationId;
+      try {
+        if (sessionStorage.getItem(HEALTH_SESSION_KEY)) {
+          log('Selector health: already reported this session');
+          return;
+        }
+        sessionStorage.setItem(HEALTH_SESSION_KEY, '1');
+      } catch (e) {}
+
       var hasBroken = selectorResults.some(function(r) { return !r.matched; });
-      if (!hasBroken && unknownMenuItems.length === 0 && unknownBanners.length === 0) {
-        log('Selector health: all OK');
-        return;
-      }
 
       fetch(API_BASE + '/api/selector-health', {
         method: 'POST',

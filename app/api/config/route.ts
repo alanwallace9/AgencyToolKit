@@ -158,6 +158,22 @@ export async function GET(request: Request) {
       (tip: { status: string }) => tip.status === 'live'
     );
 
+    // Get customer tour reset timestamps (keyed by ghl_location_id)
+    // Embed script uses this to replay tours when you reset from the admin panel
+    const { data: customerResets } = await supabase
+      .from('customers')
+      .select('ghl_location_id, tour_reset_at')
+      .eq('agency_id', agency.id)
+      .not('ghl_location_id', 'is', null)
+      .not('tour_reset_at', 'is', null);
+
+    const tourResetMap: Record<string, string> = {};
+    for (const c of customerResets || []) {
+      if (c.ghl_location_id && c.tour_reset_at) {
+        tourResetMap[c.ghl_location_id] = c.tour_reset_at;
+      }
+    }
+
     // Get the default menu preset config
     const defaultPreset = (agency.menu_presets || []).find(
       (preset: { is_default: boolean }) => preset.is_default
@@ -384,6 +400,8 @@ export async function GET(request: Request) {
         schedule: banner.schedule || { mode: 'always' },
         trial_triggers: banner.trial_triggers || { days_remaining: 7 },
       })),
+      // Customer tour reset timestamps — embed uses these to replay tours after agency reset
+      customer_resets: tourResetMap,
       // Smart Tips for contextual tooltips
       smart_tips: liveSmartTips.map((tip: {
         id: string;

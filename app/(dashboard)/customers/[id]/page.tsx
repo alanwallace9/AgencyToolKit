@@ -132,7 +132,11 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
         {/* Right column - Tour progress (1/3 width on large screens) */}
         {hasTours && (
           <div className="lg:col-span-1">
-            <TourProgressCard tourProgress={tourProgress} />
+            <TourProgressCard
+              tourProgress={tourProgress}
+              customerId={customer.id}
+              tourResetAt={customer.tour_reset_at ?? null}
+            />
           </div>
         )}
       </div>

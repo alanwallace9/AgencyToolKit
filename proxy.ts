@@ -13,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/tours/analytics(.*)',  // Tour analytics from embed script (public)
   '/api/track(.*)',  // Progress tracking from embed script (public)
   '/api/photos(.*)',  // Photo upload from embed script (public)
+  '/api/selector-health(.*)',  // Selector health reports from embed script (public)
   '/embed.js(.*)',
   '/ts.js(.*)',  // TrustSignal embed script
   '/api/images(.*)',

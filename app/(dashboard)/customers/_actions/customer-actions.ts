@@ -146,3 +146,26 @@ export async function deleteCustomer(customerId: string): Promise<ActionResult> 
     return { success: false, error: 'Failed to delete customer' };
   }
 }
+
+export async function resetCustomerTours(customerId: string): Promise<ActionResult> {
+  try {
+    const agency = await getCurrentAgency();
+    if (!agency) return { success: false, error: 'Unauthorized' };
+
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from('customers')
+      .update({ tour_reset_at: new Date().toISOString() })
+      .eq('id', customerId)
+      .eq('agency_id', agency.id);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath(`/customers/${customerId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error resetting customer tours:', error);
+    return { success: false, error: 'Failed to reset tours' };
+  }
+}
