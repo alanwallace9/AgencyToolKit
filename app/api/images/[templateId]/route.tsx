@@ -381,7 +381,7 @@ export async function GET(
     // Rasterize SVG text overlay to PNG using resvg-js (handles embedded fonts
     // correctly on Vercel — Sharp's built-in SVG renderer relies on fontconfig
     // which is not available in the serverless environment)
-    const resvg = new Resvg(textSvg, { fitTo: { mode: 'width', value: width } });
+    const resvg = new Resvg(textSvg.toString('utf-8'), { fitTo: { mode: 'width', value: width } });
     const textPng = resvg.render().asPng();
 
     // Composite text PNG onto resized image and output as optimized JPEG
