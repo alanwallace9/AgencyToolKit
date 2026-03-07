@@ -372,7 +372,7 @@ export async function GET(
       fontData: fontData.data,
       fontFormat: fontData.format,
       color: cfg.color || '#FFFFFF',
-      backgroundColor: cfg.background_color ?? '#ffffff',
+      backgroundColor: cfg.background_color,
       padding: Math.round((cfg.padding ?? 12) * scaleFactor),
       fontStyle: cfg.font_style || 'normal',
       textDecoration: cfg.text_decoration || 'none',
