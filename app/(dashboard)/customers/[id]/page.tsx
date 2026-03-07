@@ -11,12 +11,6 @@ interface CustomerEditPageProps {
   params: Promise<{ id: string }>;
 }
 
-interface Tour {
-  id: string;
-  name: string;
-  steps: { title: string; order: number }[];
-}
-
 interface ProgressRecord {
   id: string;
   tour_id: string;
@@ -26,7 +20,7 @@ interface ProgressRecord {
   started_at: string | null;
   completed_at: string | null;
   last_activity_at: string | null;
-  tours: Tour;
+  tours: { id: string; name: string; steps: { title: string; order: number }[] };
 }
 
 export default async function CustomerEditPage({ params }: CustomerEditPageProps) {
@@ -40,7 +34,7 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
   const supabase = createAdminClient();
 
   // Fetch customer, photos, and tour progress in parallel
-  const [customerResult, photosResult, progressResult, toursResult] = await Promise.all([
+  const [customerResult, photosResult, progressResult] = await Promise.all([
     supabase
       .from('customers')
       .select('*')
@@ -70,11 +64,6 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
         )
       `)
       .eq('customer_id', id),
-    supabase
-      .from('tours')
-      .select('id, name, steps')
-      .eq('agency_id', agency.id)
-      .eq('is_active', true),
   ]);
 
   if (customerResult.error || !customerResult.data) {
@@ -84,7 +73,6 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
   const customer = customerResult.data;
   const photos = (photosResult.data || []) as CustomerPhoto[];
   const progressRecords = (progressResult.data || []) as unknown as ProgressRecord[];
-  const allTours = (toursResult.data || []) as Tour[];
 
   // Format tour progress for display
   const tourProgress = progressRecords.map((record) => {
@@ -111,8 +99,8 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
   // Get base URL for GBP dashboard link
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Check if agency has Pro plan (tours are Pro-only)
-  const hasTours = agency.plan === 'pro' && allTours.length > 0;
+  // Show tour progress card for Pro plan agencies
+  const hasTours = agency.plan === 'pro';
 
   return (
     <>
