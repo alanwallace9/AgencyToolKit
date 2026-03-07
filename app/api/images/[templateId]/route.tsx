@@ -277,7 +277,7 @@ export async function GET(
     // Generate text overlay SVG using Satori — handles custom fonts natively
     // via ArrayBuffer, no fontconfig dependency
     const textSvg = await satori(
-      <div style={{ display: 'flex', width, height, position: 'relative' }}>
+      <div style={{ display: 'flex', width, height }}>
         <div style={{
           position: 'absolute',
           left: boxLeft,
@@ -287,8 +287,8 @@ export async function GET(
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: hasBg ? (cfg.background_color as string) : undefined,
-          borderRadius: hasBg ? Math.min(scaledPadding, 16) : undefined,
+          backgroundColor: hasBg ? (cfg.background_color as string) : 'transparent',
+          borderRadius: hasBg ? Math.min(scaledPadding, 16) : 0,
           padding: hasBg ? scaledPadding : 0,
         }}>
           <span style={{
@@ -299,7 +299,6 @@ export async function GET(
             textAlign: 'center',
             fontStyle: (cfg.font_style as 'normal' | 'italic') || 'normal',
             textDecoration: cfg.text_decoration === 'underline' ? 'underline' : 'none',
-            textShadow: !hasBg ? '0px 2px 4px rgba(0,0,0,0.5)' : undefined,
           }}>
             {displayText}
           </span>
