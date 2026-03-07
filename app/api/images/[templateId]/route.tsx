@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { Resvg } from '@resvg/resvg-js';
+import satori from 'satori';
 import type { ImageTemplate } from '@/types/database';
 
 // Use Node.js runtime for Sharp (not Edge)
@@ -138,109 +139,6 @@ function calculateFontSize(
   return baseSize;
 }
 
-/**
- * Create SVG text overlay with embedded font
- */
-function createTextSvg(
-  text: string,
-  width: number,
-  height: number,
-  config: {
-    x: number; // percentage
-    y: number; // percentage
-    boxWidth: number; // percentage
-    boxHeight: number; // percentage
-    fontSize: number;
-    fontFamily: string;
-    fontData: Buffer;
-    fontFormat: string;
-    color: string;
-    backgroundColor?: string | null;
-    padding?: number;
-    fontStyle?: 'normal' | 'italic';
-    textDecoration?: 'none' | 'underline';
-  }
-): Buffer {
-  // Convert percentages to pixels
-  const centerX = (config.x / 100) * width;
-  const centerY = (config.y / 100) * height;
-  const boxWidthPx = (config.boxWidth / 100) * width;
-  const boxHeightPx = (config.boxHeight / 100) * height;
-  const padding = config.padding || 12;
-
-  // Calculate font size with auto-shrink (matches editor calculation)
-  const fontSize = calculateFontSize(config.fontSize, boxWidthPx, text, padding);
-
-  // Build font-face with embedded font
-  const fontBase64 = config.fontData.toString('base64');
-  const fontMime = config.fontFormat === 'woff2' ? 'font/woff2' : 'font/woff';
-
-  // Build background rect if needed
-  const hasBg = config.backgroundColor && config.backgroundColor !== 'transparent';
-
-  // Use configured box dimensions (matches editor behavior)
-  const bgWidth = boxWidthPx;
-  const bgHeight = boxHeightPx;
-  const bgX = centerX - bgWidth / 2;
-  const bgY = centerY - bgHeight / 2;
-  const borderRadius = Math.min(padding, 16);
-
-  const backgroundRect = hasBg
-    ? `<rect x="${bgX}" y="${bgY}" width="${bgWidth}" height="${bgHeight}" rx="${borderRadius}" fill="${config.backgroundColor}" />`
-    : '';
-
-  // Text shadow for readability (when no background)
-  const textShadow = !hasBg
-    ? `<filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.5)" />
-      </filter>`
-    : '';
-  const filterAttr = !hasBg ? 'filter="url(#shadow)"' : '';
-
-  const svg = `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <style>
-          @font-face {
-            font-family: '${config.fontFamily}';
-            src: url('data:${fontMime};base64,${fontBase64}') format('${config.fontFormat}');
-            font-weight: 700;
-            font-style: normal;
-          }
-        </style>
-        ${textShadow}
-      </defs>
-      ${backgroundRect}
-      <text
-        x="${centerX}"
-        y="${centerY}"
-        text-anchor="middle"
-        dominant-baseline="central"
-        font-family="${config.fontFamily}"
-        font-size="${fontSize}"
-        font-weight="700"
-        font-style="${config.fontStyle || 'normal'}"
-        text-decoration="${config.textDecoration || 'none'}"
-        fill="${config.color}"
-        ${filterAttr}
-      >${escapeXml(text)}</text>
-    </svg>
-  `;
-
-  return Buffer.from(svg);
-}
-
-/**
- * Escape special XML characters
- */
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
 
 export async function GET(
   request: Request,
@@ -361,27 +259,65 @@ export async function GET(
     const scaleFactor = width / EDITOR_CANVAS_WIDTH;
     const scaledFontSize = Math.round((cfg.size || 32) * scaleFactor);
 
-    // Create text overlay SVG at resized dimensions
-    const textSvg = createTextSvg(displayText, width, height, {
-      x: cfg.x || 50,
-      y: cfg.y || 50,
-      boxWidth: cfg.width || 40,
-      boxHeight: cfg.height || 10,
-      fontSize: scaledFontSize,
-      fontFamily: fontName,
-      fontData: fontData.data,
-      fontFormat: fontData.format,
-      color: cfg.color || '#FFFFFF',
-      backgroundColor: cfg.background_color,
-      padding: Math.round((cfg.padding ?? 12) * scaleFactor),
-      fontStyle: cfg.font_style || 'normal',
-      textDecoration: cfg.text_decoration || 'none',
-    });
+    // Convert percentages to pixels for text box positioning
+    const cfgX = cfg.x || 50;
+    const cfgY = cfg.y || 50;
+    const boxW = cfg.width || 40;
+    const boxH = cfg.height || 10;
+    const scaledPadding = Math.round((cfg.padding ?? 12) * scaleFactor);
+    const hasBg = cfg.background_color && cfg.background_color !== 'transparent';
+    const boxWidthPx = Math.round((boxW / 100) * width);
+    const boxHeightPx = Math.round((boxH / 100) * height);
+    const boxLeft = Math.round(((cfgX - boxW / 2) / 100) * width);
+    const boxTop = Math.round(((cfgY - boxH / 2) / 100) * height);
+    const finalFontSize = calculateFontSize(scaledFontSize, boxWidthPx, displayText, scaledPadding);
 
-    // Rasterize SVG text overlay to PNG using resvg-js (handles embedded fonts
-    // correctly on Vercel — Sharp's built-in SVG renderer relies on fontconfig
-    // which is not available in the serverless environment)
-    const resvg = new Resvg(textSvg.toString('utf-8'), { fitTo: { mode: 'width', value: width } });
+    // Convert Buffer to ArrayBuffer for Satori
+    const fontArrayBuffer = fontData.data.buffer.slice(
+      fontData.data.byteOffset,
+      fontData.data.byteOffset + fontData.data.byteLength
+    ) as ArrayBuffer;
+
+    // Generate text overlay SVG using Satori — handles custom fonts natively
+    // via ArrayBuffer, no fontconfig dependency
+    const textSvg = await satori(
+      <div style={{ display: 'flex', width, height, position: 'relative' }}>
+        <div style={{
+          position: 'absolute',
+          left: boxLeft,
+          top: boxTop,
+          width: boxWidthPx,
+          height: boxHeightPx,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: hasBg ? (cfg.background_color as string) : undefined,
+          borderRadius: hasBg ? Math.min(scaledPadding, 16) : undefined,
+          padding: hasBg ? scaledPadding : 0,
+        }}>
+          <span style={{
+            fontFamily: fontName,
+            fontSize: finalFontSize,
+            fontWeight: 700,
+            color: cfg.color || '#FFFFFF',
+            textAlign: 'center',
+            fontStyle: (cfg.font_style as 'normal' | 'italic') || 'normal',
+            textDecoration: cfg.text_decoration === 'underline' ? 'underline' : 'none',
+            textShadow: !hasBg ? '0px 2px 4px rgba(0,0,0,0.5)' : undefined,
+          }}>
+            {displayText}
+          </span>
+        </div>
+      </div>,
+      {
+        width,
+        height,
+        fonts: [{ name: fontName, data: fontArrayBuffer, weight: 700, style: 'normal' }],
+      }
+    );
+
+    // Rasterize Satori SVG to PNG using resvg-js (text is already paths, no font loading needed)
+    const resvg = new Resvg(textSvg, { fitTo: { mode: 'width', value: width } });
     const textPng = resvg.render().asPng();
 
     // Composite text PNG onto resized image and output as optimized JPEG
