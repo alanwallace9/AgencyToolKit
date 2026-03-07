@@ -22,32 +22,29 @@ async function loadGoogleFont(
     return fontCache.get(cacheKey)!;
   }
 
-  // Fetch CSS from Google Fonts API
-  const API = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@${weight}`;
+  // Use Google Fonts v1 API with an old user agent to get TTF format.
+  // Satori (used for text rendering) requires TTF/OTF — woff2 is not supported.
+  const API = `https://fonts.googleapis.com/css?family=${fontName.replace(/ /g, '+')}:${weight}`;
 
   const css = await fetch(API, {
     headers: {
-      // Use modern Chrome user agent to get woff2 (smaller file size)
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
     },
   }).then((res) => res.text());
 
-  // Extract font URL - prefer woff2 for smaller size
-  let fontUrl = css.match(/src: url\((.+?)\) format\('woff2'\)/)?.[1];
-  let format = 'woff2';
+  // Extract TTF URL — v1 API returns bare URLs (no quotes) with truetype format
+  const match = css.match(/src:\s*url\(['"]?([^'")\s]+)['"]?\)\s*format\(['"]truetype['"]\)/i)
+    ?? css.match(/src:\s*url\(['"]?([^'")\s]+\.ttf[^'")\s]*)['"]?\)/i);
 
-  if (!fontUrl) {
-    fontUrl = css.match(/src: url\((.+?)\) format\('woff'\)/)?.[1];
-    format = 'woff';
+  if (!match?.[1]) {
+    throw new Error(`Font ${fontName} TTF not found`);
   }
 
-  if (!fontUrl) {
-    throw new Error(`Font ${fontName} not found`);
-  }
+  const fontUrl = match[1];
 
   // Fetch font file
   const fontBuffer = await fetch(fontUrl).then((res) => res.arrayBuffer());
-  const result = { data: Buffer.from(fontBuffer), format };
+  const result = { data: Buffer.from(fontBuffer), format: 'truetype' };
 
   fontCache.set(cacheKey, result);
   return result;
