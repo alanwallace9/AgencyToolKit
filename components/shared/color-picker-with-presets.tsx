@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ChevronDown, Palette, Star, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,10 +147,12 @@ export function ColorPickerWithPresets({
   const parsedInitial = parseColor(value);
   const [inputValue, setInputValue] = useState(parsedInitial.hex);
   const [opacity, setOpacity] = useState(parsedInitial.opacity);
+  const [prevValue, setPrevValue] = useState(value);
   const [isPresetOpen, setIsPresetOpen] = useState(false);
 
-  // Sync input when value prop changes
-  useEffect(() => {
+  // Sync input when value prop changes (inline during render, not in an effect)
+  if (value !== prevValue) {
+    setPrevValue(value);
     const parsed = parseColor(value);
     if (parsed.hex !== inputValue) {
       setInputValue(parsed.hex);
@@ -158,7 +160,7 @@ export function ColorPickerWithPresets({
     if (parsed.opacity !== opacity) {
       setOpacity(parsed.opacity);
     }
-  }, [value]);
+  }
 
   // Helper to emit color change with current opacity
   const emitColorChange = (hex: string, newOpacity?: number) => {
@@ -455,6 +457,25 @@ export function ThemeSelector({
   );
 }
 
+// Color swatch button used inside ThemeColorSwatchPicker
+function ColorSwatch({ color, colorLabel, onColorSelect }: { color: string; colorLabel: string; onColorSelect: (color: string) => void }) {
+  return (
+    <button
+      onClick={() => onColorSelect(color)}
+      className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent/50 transition-colors"
+    >
+      <div
+        className="w-8 h-8 rounded-md border border-border flex-shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      <div className="flex-1 text-left">
+        <p className="text-sm font-medium">{colorLabel}</p>
+        <p className="text-xs text-muted-foreground font-mono">{color}</p>
+      </div>
+    </button>
+  );
+}
+
 // Component that lets user pick a specific color from a theme
 // Shows themes, then expands to show individual color swatches
 export function ThemeColorSwatchPicker({
@@ -488,23 +509,6 @@ export function ThemeColorSwatchPicker({
     setSelectedTheme(null);
     setSelectedThemeName('');
   };
-
-  // Color swatch with label
-  const ColorSwatch = ({ color, colorLabel }: { color: string; colorLabel: string }) => (
-    <button
-      onClick={() => handleColorSelect(color)}
-      className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent/50 transition-colors"
-    >
-      <div
-        className="w-8 h-8 rounded-md border border-border flex-shrink-0"
-        style={{ backgroundColor: color }}
-      />
-      <div className="flex-1 text-left">
-        <p className="text-sm font-medium">{colorLabel}</p>
-        <p className="text-xs text-muted-foreground font-mono">{color}</p>
-      </div>
-    </button>
-  );
 
   return (
     <Popover open={isOpen} onOpenChange={(open) => {
@@ -540,10 +544,10 @@ export function ThemeColorSwatchPicker({
               <p className="text-xs text-muted-foreground">Click a color to apply</p>
             </div>
             <div className="space-y-1">
-              <ColorSwatch color={selectedTheme.primary} colorLabel="Primary" />
-              <ColorSwatch color={selectedTheme.accent} colorLabel="Accent" />
-              <ColorSwatch color={selectedTheme.sidebar_bg} colorLabel="Background" />
-              <ColorSwatch color={selectedTheme.sidebar_text} colorLabel="Text" />
+              <ColorSwatch color={selectedTheme.primary} colorLabel="Primary" onColorSelect={handleColorSelect} />
+              <ColorSwatch color={selectedTheme.accent} colorLabel="Accent" onColorSelect={handleColorSelect} />
+              <ColorSwatch color={selectedTheme.sidebar_bg} colorLabel="Background" onColorSelect={handleColorSelect} />
+              <ColorSwatch color={selectedTheme.sidebar_text} colorLabel="Text" onColorSelect={handleColorSelect} />
             </div>
           </div>
         ) : (

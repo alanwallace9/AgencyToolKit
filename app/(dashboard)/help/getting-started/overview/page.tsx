@@ -89,12 +89,12 @@ export default function OverviewPage() {
       </CodeBlock>
 
       <p>
-        You'll find your personalized embed code in <strong>Settings → Embed Code</strong>.
+        You&apos;ll find your personalized embed code in <strong>Settings → Embed Code</strong>.
       </p>
 
       <Callout type="info">
         The embed script is lightweight (~5KB) and loads asynchronously,
-        so it won't slow down your GHL pages.
+        so it won&apos;t slow down your GHL pages.
       </Callout>
     </ArticleLayout>
   );

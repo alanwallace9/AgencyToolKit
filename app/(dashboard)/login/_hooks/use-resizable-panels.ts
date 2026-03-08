@@ -81,6 +81,7 @@ export function useResizablePanels(config: Partial<ResizablePanelsConfig> = {}) 
   const isDraggingRef = useRef<'left' | 'right' | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Save to localStorage on change
   useEffect(() => {
@@ -96,6 +97,7 @@ export function useResizablePanels(config: Partial<ResizablePanelsConfig> = {}) 
     isDraggingRef.current = side;
     startXRef.current = clientX;
     startWidthRef.current = side === 'left' ? panelState.leftWidth : panelState.rightWidth;
+    setIsDragging(true);
 
     // Add cursor style to body
     document.body.style.cursor = 'col-resize';
@@ -129,6 +131,7 @@ export function useResizablePanels(config: Partial<ResizablePanelsConfig> = {}) 
   // Stop dragging
   const stopDrag = useCallback(() => {
     isDraggingRef.current = null;
+    setIsDragging(false);
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }, []);
@@ -185,6 +188,6 @@ export function useResizablePanels(config: Partial<ResizablePanelsConfig> = {}) 
     toggleLeftCollapse,
     toggleRightCollapse,
     resetPanels,
-    isDragging: isDraggingRef.current !== null,
+    isDragging,
   };
 }

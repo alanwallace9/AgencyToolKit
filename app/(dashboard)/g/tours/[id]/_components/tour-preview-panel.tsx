@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -80,6 +81,10 @@ function getMenuItemIcon(displayName?: string, selector?: string) {
     if (name.includes(key)) return Icon;
   }
   return LayoutDashboard;
+}
+
+function MenuItemIcon({ displayName, selector, className }: { displayName?: string; selector?: string; className?: string }) {
+  return React.createElement(getMenuItemIcon(displayName, selector), { className });
 }
 
 export function TourPreviewPanel({
@@ -307,7 +312,6 @@ function ModalPreview({ step, stepIndex, totalSteps, colors }: StepPreviewProps)
 }
 
 function TooltipPreview({ step, stepIndex, totalSteps, colors }: StepPreviewProps) {
-  const Icon = getMenuItemIcon(step.element?.displayName, step.element?.selector);
   const label = step.element?.displayName || step.element?.selector?.replace('#sb_', '').replace('_', ' ') || 'Target Element';
   const position = step.position || 'bottom';
 
@@ -362,7 +366,7 @@ function TooltipPreview({ step, stepIndex, totalSteps, colors }: StepPreviewProp
       className="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-800 text-white border-2"
       style={{ borderColor: colors.primary }}
     >
-      <Icon className="h-5 w-5 text-slate-300" />
+      <MenuItemIcon displayName={step.element?.displayName} selector={step.element?.selector} className="h-5 w-5 text-slate-300" />
       <span className="text-sm font-medium capitalize">{label}</span>
     </div>
   );
@@ -564,7 +568,6 @@ function SlideoutPreview({ step, stepIndex, totalSteps, colors }: StepPreviewPro
 }
 
 function HotspotPreview({ step, colors }: { step: TourStep; colors: typeof defaultColors }) {
-  const Icon = getMenuItemIcon(step.element?.displayName, step.element?.selector);
   const label = step.element?.displayName || step.element?.selector?.replace('#sb_', '').replace('_', ' ') || 'Target';
   const position = step.position || 'bottom';
 
@@ -575,7 +578,7 @@ function HotspotPreview({ step, colors }: { step: TourStep; colors: typeof defau
         className="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-800 text-white border-2"
         style={{ borderColor: colors.primary }}
       >
-        <Icon className="h-5 w-5 text-slate-300" />
+        <MenuItemIcon displayName={step.element?.displayName} selector={step.element?.selector} className="h-5 w-5 text-slate-300" />
         <span className="text-sm font-medium capitalize">{label}</span>
       </div>
       {/* Pulsing hotspot */}

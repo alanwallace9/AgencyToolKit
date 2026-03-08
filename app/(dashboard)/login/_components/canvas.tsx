@@ -23,7 +23,7 @@ interface DesignCanvasProps {
   onSelectElement: (id: string | null) => void;
   onResizeElement?: (id: string, width: number, height: number, x?: number, y?: number) => void;
   formStyle: LoginDesignFormStyle;
-  canvasRef: React.RefObject<HTMLDivElement | null>;
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
   showGrid?: boolean;
   gridSize?: 16 | 32;
 }
@@ -70,7 +70,7 @@ export function DesignCanvas({
     setNodeRef(node);
     containerObserverRef.current = node;
     if (canvasRef) {
-      (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      canvasRef.current = node;
     }
   };
 

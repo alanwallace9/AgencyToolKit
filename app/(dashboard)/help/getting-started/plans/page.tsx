@@ -56,7 +56,7 @@ export default function PlansPage() {
       <h2>TrustSignal for Customers</h2>
 
       <p>
-        Want to add TrustSignal to your customer's websites? This is available as
+        Want to add TrustSignal to your customer&apos;s websites? This is available as
         an add-on for <strong>$5/customer/month</strong> on the Pro plan.
       </p>
 
@@ -68,8 +68,8 @@ export default function PlansPage() {
       </p>
 
       <Callout type="tip" title="Try before you buy">
-        With our "soft gate" approach, you can explore all Pro features before upgrading.
-        Build your tours and checklists, then upgrade when you're ready to publish.
+        With our &quot;soft gate&quot; approach, you can explore all Pro features before upgrading.
+        Build your tours and checklists, then upgrade when you&apos;re ready to publish.
       </Callout>
     </ArticleLayout>
   );

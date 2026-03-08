@@ -21,20 +21,21 @@ export default async function WidgetEditorPage({
   const { id } = await params;
   const { tab } = await searchParams;
 
+  let widget, events, total;
   try {
-    const widget = await getWidget(id);
-    const { events, total } = await getEvents(id, { limit: 100 });
-
-    return (
-      <WidgetEditor
-        widget={widget}
-        events={events}
-        totalEvents={total}
-        agency={agency}
-        initialTab={tab || 'settings'}
-      />
-    );
+    widget = await getWidget(id);
+    ({ events, total } = await getEvents(id, { limit: 100 }));
   } catch {
     notFound();
   }
+
+  return (
+    <WidgetEditor
+      widget={widget!}
+      events={events!}
+      totalEvents={total!}
+      agency={agency}
+      initialTab={tab || 'settings'}
+    />
+  );
 }

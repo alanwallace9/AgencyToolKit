@@ -33,6 +33,7 @@ interface TemplateCardProps {
 export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardProps) {
   const router = useRouter();
   const [imageError, setImageError] = useState(false);
+  const [cacheBust] = useState(() => Date.now());
 
   // Format render count
   const formatRenderCount = (count: number) => {
@@ -43,7 +44,7 @@ export function TemplateCard({ template, onDuplicate, onDelete }: TemplateCardPr
 
   // Use the actual API-generated image for accurate preview (cache-bust on update)
   const previewName = template.text_config?.last_preview_name || 'Sarah';
-  const apiPreviewUrl = `/api/images/${template.id}?name=${encodeURIComponent(previewName)}&v=${template.updated_at}&_t=${Date.now()}`;
+  const apiPreviewUrl = `/api/images/${template.id}?name=${encodeURIComponent(previewName)}&v=${template.updated_at}&_t=${cacheBust}`;
 
   return (
     <Card

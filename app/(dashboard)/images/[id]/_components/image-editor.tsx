@@ -79,6 +79,7 @@ export function ImageEditor({ template, customers, userName, plan }: ImageEditor
   const [previewName, setPreviewName] = useState(
     template.text_config?.last_preview_name || 'Sarah'
   );
+  const [urlsCacheBust] = useState(() => Date.now());
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState(PREVIEW_DEVICES[0]);
 
@@ -557,7 +558,7 @@ export function ImageEditor({ template, customers, userName, plan }: ImageEditor
             <div className="flex-1 flex items-center justify-center p-6 overflow-auto">
               <div className="max-w-full max-h-full">
                 <img
-                  src={`/api/images/${template.id}?name=${encodeURIComponent(previewName || 'Sarah')}&_t=${Date.now()}`}
+                  src={`/api/images/${template.id}?name=${encodeURIComponent(previewName || 'Sarah')}&_t=${urlsCacheBust}`}
                   alt="Preview"
                   className="max-w-full max-h-[500px] rounded-lg shadow-lg object-contain"
                 />

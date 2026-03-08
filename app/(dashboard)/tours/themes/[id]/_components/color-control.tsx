@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -86,10 +86,12 @@ export function ColorControl({
   const parsedInitial = parseColor(value);
   const [inputValue, setInputValue] = useState(parsedInitial.hex);
   const [opacity, setOpacity] = useState(parsedInitial.opacity);
+  const [prevValue, setPrevValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Sync input when value prop changes
-  useEffect(() => {
+  // Sync input when value prop changes (inline during render, not in an effect)
+  if (value !== prevValue) {
+    setPrevValue(value);
     const parsed = parseColor(value);
     if (parsed.hex !== inputValue) {
       setInputValue(parsed.hex);
@@ -97,7 +99,7 @@ export function ColorControl({
     if (parsed.opacity !== opacity) {
       setOpacity(parsed.opacity);
     }
-  }, [value]);
+  }
 
   // Helper to emit color change with current opacity
   const emitColorChange = (hex: string, newOpacity?: number) => {

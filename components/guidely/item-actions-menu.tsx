@@ -419,7 +419,7 @@ export function ItemActionsMenu({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {label}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{item.name}". This action cannot be undone.
+              This will permanently delete &quot;{item.name}&quot;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -140,7 +140,7 @@ export function CSSPreviewPanel({ config }: CSSPreviewPanelProps) {
               <p>This CSS customizes your GHL sidebar menu:</p>
               <ul className="list-disc list-inside space-y-1 ml-1">
                 <li>
-                  <strong>Hidden items</strong> — Removes menu items you've
+                  <strong>Hidden items</strong> — Removes menu items you&apos;ve
                   disabled
                 </li>
                 <li>

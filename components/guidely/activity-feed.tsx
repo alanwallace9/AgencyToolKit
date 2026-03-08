@@ -121,7 +121,7 @@ export function ActivityFeed({ activities, className, limit = 5 }: ActivityFeedP
             <div className="flex-1 min-w-0">
               <p className="text-sm">
                 <span className="font-medium group-hover:text-primary transition-colors truncate">
-                  "{activity.itemName}"
+                  &quot;{activity.itemName}&quot;
                 </span>
                 <span className="text-muted-foreground ml-1">
                   {getActivityMessage(activity)}

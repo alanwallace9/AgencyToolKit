@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Plus, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -87,9 +88,9 @@ export function CustomersClient({
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 Customer limit reached.{' '}
-                <a href="/upgrade/customers" className="underline font-medium">
+                <Link href="/upgrade/customers" className="underline font-medium">
                   Upgrade to Pro
-                </a>{' '}
+                </Link>{' '}
                 for unlimited customers.
               </AlertDescription>
             </Alert>

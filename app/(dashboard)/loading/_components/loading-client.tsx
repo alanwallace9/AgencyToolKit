@@ -439,23 +439,19 @@ export function LoadingClient({ initialConfig, brandColors }: LoadingClientProps
   const [showTryItLive, setShowTryItLive] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<AnimationCategory | 'all' | 'favorites'>('all');
   const [isSaving, setIsSaving] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(FAVORITES_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // Ignore localStorage errors
+    }
+    return [];
+  });
 
   // Compare mode state
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
-
-  // Load favorites from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FAVORITES_KEY);
-      if (stored) {
-        setFavorites(JSON.parse(stored));
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
-  }, []);
 
   // Toggle favorite handler
   const handleToggleFavorite = useCallback((animationId: string) => {

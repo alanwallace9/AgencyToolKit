@@ -20,7 +20,7 @@ export default function MenuPage() {
     >
       <p>
         The Menu Customizer lets you control which sidebar items appear in your GHL
-        sub-accounts. Hide features you don't use, rename items to match your
+        sub-accounts. Hide features you don&apos;t use, rename items to match your
         terminology, and reorder them for better organization.
       </p>
 
@@ -42,7 +42,7 @@ export default function MenuPage() {
 
       <p>
         Toggle the switch next to any menu item to hide it from your sub-accounts.
-        Hidden items are grayed out in the editor but won't appear in GHL.
+        Hidden items are grayed out in the editor but won&apos;t appear in GHL.
       </p>
 
       <Callout type="tip" title="Start minimal">
@@ -57,9 +57,9 @@ export default function MenuPage() {
       </p>
 
       <ul>
-        <li>"Reputation" → "Reviews"</li>
-        <li>"Conversations" → "Inbox"</li>
-        <li>"Marketing" → "Campaigns"</li>
+        <li>&quot;Reputation&quot; → &quot;Reviews&quot;</li>
+        <li>&quot;Conversations&quot; → &quot;Inbox&quot;</li>
+        <li>&quot;Marketing&quot; → &quot;Campaigns&quot;</li>
       </ul>
 
       <h2>Reordering Items</h2>
@@ -96,7 +96,7 @@ export default function MenuPage() {
       </p>
 
       <Callout type="info">
-        Menu customizations use CSS to hide and rename items. This is fast and doesn't
+        Menu customizations use CSS to hide and rename items. This is fast and doesn&apos;t
         affect GHL functionality — hidden features are still accessible via direct URL.
       </Callout>
     </ArticleLayout>

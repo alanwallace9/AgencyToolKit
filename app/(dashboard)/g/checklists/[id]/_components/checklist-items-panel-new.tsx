@@ -113,7 +113,7 @@ export function ChecklistItemsPanelNew({
       {items.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-sm">
           <p>No items yet.</p>
-          <p className="text-xs mt-1">Click "Add" to create your first item.</p>
+          <p className="text-xs mt-1">Click &quot;Add&quot; to create your first item.</p>
         </div>
       ) : (
         <DndContext

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -97,6 +97,11 @@ function getMenuItemIcon(displayName?: string, selector?: string) {
   return LayoutDashboard;
 }
 
+// Helper component to render the menu item icon without creating a component in render
+function MenuItemIcon({ displayName, selector, className }: { displayName?: string; selector?: string; className?: string }) {
+  return React.createElement(getMenuItemIcon(displayName, selector), { className });
+}
+
 // Mock menu item that looks like GHL sidebar
 function MockMenuItem({
   displayName,
@@ -107,7 +112,6 @@ function MockMenuItem({
   selector?: string;
   highlightColor: string;
 }) {
-  const Icon = getMenuItemIcon(displayName, selector);
   const label = displayName || selector?.replace('#sb_', '').replace('_', ' ') || 'Menu Item';
 
   return (
@@ -115,7 +119,7 @@ function MockMenuItem({
       className="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-800 text-white border-2"
       style={{ borderColor: highlightColor }}
     >
-      <Icon className="h-5 w-5 text-slate-300" />
+      <MenuItemIcon displayName={displayName} selector={selector} className="h-5 w-5 text-slate-300" />
       <span className="text-sm font-medium capitalize">{label}</span>
     </div>
   );
@@ -130,17 +134,19 @@ export function StepPreviewModal({
 }: StepPreviewModalProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
 
   const colors = (theme?.colors as typeof defaultColors) || defaultColors;
   const currentStep = steps[currentStepIndex];
 
-  // Reset on open
-  useEffect(() => {
+  // Reset on open (inline during render, not in an effect)
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setCurrentStepIndex(0);
       setIsPlaying(false);
     }
-  }, [open]);
+  }
 
   // Auto-advance when playing
   useEffect(() => {

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
+// Module-level helper to get current timestamp (avoids calling Date.now() in component body)
+function getCurrentTimestamp() { return Date.now(); }
 import {
   Dialog,
   DialogContent,
@@ -50,21 +53,24 @@ export function ElementValidator({
   const [results, setResults] = useState<ValidationResult[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [validationWindowRef, setValidationWindowRef] = useState<Window | null>(null);
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevSteps, setPrevSteps] = useState(steps);
 
-  // Initialize results when dialog opens
-  useEffect(() => {
+  // Initialize results when dialog opens or steps change (inline during render, not in an effect)
+  if (open !== prevOpen || steps !== prevSteps) {
+    setPrevOpen(open);
+    setPrevSteps(steps);
     if (open) {
-      const initialResults: ValidationResult[] = steps.map((step, index) => ({
+      setResults(steps.map((step, index) => ({
         stepId: step.id,
         stepIndex: index,
         stepTitle: step.title || `Step ${index + 1}`,
         selector: step.element?.selector || null,
         displayName: step.element?.displayName || null,
         status: step.element?.selector ? 'pending' : 'no_selector',
-      }));
-      setResults(initialResults);
+      })));
     }
-  }, [open, steps]);
+  }
 
   // Listen for validation results from the GHL tab
   useEffect(() => {
@@ -184,11 +190,12 @@ export function ElementValidator({
     const sessionId = crypto.randomUUID();
 
     // Store single validation request
+    const timestamp = getCurrentTimestamp();
     sessionStorage.setItem(
       `at_validate_${sessionId}`,
       JSON.stringify({
         selectors: [{ stepId, selector }],
-        timestamp: Date.now(),
+        timestamp,
       })
     );
 
@@ -304,7 +311,7 @@ export function ElementValidator({
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             {noSelectorCount > 0 && (
-              <span>{noSelectorCount} step(s) don't target elements</span>
+              <span>{noSelectorCount} step(s) don&apos;t target elements</span>
             )}
           </div>
 

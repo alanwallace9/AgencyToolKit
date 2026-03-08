@@ -139,7 +139,7 @@ export function SettingsTab({ settings, onUpdateSettings }: SettingsTabProps) {
             <div>
               <div className="text-sm font-medium">Show close button</div>
               <div className="text-xs text-muted-foreground">
-                Display "X" button to dismiss the tour
+                Display &quot;X&quot; button to dismiss the tour
               </div>
             </div>
             <Switch

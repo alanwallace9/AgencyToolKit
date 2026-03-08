@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X, Palette, Target, Globe } from 'lucide-react';
+import Link from 'next/link';
 import type { SmartTip, TourTheme, TourTargeting, UrlPattern } from '@/types/database';
 
 interface TipGlobalSettingsProps {
@@ -303,9 +304,9 @@ export function TipGlobalSettings({
               <p className="text-xs text-muted-foreground">
                 Themes control colors, fonts, and border radius of your tooltips.
                 <br />
-                <a href="/g/themes" className="text-primary hover:underline">
+                <Link href="/g/themes" className="text-primary hover:underline">
                   Manage themes
-                </a>
+                </Link>
               </p>
             </div>
           </TabsContent>

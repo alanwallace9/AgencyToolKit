@@ -11,6 +11,39 @@ interface TipPreviewProps {
   expanded?: boolean;
 }
 
+interface TooltipContentProps {
+  tooltipStyles: React.CSSProperties;
+  arrowStyles: React.CSSProperties;
+  contentParts: (string | { text: string; url: string })[];
+  linkColor: string;
+}
+
+function TooltipContentDisplay({ tooltipStyles, arrowStyles, contentParts, linkColor }: TooltipContentProps) {
+  return (
+    <div style={tooltipStyles}>
+      <div style={arrowStyles} />
+      <div>
+        {contentParts.map((part, i) => (
+          typeof part === 'string' ? (
+            <span key={i}>{part}</span>
+          ) : (
+            <a
+              key={i}
+              href={part.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: linkColor, textDecoration: 'underline' }}
+              onClick={(e) => e.preventDefault()}
+            >
+              {part.text}
+            </a>
+          )
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function TipPreview({ tip, theme, expanded = false }: TipPreviewProps) {
   const [showTooltip, setShowTooltip] = useState(true);
 
@@ -176,31 +209,6 @@ export function TipPreview({ tip, theme, expanded = false }: TipPreviewProps) {
   // Get position label for display
   const positionLabel = tip.position === 'auto' ? 'Auto (showing bottom)' : tip.position.charAt(0).toUpperCase() + tip.position.slice(1);
 
-  // Tooltip content component (reused in both modes)
-  const TooltipContent = () => (
-    <div style={getTooltipStyles()}>
-      <div style={getArrowStyles()} />
-      <div>
-        {contentParts.map((part, i) => (
-          typeof part === 'string' ? (
-            <span key={i}>{part}</span>
-          ) : (
-            <a
-              key={i}
-              href={part.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: linkColor, textDecoration: 'underline' }}
-              onClick={(e) => e.preventDefault()}
-            >
-              {part.text}
-            </a>
-          )
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -245,12 +253,12 @@ export function TipPreview({ tip, theme, expanded = false }: TipPreviewProps) {
               >
                 {getBeaconContent()}
                 {/* Tooltip attached to beacon - rendered INSIDE beacon so positioning is relative to it */}
-                {showTooltip && isBeaconTarget && <TooltipContent />}
+                {showTooltip && isBeaconTarget && <TooltipContentDisplay tooltipStyles={getTooltipStyles()} arrowStyles={getArrowStyles()} contentParts={contentParts} linkColor={linkColor} />}
               </div>
             )}
 
             {/* Tooltip - attached to element */}
-            {showTooltip && !isBeaconTarget && <TooltipContent />}
+            {showTooltip && !isBeaconTarget && <TooltipContentDisplay tooltipStyles={getTooltipStyles()} arrowStyles={getArrowStyles()} contentParts={contentParts} linkColor={linkColor} />}
           </div>
         </div>
       </div>

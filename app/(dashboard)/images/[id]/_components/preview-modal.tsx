@@ -57,8 +57,9 @@ export function PreviewModal({
   onDeviceChange,
 }: PreviewModalProps) {
   const [isMobileView, setIsMobileView] = useState(false);
-  const [imageKey, setImageKey] = useState(() => Date.now());
+  const [imageKey, setImageKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
 
   // Debounce name changes to avoid hammering the API
   const [debouncedName, setDebouncedName] = useState(previewName);
@@ -67,19 +68,20 @@ export function PreviewModal({
     if (nameTimeoutRef.current) clearTimeout(nameTimeoutRef.current);
     nameTimeoutRef.current = setTimeout(() => {
       setDebouncedName(previewName);
-      setImageKey(Date.now());
+      setImageKey((k) => k + 1);
       setIsLoading(true);
     }, 600);
     return () => { if (nameTimeoutRef.current) clearTimeout(nameTimeoutRef.current); };
   }, [previewName]);
 
-  // Refresh image when modal opens
-  useEffect(() => {
+  // Refresh image when modal opens (inline during render, not in an effect)
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
-      setImageKey(Date.now());
+      setImageKey((k) => k + 1);
       setIsLoading(true);
     }
-  }, [open]);
+  }
 
   // Use the actual API URL - this is the ONLY source of truth
   const previewUrl = `/api/images/${template.id}?name=${encodeURIComponent(debouncedName || 'Friend')}&_t=${imageKey}`;
@@ -90,7 +92,7 @@ export function PreviewModal({
   // Refresh the preview image
   const handleRefresh = () => {
     setIsLoading(true);
-    setImageKey(Date.now());
+    setImageKey((k) => k + 1);
   };
 
   return (

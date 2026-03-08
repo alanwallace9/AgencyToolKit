@@ -156,7 +156,7 @@ export function StepList({
       {steps.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-sm">
           <p>No steps yet.</p>
-          <p className="text-xs mt-1">Click "Add" to create your first step.</p>
+          <p className="text-xs mt-1">Click &quot;Add&quot; to create your first step.</p>
         </div>
       ) : (
         <DndContext

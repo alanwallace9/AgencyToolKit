@@ -143,7 +143,7 @@ export function TourSettingsSheet({
                 <div>
                   <div className="text-sm">Show close button</div>
                   <div className="text-xs text-muted-foreground">
-                    "X" to dismiss tour
+                    &quot;X&quot; to dismiss tour
                   </div>
                 </div>
                 <Switch

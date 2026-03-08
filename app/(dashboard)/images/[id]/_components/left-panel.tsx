@@ -67,7 +67,7 @@ export function LeftPanel({
                 onClick={handleUseMyName}
               >
                 <User className="h-3.5 w-3.5 mr-2" />
-                Try it with "{userName}"
+                Try it with &quot;{userName}&quot;
               </Button>
             )}
 

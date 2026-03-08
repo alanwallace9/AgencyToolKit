@@ -60,7 +60,7 @@ export function ThemeTab({
         <div>
           <h3 className="text-lg font-semibold">Tour Theme</h3>
           <p className="text-sm text-muted-foreground">
-            Choose a visual theme for this tour's tooltips and modals
+            Choose a visual theme for this tour&apos;s tooltips and modals
           </p>
         </div>
 
