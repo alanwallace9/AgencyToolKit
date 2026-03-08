@@ -8,6 +8,48 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-03-08 — Tour Resume Fix + Image Plan Gate + Cron Secret
+
+### What I did
+- **Fixed tour step resume bug** — When a user closed a Driver.js tour mid-way and returned, it always restarted from step 1 instead of the step they were on. Root cause: `driverRef.destroy()` is called in `onDestroyStarted`, which resets Driver.js internal state. By the time `onDestroyed` fires, `options.state.activeIndex` is unreliable (undefined/reset). Fix: added `lastKnownStep` closure variable, updated on every `onHighlightStarted`. Also fixed camelCase/snake_case mismatch (`inProgress` vs `in_progress`) and the falsy-zero edge case in the resume check. Committed `cbde2fe`, deployed and confirmed working.
+- **Added plan gate to image API** — `/api/images/[templateId]/route.tsx` had no plan check — anyone with a template ID could generate personalized images for free. Added `fetchAgencyPlan()` that looks up the owning agency via `template.agency_id` using the service role key, then returns 403 if plan !== 'pro'. Tested by downgrading plan to 'toolkit' in DB — confirmed 403 response. Restored plan to 'pro' after test. Committed `bd22ecd`.
+- **Added CRON_SECRET** — Added to `.env.local` locally. User added to Vercel env vars manually. The 5am selector health cron at `/api/cron/selector-health` uses this secret to verify requests come from Vercel's scheduler, not arbitrary callers.
+
+### What's next
+- **Pre-existing lint errors** — `pnpm lint` fails on ~15 errors in files not touched this session (unescaped entities, setState-in-effect, component-created-during-render, etc.). These need a dedicated cleanup pass.
+- Test the 5am cron fires correctly (check Vercel cron logs after 5am)
+- Consider naming the image personalization feature — **NameDrop** or **ImageMerge**
+
+### Blockers
+- None
+
+### Cross-project notes
+- Plan gating pattern for public API routes: fetch the owning resource first, then look up agency plan via service role key. No Clerk auth needed — works for fully public endpoints.
+
+## 2026-03-07 — Image API Font Rendering Fix (Satori)
+
+### What I did
+- **Diagnosed production image rendering bug**: Text overlay was not appearing on production despite working locally. Root cause: Sharp's SVG compositor uses librsvg which depends on fontconfig — not available on Vercel serverless.
+- **Installed `@resvg/resvg-js`**: Added as SVG rasterizer to replace Sharp's built-in SVG compositing. Added to `serverExternalPackages` in `next.config.ts`.
+- **Fixed Buffer → string bug**: resvg-js requires a string, not a Buffer — silent empty render when passed raw bytes.
+- **Debugged background_color mismatch**: Template had `background_color: null` in DB but editor showed white box. Reverted incorrect API default override. Traced null to old template pre-dating defaults.
+- **Switched text rendering to Satori**: Replaced `createTextSvg` SVG @font-face approach entirely with Satori (`satori@0.25.0`). Satori converts text to SVG paths — no fontconfig needed. resvg-js rasterizes the path-based SVG cleanly.
+- **Fixed font format for Satori**: Satori requires TTF/OTF, not woff2. Confirmed via curl: Android 2.2 user agent on Google Fonts css2 API returns `format('truetype')` with `.ttf` URL.
+- **Fixed Satori crash**: Removed `textShadow` from JSX (not supported by Satori, caused "Cannot read properties of undefined" crash).
+- **Result**: Production image URL renders name in correct font, correct position, correct background color. Confirmed working with "Marcus" on Precision Plumbing template.
+- **Committed leftover session changes**: Back to Customers button (server Link component), embed.js tour reset bug fix, session log.
+
+### What's next
+- **Option A — Plan check on image API**: Add agency plan verification (`plan === 'pro'`) to `/api/images/[templateId]` route — anyone with a template ID can currently generate images for free.
+- Consider naming "Image Personalization" feature — **NameDrop** or **ImageMerge** are strong candidates.
+- Post solution in GHL community group explaining why Agency Toolkit's URL approach is simpler than Make/Zapier workarounds.
+
+### Blockers
+- None — image rendering is working end-to-end on production.
+
+### Cross-project notes
+- Satori + resvg-js pattern (Satori for text-to-paths, resvg-js for rasterization, Sharp for compositing) is a proven Vercel-compatible stack for server-side image generation with custom fonts. Add to ROOT_STARTER_KIT.md if confirmed stable across fonts.
+
 ## 2026-03-07 — GHL Selector Health Monitor + Customer Tour Reset
 
 ### What I did
