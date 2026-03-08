@@ -86,6 +86,33 @@ async function fetchTemplate(templateId: string): Promise<ImageTemplate | null> 
 }
 
 /**
+ * Fetch the plan for the agency that owns a template
+ */
+async function fetchAgencyPlan(agencyId: string): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/agencies?id=eq.${agencyId}&select=plan`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      }
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data[0]?.plan ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Increment render count (fire and forget)
  */
 async function incrementRenderCount(templateId: string): Promise<void> {
@@ -163,6 +190,12 @@ export async function GET(
     const template = await fetchTemplate(templateId);
     if (!template) {
       return new Response('Template not found', { status: 404 });
+    }
+
+    // Plan gate — image personalization is a Pro feature
+    const agencyPlan = await fetchAgencyPlan(template.agency_id);
+    if (agencyPlan !== 'pro') {
+      return new Response('Image personalization requires a Pro plan', { status: 403 });
     }
 
     // Debug mode - return template info
