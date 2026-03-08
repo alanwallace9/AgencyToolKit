@@ -2699,6 +2699,10 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     // (callbacks execute after driverRef is assigned)
     var driverRef = null;
 
+    // Track current step in closure — options.state.activeIndex is unreliable in
+    // onDestroyed because driverRef.destroy() resets Driver.js state beforehand.
+    var lastKnownStep = 0;
+
     // Convert steps to Driver.js format
     var canClose = settings.show_close !== false;
     var driverSteps = steps.map(function(step, index) {
@@ -2866,8 +2870,9 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         });
 
         // Save progress
+        lastKnownStep = stepIndex;
         saveTourState(tour.id, {
-          inProgress: true,
+          in_progress: true,
           currentStep: stepIndex,
           startedAt: getTourState(tour.id)?.startedAt || Date.now()
         });
@@ -2925,9 +2930,11 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
         // Without this, clicking X intercepts the hook but never actually closes the tour.
         driverRef.destroy();
       },
-      onDestroyed: function(element, step, options) {
-        // Check if tour was completed (reached last step)
-        var wasCompleted = options.state.activeIndex === steps.length - 1;
+      onDestroyed: function() {
+        // Use lastKnownStep instead of options.state.activeIndex — Driver.js resets
+        // internal state when driverRef.destroy() is called in onDestroyStarted,
+        // so activeIndex would be unreliable (undefined/-1) by the time onDestroyed fires.
+        var wasCompleted = lastKnownStep === steps.length - 1;
 
         if (wasCompleted) {
           saveTourState(tour.id, {
@@ -2947,18 +2954,18 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
           // User closed the tour mid-way — save progress so it resumes on next visit
           saveTourState(tour.id, {
             in_progress: true,
-            currentStep: options.state.activeIndex,
+            currentStep: lastKnownStep,
             lastClosedAt: Date.now()
           });
           trackTourEvent('tour_dismissed', tour.id, {
-            step_index: options.state.activeIndex,
+            step_index: lastKnownStep,
             total_steps: steps.length
           });
           // Customer-level progress tracking
           trackCustomerProgress('tour_dismiss', tour.id, {
-            step_order: options.state.activeIndex
+            step_order: lastKnownStep
           });
-          log('Tour closed at step', options.state.activeIndex + 1, '— will resume next visit');
+          log('Tour closed at step', lastKnownStep + 1, '— will resume next visit');
         }
       }
     });
@@ -2971,7 +2978,7 @@ function generateEmbedScript(key: string | null, baseUrl: string, configVersion?
     // Start the tour after page settles — resume from saved step if user previously closed mid-tour
     setTimeout(function() {
       var savedState = getTourState(tour.id);
-      var startStep = (savedState && savedState.in_progress && savedState.currentStep) ? savedState.currentStep : 0;
+      var startStep = (savedState && savedState.in_progress && savedState.currentStep != null) ? savedState.currentStep : 0;
       driverInstance.drive(startStep);
     }, settings.delay_ms || 1000);
   }
