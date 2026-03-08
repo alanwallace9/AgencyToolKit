@@ -8,6 +8,28 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-03-08 — Lint Cleanup (66 errors → 0)
+
+### What I did
+- **Resolved all 66 ESLint errors** across 32 files. Build and lint now pass clean (0 errors, 26 warnings only).
+  - Unescaped entities: escaped `"` / `'` in JSX text across help articles, tour editors, guidely components
+  - `<a>` → `<Link>`: fixed in `customers-client.tsx` and `tip-global-settings.tsx`
+  - setState in useEffect: refactored 7 components to inline render-guard pattern or lazy initializers (color controls, preview modals, loading client, view-toggle)
+  - Components defined in render: moved `TooltipContent`, `MenuItemIcon`, `ColorSwatch` to module level with explicit props
+  - Impure functions in render: replaced inline `Date.now()` / `Math.random()` calls with stable `useState` values
+  - Misc: fixed ref access in render (`use-resizable-panels.ts`), immutability violation in `canvas.tsx`, JSX in try/catch in `trustsignal/[id]/page.tsx`
+- Committed `5da9757`, pushed to main.
+
+### What's next
+- 26 remaining warnings (mostly `react-hooks/exhaustive-deps` and `@next/next/no-img-element`) — low priority, no functional impact
+- Consider replacing `ColorControl` (native `<input type="color">`) in Guidely theme editor and tour themes editor with the custom color picker — deferred per user
+
+### Blockers
+- None
+
+### Cross-project notes
+- None
+
 ## 2026-03-08 — Tour Resume Fix + Image Plan Gate + Cron Secret
 
 ### What I did
