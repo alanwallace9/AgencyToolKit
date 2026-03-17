@@ -30,7 +30,6 @@ export function URLGenerator({ templateId, previewName = 'Sarah', fullPage = fal
 
   // URLs to display
   const testUrl = `${baseUrl}/api/images/${templateId}?name=${encodeURIComponent(previewName)}`;
-  const smsUrl = `${baseUrl}/i/${templateId}?name={{contact.first_name}}`;
   const ghlUrl = `${baseUrl}/api/images/${templateId}?name={{contact.first_name}}`;
   const htmlTag = `<img src="${ghlUrl}" alt="Personalized image" style="max-width: 100%; height: auto;" />`;
 
@@ -72,23 +71,14 @@ export function URLGenerator({ templateId, previewName = 'Sarah', fullPage = fal
           }
         />
 
-        {/* SMS URL - OG wrapper for inline image preview */}
+        {/* GHL Workflow URL - Primary/Highlighted */}
         <URLField
-          label="For GHL SMS"
-          description="Paste in your SMS message body — shows image inline"
+          label="For GHL Workflows"
+          description="With merge tag - paste this in your email/SMS"
           icon={<Mail className="h-4 w-4 text-primary" />}
-          url={smsUrl}
-          toastMessage="Copied! Paste in your GHL SMS message"
-          highlight
-        />
-
-        {/* GHL Email URL */}
-        <URLField
-          label="For GHL Emails"
-          description="Direct image URL — use in email image blocks"
-          icon={<Mail className="h-4 w-4 text-muted-foreground" />}
           url={ghlUrl}
-          toastMessage="Copied! Paste in your GHL email image block"
+          toastMessage="Copied! Paste in your GHL workflow"
+          highlight
         />
 
         {/* HTML Image Tag */}
@@ -193,9 +183,9 @@ function SetupInstructions() {
       <section>
         <h4 className="font-medium mb-2">For GHL SMS</h4>
         <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-          <li>Copy the &quot;For GHL SMS&quot; URL above</li>
-          <li>Paste it directly in your SMS message body</li>
-          <li>GHL resolves the merge tag and sends as MMS — image appears inline</li>
+          <li>Paste the URL directly in your SMS message</li>
+          <li>Most carriers will display it as a preview image</li>
+          <li>The merge tag will be resolved when the message sends</li>
         </ol>
       </section>
 

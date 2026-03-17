@@ -56,8 +56,15 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Get image dimensions using sharp
-    const metadata = await sharp(buffer).metadata();
+    // Resize to max 800px on longest dimension before storing
+    // This keeps files phone-friendly (~75-80KB) and avoids storing oversized originals
+    const resizedBuffer = await sharp(buffer)
+      .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85, mozjpeg: true })
+      .toBuffer();
+
+    // Get final dimensions after resize
+    const metadata = await sharp(resizedBuffer).metadata();
     if (!metadata.width || !metadata.height) {
       return NextResponse.json(
         { error: 'Could not read image dimensions' },
@@ -65,15 +72,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate storage path
+    // Generate storage path (always .jpg after resize)
+    const baseName = file.name.replace(/\.[^.]+$/, '');
     const pathname = generateImagePath(
       agency.id,
       customerId ?? null,
-      file.name
+      `${baseName}.jpg`
     );
 
-    // Upload to storage
-    const result = await storage.upload(buffer, pathname, file.type);
+    // Upload resized image to storage
+    const result = await storage.upload(resizedBuffer, pathname, 'image/jpeg');
 
     return NextResponse.json({
       url: result.url,

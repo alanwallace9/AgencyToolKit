@@ -17,7 +17,6 @@ const isPublicRoute = createRouteMatcher([
   '/embed.js(.*)',
   '/ts.js(.*)',  // TrustSignal embed script
   '/api/images(.*)',
-  '/i/(.*)',  // NameDrop OG wrapper pages (public shareable image links)
   '/preview(.*)',
   '/test-widget(.*)',  // Test page for TrustSignal
   '/upload(.*)',  // Standalone photo upload page (public)

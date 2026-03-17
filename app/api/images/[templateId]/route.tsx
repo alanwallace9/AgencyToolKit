@@ -214,8 +214,19 @@ export async function GET(
     }
 
     const cfg = template.text_config;
-    const displayName = name.trim() || cfg.fallback || 'Friend';
-    const displayText = `${cfg.prefix || ''}${displayName}${cfg.suffix || ''}`;
+    const rawName = name.trim() || cfg.fallback || 'Friend';
+
+    // Apply text transform (matches editor preview)
+    let transformedName = rawName;
+    if (cfg.text_transform === 'uppercase') {
+      transformedName = rawName.toUpperCase();
+    } else if (cfg.text_transform === 'lowercase') {
+      transformedName = rawName.toLowerCase();
+    } else if (cfg.text_transform === 'capitalize') {
+      transformedName = rawName.replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
+    const displayText = `${cfg.prefix || ''}${transformedName}${cfg.suffix || ''}`;
 
     // Load custom font
     const fontName = cfg.font || 'Inter';
@@ -270,8 +281,8 @@ export async function GET(
     }
 
     // Resize image first, then get final dimensions
-    const maxWidth = 800; // Target width for email/mobile
-    const resizedImage = sharp(imageBuffer).resize(maxWidth, null, {
+    // Cap longest dimension at 800px (portrait and landscape both handled)
+    const resizedImage = sharp(imageBuffer).resize(800, 800, {
       withoutEnlargement: true,
       fit: 'inside',
     });
