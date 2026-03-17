@@ -8,6 +8,25 @@
 
 <!-- New entries go below this line. Most recent first. -->
 
+## 2026-03-17 — NameDrop Image Sizing, Text Transform Bug Fix, OG Wrapper Revert
+
+### What I did
+- **Fixed API resize logic** — `route.tsx` was capping width at 800px but not height. Portrait images (e.g. 600×900) would render at 800×1200, far too tall for mobile SMS. Changed `resize(800, null)` to `resize(800, 800, { fit: 'inside', withoutEnlargement: true })` so the longest dimension caps at 800px with ratio locked.
+- **Auto-resize at upload** — `upload/route.ts` now resizes images to max 800px on longest side and converts to optimized JPEG (quality 85, mozjpeg) before storing in R2. Previously storing raw full-resolution originals.
+- **Fixed text_transform not applying in API render** — The editor had `Aa/AA/aa/Ab` casing buttons that saved to `text_config.text_transform`, and it applied via CSS in the canvas preview — but the API render in `route.tsx` was ignoring it. Names from GHL (e.g. `john smith`) were passing through raw instead of getting Title Cased. Fixed by applying the transform to `displayText` before rendering.
+- **Reverted OG wrapper approach** — Deleted `/app/i/[templateId]/page.tsx` (the SMS OG preview wrapper), removed `/i/(.*)` public route from `proxy.ts`, and simplified `url-generator.tsx` back to a single "For GHL Workflows" URL that works for both email and SMS. The `/api/images/` route was already working for SMS inline previews.
+- Committed `e6ff177`, pushed and deployed to Vercel.
+
+### What's next
+- NameDrop editor redesign (left panel = element properties, NiftyImages-style) — deferred, not worth the layout restructure right now
+- Test text_transform fix end-to-end with a live GHL workflow
+
+### Blockers
+- None
+
+### Cross-project notes
+- None
+
 ## 2026-03-08 — Lint Cleanup (66 errors → 0)
 
 ### What I did
